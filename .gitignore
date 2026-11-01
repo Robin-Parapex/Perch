@@ -1,0 +1,21 @@
+# macOS
+.DS_Store
+
+# Xcode
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+DerivedData/
+build/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# Local secrets and overrides (never committed)
+*.xcconfig.local
+.env
+.env.*
+
+# Claude Code local state
+.claude/settings.local.json
