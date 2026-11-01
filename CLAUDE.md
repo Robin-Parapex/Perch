@@ -11,7 +11,7 @@ Full spec: `docs/SPEC.md`. Version plan: `docs/ROADMAP.md`.
 ## Stack (fixed unless DECISIONS.md says otherwise)
 
 - **Platform:** tvOS 26 minimum, Apple TV 4K (3rd generation, 2022, the household's device; 2nd generation supported but HDR10+ then plays as HDR10). Swift 6, SwiftUI first, UIKit only where tvOS needs it (focus edge cases, AVPlayerViewController wrapping, Top Shelf).
-- **Identifiers (proposed, Robin confirms in WP-01):** bundle ID `uk.familybrown.perch`, Top Shelf `uk.familybrown.perch.topshelf`, App Group `group.uk.familybrown.perch`, Keychain access group the same, URL scheme `perch`. Repo on GitHub.
+- **Identifiers (team Parapex Ltd, ID 3TWLQK4535):** bundle ID `com.robrolabs.perch`, Top Shelf `com.robrolabs.perch.topshelf`, App Group `group.com.robrolabs.perch`, Keychain access group the same, URL scheme `perch`. Repo on GitHub.
 - **Player:** AVPlayerViewController (Apple's native player) in 1.x. A second FFmpeg-based engine (KSPlayer or VLCKit) is planned for 2.0, with manual audio offset. Do not add it earlier.
 - **Dependencies:** keep them few. Approved: Nuke (images). Everything else (Plex, Seerr, Trakt, Home Assistant, TMDB, fanart.tv, Tautulli, AI providers) is a thin client of our own in its module. Any new package needs a line in `docs/DECISIONS.md` first.
 - **Navigation:** collapsible left sidebar like the Apple TV app (tabs per version in `docs/SPEC.md` 3). Player embedded in our own container with a separate overlay window above it (`docs/ARCHITECTURE.md`).
@@ -72,7 +72,9 @@ Semantic versioning, `MAJOR.MINOR.PATCH`, with `0.x` for pre-MVP milestones and 
 Perch/
   CLAUDE.md  README.md  CHANGELOG.md  THIRD_PARTY_NOTICES.md
   docs/                  this pack
+  project.yml            XcodeGen source; generated Perch.xcodeproj is committed
   Perch.xcodeproj
+  scripts/               local gate and helper scripts
   Packages/              Swift packages, one per module (see docs/MODULES.md)
     PerchCore/  PerchDesign/  PerchPlex/  PerchPlayer/  PerchSeerr/  PerchTrakt/
     PerchHome/  PerchFrigate/ PerchAI/    PerchTautulli/

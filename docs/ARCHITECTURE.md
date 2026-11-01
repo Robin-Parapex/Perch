@@ -84,7 +84,7 @@ Frame-rate and dynamic-range matching: set `AVPlayerViewController.appliesPrefer
 - Unit: playback decision table, permission matrix (role x action x room), request state mapping, seasonal calendar, recommendation merge, polling policy backoff.
 - UI smoke: focus and Back on each screen; run on hardware before each TestFlight.
 - A fixture Plex library of ~15 items covering the decision table lives on the server for repeatable playback tests: MP4 H.264 1080p; MKV HEVC HDR10 EAC3; MKV HEVC DV 8.1 EAC3-JOC; MKV HEVC DV 7 TrueHD Atmos; MKV H.264 DTS-HD; MKV with PGS subtitles; MKV with ASS subtitles; MP4 AAC with SRT sidecar; an 80 Mbit/s 4K sample; one file from the Real-Debrid mount; one AV1 file; one 4:3 SD MPEG-2 file.
-- App Transport Security: users type plain-HTTP addresses for Plex, Seerr, Home Assistant, Frigate and local AI servers, so this private build sets `NSAllowsArbitraryLoads` (a public release would need HTTPS guidance or per-host exceptions instead). tvOS has no Local Network privacy prompt. Export compliance: set `ITSAppUsesNonExemptEncryption` to NO so TestFlight uploads don't wait on a questionnaire.
+- App Transport Security: users type plain-HTTP addresses for Plex, Seerr, Home Assistant, Frigate and local AI servers, so this private build sets `NSAllowsArbitraryLoads` (a public release would need HTTPS guidance or per-host exceptions instead). Info.plist carries `NSLocalNetworkUsageDescription`, because Apple documents the key for tvOS 14 and later; the real prompt behaviour on tvOS 26 is still to be checked on the Apple TV. Export compliance: set `ITSAppUsesNonExemptEncryption` to NO so TestFlight uploads don't wait on a questionnaire.
 
 ## Observability
 
