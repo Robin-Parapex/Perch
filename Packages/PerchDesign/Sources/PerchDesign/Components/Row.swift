@@ -45,9 +45,10 @@ public struct Row<Content: View>: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 LazyHStack(spacing: PerchSpacing.itemGap) { content }
                     .scrollTargetLayout()
-                    .padding(.horizontal, PerchSpacing.horizontalMargin)
                     .padding(.vertical, 40)
             }
+            // Content inset, not outer padding: the row spans the screen and cards scroll off its edge.
+            .contentMargins(.horizontal, PerchSpacing.horizontalMargin, for: .scrollContent)
             .scrollTargetBehavior(.viewAligned)
             .scrollClipDisabled()
             .focusSection()

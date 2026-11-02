@@ -62,6 +62,29 @@ final class DesignGalleryUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Perch"].waitForExistence(timeout: 5))
     }
 
+    @MainActor
+    func testGalleryFillsTheScreen() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-PerchDesignGallery"]
+        app.launch()
+        let remote = XCUIRemote.shared
+
+        let window = app.windows.firstMatch
+        XCTAssertTrue(window.waitForExistence(timeout: 10))
+        let title = app.staticTexts["gallery.title"]
+        XCTAssertTrue(title.waitForExistence(timeout: 10))
+        XCTAssertEqual(title.frame.minX - window.frame.minX, 80, accuracy: 4, "title sits at the 80 pt margin")
+
+        let hero = app.descendants(matching: .any)["gallery.hero"]
+        var presses = 0
+        while !hero.exists && presses < 12 {
+            remote.press(.down)
+            presses += 1
+        }
+        XCTAssertTrue(hero.waitForExistence(timeout: 5), "hero should be reachable")
+        XCTAssertEqual(hero.frame.width, window.frame.width, accuracy: 1, "hero spans the window")
+    }
+
     private func waitForFocus(_ element: XCUIElement) -> Bool {
         let focused = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hasFocus == true"), object: element)
         return XCTWaiter().wait(for: [focused], timeout: 3) == .completed
