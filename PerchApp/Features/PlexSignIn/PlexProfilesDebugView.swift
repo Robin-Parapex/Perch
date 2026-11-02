@@ -131,7 +131,10 @@ struct PlexProfilesDebugView: View {
         switching = true
         defer { switching = false }
         do {
-            try await model.session.switchProfile(to: PlexUserID(row.id), pin: row.isProtected ? entered : nil)
+            // Debug only: slice C replaces this view with the policy-driven ProfileSwitcher.
+            try await model.session.switchProfile(
+                to: PlexUserID(row.id), pin: row.isProtected ? entered : nil,
+                requirement: row.isProtected ? .targetPlexPIN : .none)
             pinTarget = nil
             pin = ""
             message = nil

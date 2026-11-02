@@ -39,3 +39,20 @@ public struct PlexLibrarySummary: Sendable, Equatable {
         return PlexLibrarySummary(sectionCount: container.Directory?.count ?? container.size ?? 0)
     }
 }
+
+/// `GET {server}/library/recentlyAdded`, reduced to the unique `art` paths (backdrops).
+public enum PlexArtList {
+    public static func decode(from data: Data, limit: Int) throws -> [String] {
+        struct Item: Decodable { let art: String? }
+        struct Container: Decodable { let Metadata: [Item]? }
+        struct Root: Decodable { let MediaContainer: Container }
+        let items = try PlexJSON.decode(Root.self, from: data).MediaContainer.Metadata ?? []
+        var seen = Set<String>()
+        var paths: [String] = []
+        for case let art? in items.map(\.art) where !art.isEmpty && seen.insert(art).inserted {
+            paths.append(art)
+            if paths.count >= limit { break }
+        }
+        return paths
+    }
+}

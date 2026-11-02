@@ -75,4 +75,34 @@ public struct PlexEndpoints: Sendable {
     public func librarySections(base: URL, token: String) -> URLRequest {
         make("GET", base.appending(path: "library/sections"), token: token)
     }
+
+    /// Newest items with their `art` paths, for backdrops. The token is a header, never a query item.
+    public func recentlyAdded(base: URL, token: String, limit: Int) -> URLRequest {
+        make(
+            "GET",
+            url(
+                base.appending(path: "library/recentlyAdded").absoluteString,
+                query: [
+                    .init(name: "X-Plex-Container-Start", value: "0"),
+                    .init(name: "X-Plex-Container-Size", value: String(max(1, limit))),
+                ]),
+            token: token)
+    }
+
+    /// A server image by path. Returns nil unless `path` is a plain absolute path on the server
+    /// (no scheme, no host, no token in the query), so the token header can only go to `base`.
+    public func image(base: URL, path: String, token: String) -> URLRequest? {
+        guard path.hasPrefix("/"), !path.hasPrefix("//"), !path.contains("://"),
+            let parts = URLComponents(string: path),
+            !(parts.queryItems ?? []).contains(where: { $0.name.lowercased().contains("token") }),
+            var target = URLComponents(url: base, resolvingAgainstBaseURL: false)
+        else { return nil }
+        target.path = parts.path
+        target.percentEncodedQuery = parts.percentEncodedQuery
+        target.fragment = nil
+        guard let url = target.url else { return nil }
+        var request = make("GET", url, token: token)
+        request.setValue("image/*", forHTTPHeaderField: "Accept")
+        return request
+    }
 }

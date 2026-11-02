@@ -114,6 +114,7 @@ final class PlexSignInModel {
         case .notSignedIn: return "Sign in first"
         case .notHomeOwner: return "Sign in with the account that manages your Plex Home"
         case .switchInProgress: return "Still switching profiles"
+        case .adminVerificationRequired: return "Enter the Admin PIN first"
         case .pinIncorrect: return "That PIN isn't right"
         case .lockedOut(let until): return "Too many tries. Try again in \(duration(until))"
         case .plexTVUnreachable: return "Can't reach Plex right now"

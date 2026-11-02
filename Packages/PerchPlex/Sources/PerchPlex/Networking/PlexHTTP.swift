@@ -44,6 +44,8 @@ public enum PlexError: Error, Equatable, Sendable {
     case notHomeOwner
     /// A profile switch is already running.
     case switchInProgress
+    /// The switch needs an accepted Admin PIN check that the caller did not supply.
+    case adminVerificationRequired
 }
 
 /// Which side of the network a request was talking to, so a transport failure maps to the right case.

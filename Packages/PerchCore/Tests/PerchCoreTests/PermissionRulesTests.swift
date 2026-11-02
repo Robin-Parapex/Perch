@@ -45,7 +45,7 @@ struct PermissionRulesTests {
     }
 
     @Test func freshPIN() {
-        for action in [CoreAction.unlockDoor, .alarm, .openAdmin] {
+        for action in [CoreAction.unlockDoor, .alarm, .openAdmin, .editSetup] {
             #expect(PermissionMatrix.decide(action, in: ctx(.parent)) == .needsFreshPIN)
             #expect(PermissionMatrix.decide(action, in: ctx(.parent, fresh: true)) == .allowed)
             #expect(PermissionMatrix.decide(action, in: ctx(.teen, fresh: true)) == .denied(.role))

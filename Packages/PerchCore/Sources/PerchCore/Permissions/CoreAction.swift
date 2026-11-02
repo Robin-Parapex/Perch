@@ -16,6 +16,8 @@ public enum CoreAction: Hashable, Sendable {
     case switchProfile
     case openSettings
     case openAdmin
+    /// Editing setup (profiles, roles, ceilings) or running the wizard again. Parent, fresh Admin PIN.
+    case editSetup
     case requestTitle
     case approveRequests
     case seeDoorbellOverlay
@@ -33,7 +35,7 @@ public enum CoreAction: Hashable, Sendable {
     /// Actions that change the state of the house or the household's approvals.
     public var isPrivileged: Bool {
         switch self {
-        case .unlockDoor, .alarm, .approveRequests, .openAdmin: true
+        case .unlockDoor, .alarm, .approveRequests, .openAdmin, .editSetup: true
         default: false
         }
     }
@@ -46,6 +48,7 @@ public enum CoreAction: Hashable, Sendable {
         case .switchProfile: "core.switchProfile"
         case .openSettings: "core.openSettings"
         case .openAdmin: "core.openAdmin"
+        case .editSetup: "core.editSetup"
         case .requestTitle: "core.requestTitle"
         case .approveRequests: "core.approveRequests"
         case .seeDoorbellOverlay: "core.seeDoorbellOverlay"
@@ -66,7 +69,7 @@ public enum CoreAction: Hashable, Sendable {
     public static var representativeCases: [CoreAction] {
         let room = RoomRef(id: RoomID("living-room"), isShared: true)
         return [
-            .browseLibrary, .play, .switchProfile, .openSettings, .openAdmin, .requestTitle,
+            .browseLibrary, .play, .switchProfile, .openSettings, .openAdmin, .editSetup, .requestTitle,
             .approveRequests, .seeDoorbellOverlay, .unlockDoor, .viewCameras, .viewCameraHistory,
             .lightsAndScenes(room), .blindsAmpInputs(room), .alarm, .sendMessageToTV,
             .useAsk(level: 1), .changeRowsAndCollections(ownProfile: true), .yearInReview,
