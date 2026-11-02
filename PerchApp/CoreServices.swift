@@ -1,6 +1,7 @@
 import Foundation
 import OSLog
 import PerchCore
+import PerchPlex
 
 /// The PerchCore services the app shell owns, built once at launch.
 /// Modules and screens receive these; nothing else constructs its own store.
@@ -12,7 +13,8 @@ final class CoreServices {
     let auditLog: AuditLog
     let authoriser: Authoriser
     let adminPIN: AdminPIN
-    let modules = ModuleRegistry(modules: [])  // modules arrive in later WPs
+    let modules: ModuleRegistry
+    let plexSignIn: PlexSignInModel
     let eventBus = EventBus()
     let pollers = PollerCoordinator()
 
@@ -22,14 +24,34 @@ final class CoreServices {
         self.keyValues = keyValues
         settings = SettingsStore(store: keyValues)
         auditLog = AuditLog(store: keyValues)
-        // The owner's Plex PIN state and verifier arrive with Plex sign-in (WP-04); until then unknown.
+        // Plex: transport, identity and the owner PIN verifier are built before AdminPIN (WP-04 decision 10).
+        let baseTransport: any PlexTransport = URLSessionTransport()
+        #if DEBUG
+        let transport = FaultInjectingTransport.wrapping(baseTransport)
+        #else
+        let transport = baseTransport
+        #endif
+        let endpoints = PlexEndpoints(identity: PlexClientIdentity(defaults: Self.plexDefaults()))
+        let verifier = PlexOwnerPINVerifier(
+            transport: transport, endpoints: endpoints, secrets: secrets, settings: settings)
         let adminPIN = AdminPIN(
-            secrets: secrets, keyValues: keyValues, plexVerifier: nil, ownerHasPlexPIN: nil)
+            secrets: secrets, keyValues: keyValues, plexVerifier: verifier, ownerHasPlexPIN: nil)
         self.adminPIN = adminPIN
-        let modules = self.modules
+        let session = PlexSession(
+            transport: transport, identity: endpoints.identity, secrets: secrets, defaults: Self.plexDefaults(),
+            settings: settings, adminPIN: adminPIN)
+        plexSignIn = PlexSignInModel(
+            session: session, transport: transport, endpoints: endpoints, settings: settings)
+        let modules = ModuleRegistry(modules: [PlexModule(session: session)])
+        self.modules = modules
         authoriser = Authoriser(
             auditLog: auditLog, adminPIN: adminPIN,
             modulePolicies: { action in await modules.policy(for: action) })
+    }
+
+    /// A fresh handle on the App Group defaults (UserDefaults is not Sendable, so each owner gets its own).
+    private nonisolated static func plexDefaults() -> UserDefaults {
+        UserDefaults(suiteName: PerchConstants.appGroupID) ?? .standard
     }
 
     #if DEBUG

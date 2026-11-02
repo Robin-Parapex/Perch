@@ -385,6 +385,16 @@ public actor PlexSession {
         return true
     }
 
+    /// Library count of the connected server, for the "Connected to <name>, <n> libraries" line.
+    public func librarySummary() async throws -> PlexLibrarySummary {
+        guard case .ready(let active, let server) = snapshotValue.state,
+            let token = try secrets.string(for: Self.serverTokenKey(active.id))
+        else { throw PlexError.notSignedIn }
+        let data = try await transport.perform(
+            endpoints.librarySections(base: server.baseURL, token: token), host: .server)
+        return try PlexLibrarySummary.decode(from: data)
+    }
+
     /// `/identity` on the connected server, for the module's "Test connection".
     public func testServerConnection() async -> TestResult {
         guard case .ready(_, let server) = snapshotValue.state else {

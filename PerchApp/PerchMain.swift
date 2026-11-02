@@ -6,7 +6,8 @@ struct PerchMain: App {
 
     var body: some Scene {
         WindowGroup {
-            PlaceholderView()
+            PlaceholderView(plex: core.plexSignIn)
+                .task { await core.plexSignIn.resume() }
                 #if DEBUG
                 .task { core.runStorageSelfCheck() }
                 #endif
