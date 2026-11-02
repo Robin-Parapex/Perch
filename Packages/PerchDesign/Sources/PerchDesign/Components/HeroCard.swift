@@ -9,6 +9,7 @@ public struct HeroCard<Backdrop: View, Logo: View, Actions: View>: View {
     private let synopsis: String
     private let badges: [Pill.Kind]
     private let replayKey: AnyHashable?
+    private let heightFraction: CGFloat
     private let backdrop: Backdrop
     private let logo: Logo?
     private let actions: Actions
@@ -18,6 +19,7 @@ public struct HeroCard<Backdrop: View, Logo: View, Actions: View>: View {
         synopsis: String,
         badges: [Pill.Kind] = [],
         replayKey: AnyHashable? = nil,
+        heightFraction: CGFloat = 0.8,
         @ViewBuilder backdrop: () -> Backdrop,
         @ViewBuilder logo: () -> Logo,
         @ViewBuilder actions: () -> Actions
@@ -26,19 +28,21 @@ public struct HeroCard<Backdrop: View, Logo: View, Actions: View>: View {
         self.synopsis = synopsis
         self.badges = badges
         self.replayKey = replayKey
+        self.heightFraction = heightFraction
         self.backdrop = backdrop()
         self.logo = logo()
         self.actions = actions()
     }
 
     fileprivate init(
-        title: String, synopsis: String, badges: [Pill.Kind], replayKey: AnyHashable?,
+        title: String, synopsis: String, badges: [Pill.Kind], replayKey: AnyHashable?, heightFraction: CGFloat,
         backdrop: Backdrop, actions: Actions
     ) {
         self.title = title
         self.synopsis = synopsis
         self.badges = badges
         self.replayKey = replayKey
+        self.heightFraction = heightFraction
         self.backdrop = backdrop
         self.logo = nil
         self.actions = actions
@@ -49,7 +53,7 @@ public struct HeroCard<Backdrop: View, Logo: View, Actions: View>: View {
         // repeatForever Ken Burns never stacks on the first. Reduce Motion is part of the key
         // because it changes which effects exist.
         HeroEntrance(
-            title: title, synopsis: synopsis, badges: badges,
+            title: title, synopsis: synopsis, badges: badges, heightFraction: heightFraction,
             backdrop: backdrop, logo: logo, actions: actions
         )
         .id(EntranceKey(replay: replayKey, reduceMotion: reduceMotion))
@@ -73,11 +77,10 @@ private struct HeroEntrance<Backdrop: View, Logo: View, Actions: View>: View {
     let title: String
     let synopsis: String
     let badges: [Pill.Kind]
+    let heightFraction: CGFloat
     let backdrop: Backdrop
     let logo: Logo?
     let actions: Actions
-
-    private static var height: CGFloat { 800 }
 
     // MARK: Resolved effects
 
@@ -132,18 +135,20 @@ private struct HeroEntrance<Backdrop: View, Logo: View, Actions: View>: View {
             .padding(.horizontal, PerchSpacing.horizontalMargin)
             .padding(.bottom, PerchSpacing.topMargin)
         }
-        .frame(maxWidth: .infinity)
-        .frame(height: Self.height)
+        .containerRelativeFrame(.horizontal)
+        .containerRelativeFrame(.vertical) { height, _ in height * heightFraction }
         .task { runEntrance() }
     }
 
     private var backdropLayer: some View {
-        backdrop
-            .aspectRatio(contentMode: .fill)
-            .frame(maxWidth: .infinity)
-            .frame(height: Self.height)
-            .scaleEffect(1 + kenBurns)
-            .offset(x: -kenBurns * 200, y: -kenBurns * 100)
+        // The clear base takes the hero's size; the backdrop only fills it, so artwork never sizes the hero.
+        Color.clear
+            .overlay {
+                backdrop
+                    .aspectRatio(contentMode: .fill)
+                    .scaleEffect(1 + kenBurns)
+                    .offset(x: -kenBurns * 200, y: -kenBurns * 100)
+            }
             .clipped()
             .opacity(backdropIn ? 1 : 0)
     }
@@ -179,10 +184,11 @@ extension HeroCard where Logo == EmptyView {
         synopsis: String,
         badges: [Pill.Kind] = [],
         replayKey: AnyHashable? = nil,
+        heightFraction: CGFloat = 0.8,
         @ViewBuilder backdrop: () -> Backdrop,
         @ViewBuilder actions: () -> Actions
     ) {
-        self.init(title: title, synopsis: synopsis, badges: badges, replayKey: replayKey, backdrop: backdrop(), actions: actions())
+        self.init(title: title, synopsis: synopsis, badges: badges, replayKey: replayKey, heightFraction: heightFraction, backdrop: backdrop(), actions: actions())
     }
 }
 
