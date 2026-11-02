@@ -22,6 +22,8 @@ public struct DesignGallery: View {
                 Text("Design gallery")
                     .font(PerchFont.section(style))
                     .foregroundStyle(PerchColor.textPrimary)
+                    .perchPageMargins(.horizontal)
+                    .accessibilityIdentifier("gallery.title")
                 overlaysSection
                 buttonsSection
                 pillsSection
@@ -29,9 +31,9 @@ public struct DesignGallery: View {
                 rowsSection
                 kidsSection
             }
-            .padding(.horizontal, PerchSpacing.horizontalMargin)
             .padding(.vertical, PerchSpacing.topMargin)
         }
+        .ignoresSafeArea()
         .accessibilityIdentifier("designGallery")
         .focusScope(focusNamespace)
         .environment(\.perchStyle, style)
@@ -121,7 +123,7 @@ public struct DesignGallery: View {
     ]
 
     private var heroSection: some View {
-        section("Hero") {
+        section("Hero", fullWidth: true) {
             VStack(alignment: .leading, spacing: 24) {
                 HeroCard(
                     title: "Sample title",
@@ -136,14 +138,18 @@ public struct DesignGallery: View {
                         Button("More info") {}.buttonStyle(.perchSecondary)
                         Button("Add") {}.buttonStyle(.perchSecondary)
                     })
-                    .frame(height: 800)
+                    // A clear marker the size of the hero, so the test measures layout, not animated artwork.
+                    .background {
+                        Color.clear.accessibilityElement().accessibilityIdentifier("gallery.hero")
+                    }
                 Button("Replay") { replay += 1 }.buttonStyle(.perchSecondary)
+                    .perchPageMargins(.horizontal)
             }
         }
     }
 
     private var rowsSection: some View {
-        section("Rows") {
+        section("Rows", fullWidth: true) {
             RowList {
                 Row(title: "Posters") {
                     ForEach(0..<8, id: \.self) { index in
@@ -184,10 +190,16 @@ public struct DesignGallery: View {
 
     // MARK: Helpers
 
-    private func section<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+    /// `fullWidth` sections (hero, rows) span the screen and place their own margins; the rest get the page margins.
+    private func section<Content: View>(_ title: String, fullWidth: Bool = false, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 20) {
             Text(title).font(PerchFont.section(style)).foregroundStyle(PerchColor.textSecondary)
-            content()
+                .perchPageMargins(.horizontal)
+            if fullWidth {
+                content()
+            } else {
+                content().perchPageMargins(.horizontal)
+            }
         }
     }
 

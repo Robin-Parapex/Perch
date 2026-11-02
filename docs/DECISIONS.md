@@ -186,7 +186,7 @@ Append-only log of decisions and why. Newest at the bottom. Format: date, decisi
 - Alternatives rejected: building the overlay window now. Decided by the WP-03 lead (Claude) in the WP-03 plan Robin approved.
 
 ## 2026-11-02 Layout values fixed in code
-- Some layout values have no `docs/DESIGN.md` number and are fixed in code until hardware review: hero height 800, logo box 600x140, synopsis width 900, panel corner radius 24.
+- Some layout values have no `docs/DESIGN.md` number and are fixed in code until hardware review: hero height 80% of the screen (heightFraction), logo box 600x140, synopsis width 900, panel corner radius 24. Pages ignore the system safe area and apply the DESIGN margins once.
 - Alternatives rejected: guessing DESIGN numbers. Decided by the WP-03 lead (Claude) in the WP-03 plan Robin approved.
 
 ## 2026-11-02 Overlays that take focus use a clear full-screen cover
