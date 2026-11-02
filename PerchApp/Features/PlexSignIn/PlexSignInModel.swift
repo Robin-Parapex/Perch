@@ -25,8 +25,7 @@ final class PlexSignInModel {
     let endpoints: PlexEndpoints
     private let settings: SettingsStore
 
-    /// Nil until the session's first update arrives (the snapshot has no public initialiser).
-    private(set) var snapshot: PlexSessionSnapshot?
+    private(set) var snapshot = PlexSessionSnapshot.signedOut
     var servers: [PlexServer] = []
 
     @ObservationIgnored private var observer: Task<Void, Never>?
@@ -45,16 +44,16 @@ final class PlexSignInModel {
     deinit { observer?.cancel() }
 
     var currentProfileID: String? {
-        if case .ready(let profile, _)? = snapshot?.state { profile.id.rawValue } else { nil }
+        if case .ready(let profile, _) = snapshot.state { profile.id.rawValue } else { nil }
     }
 
     var isReady: Bool {
-        if case .ready? = snapshot?.state { true } else { false }
+        if case .ready = snapshot.state { true } else { false }
     }
 
     /// "Connected to <name>, <n> libraries".
     func connectedSummary() async -> String? {
-        guard case .ready(_, let server)? = snapshot?.state else { return nil }
+        guard case .ready(_, let server) = snapshot.state else { return nil }
         guard let summary = try? await session.librarySummary() else { return "Connected to \(server.name)" }
         let count = summary.sectionCount
         return "Connected to \(server.name), \(count) \(count == 1 ? "library" : "libraries")"
@@ -82,10 +81,13 @@ final class PlexSignInModel {
         }
     }
 
-    var plexTVReachable: Bool { snapshot?.plexTVReachable ?? true }
-    var serverUnreachable: Bool { snapshot?.state == .serverUnreachable }
+    var plexTVReachable: Bool { snapshot.plexTVReachable }
+    var serverUnreachable: Bool { snapshot.state == .serverUnreachable }
 
-    func resume() async { _ = await session.resume() }
+    func resume() async {
+        // Then ask plex.tv once, in the same background task, so the PIN notice is truthful after launch.
+        if await session.resume() { await session.refreshFromPlexTV() }
+    }
 
     func signOut() async {
         await session.signOut()

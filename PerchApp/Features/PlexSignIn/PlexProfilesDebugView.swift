@@ -61,6 +61,7 @@ struct PlexProfilesDebugView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .perchPageMargins()
         }
+        .ignoresSafeArea()
         .perchPageBackground()
         .task { await load() }
     }

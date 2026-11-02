@@ -33,6 +33,7 @@ struct PlexLinkCodeView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .perchPageMargins()
+        .ignoresSafeArea()
         .perchPageBackground()
         .task(id: attempt) { await run() }
     }

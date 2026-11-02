@@ -35,6 +35,7 @@ struct PlexServerPickerView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .perchPageMargins()
+        .ignoresSafeArea()
         .perchPageBackground()
     }
 
@@ -74,6 +75,7 @@ struct PlexConnectedView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .perchPageMargins()
+        .ignoresSafeArea()
         .perchPageBackground()
         .task { summary = await model.connectedSummary() }
     }

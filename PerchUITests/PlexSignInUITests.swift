@@ -29,6 +29,19 @@ final class PlexSignInUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Perch"].waitForExistence(timeout: 5))
     }
 
+    @MainActor
+    func testSignInFillsTheScreen() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-PerchPlexSignIn"]
+        app.launch()
+
+        let window = app.windows.firstMatch
+        XCTAssertTrue(window.waitForExistence(timeout: 10))
+        let title = app.staticTexts["plexSignIn.title"]
+        XCTAssertTrue(title.waitForExistence(timeout: 10))
+        XCTAssertEqual(title.frame.minX - window.frame.minX, 80, accuracy: 4, "title sits at the 80 pt margin")
+    }
+
     private func waitForFocus(_ element: XCUIElement) -> Bool {
         let focused = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hasFocus == true"), object: element)
         return XCTWaiter().wait(for: [focused], timeout: 3) == .completed

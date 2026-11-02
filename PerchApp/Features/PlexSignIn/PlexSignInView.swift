@@ -12,15 +12,16 @@ struct PlexSignInView: View {
                 .font(.system(size: PerchFont.heroSize, weight: .bold))
                 .foregroundStyle(PerchColor.textPrimary)
                 .accessibilityIdentifier("plexSignIn.title")
+            // Equal-width choices share one leading edge, also while the focused one scales up.
             VStack(alignment: .leading, spacing: PerchSpacing.itemGap) {
-                Button("Sign in with a code") { path.append(PlexRoute.code) }
+                Button { path.append(PlexRoute.code) } label: { choice("Sign in with a code") }
                     .buttonStyle(.perchPrimary)
                     .accessibilityIdentifier("plexSignIn.code")
-                Button("Enter a server address") { path.append(PlexRoute.address) }
+                Button { path.append(PlexRoute.address) } label: { choice("Enter a server address") }
                     .buttonStyle(.perchSecondary)
                     .accessibilityIdentifier("plexSignIn.address")
                 if model.isReady {
-                    Button("Profiles") { path.append(PlexRoute.profiles) }
+                    Button { path.append(PlexRoute.profiles) } label: { choice("Profiles") }
                         .buttonStyle(.perchSecondary)
                         .accessibilityIdentifier("plexSignIn.profiles")
                 }
@@ -30,6 +31,11 @@ struct PlexSignInView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .perchPageMargins()
+        .ignoresSafeArea()
         .perchPageBackground()
+    }
+
+    private func choice(_ title: String) -> some View {
+        Text(title).frame(width: 520)
     }
 }

@@ -37,6 +37,7 @@ struct PlexAddressView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .perchPageMargins()
+        .ignoresSafeArea()
         .perchPageBackground()
     }
 

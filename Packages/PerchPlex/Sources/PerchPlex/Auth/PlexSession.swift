@@ -29,6 +29,15 @@ public struct PlexSessionSnapshot: Sendable, Equatable {
     public var plexTVReachable: Bool
     /// False when running on a server-only token (manual route): one profile, no switching.
     public var profileSwitchingAvailable: Bool
+
+    public init(state: PlexSessionState, plexTVReachable: Bool, profileSwitchingAvailable: Bool) {
+        self.state = state
+        self.plexTVReachable = plexTVReachable
+        self.profileSwitchingAvailable = profileSwitchingAvailable
+    }
+
+    public static let signedOut = PlexSessionSnapshot(
+        state: .signedOut, plexTVReachable: true, profileSwitchingAvailable: true)
 }
 
 /// The only holder of Plex tokens. Owner token, per-profile account tokens and per-profile server
@@ -69,8 +78,7 @@ public actor PlexSession {
     private let prober: ConnectionProber
     private let clock: NowProvider
 
-    private var snapshotValue = PlexSessionSnapshot(
-        state: .signedOut, plexTVReachable: true, profileSwitchingAvailable: true)
+    private var snapshotValue = PlexSessionSnapshot.signedOut
     private var continuations: [UUID: AsyncStream<PlexSessionSnapshot>.Continuation] = [:]
     private var account: PlexAccount?
     private var homeUsersCache: [PlexHomeUser] = []
@@ -383,6 +391,18 @@ public actor PlexSession {
                 server: PlexConnectedServer(
                     name: saved.name, machineID: saved.machineID, baseURL: result.url, tier: result.tier)))
         return true
+    }
+
+    /// After `resume()`: asks plex.tv for the Home users once (which also syncs restrictions into the
+    /// settings document) so `plexTVReachable` reflects reality. Never changes the current profile, never throws.
+    public func refreshFromPlexTV() async {
+        guard !defaults.bool(forKey: DefaultsKey.singleProfile),
+            let ownerToken = try? secrets.string(for: .plexOwnerToken)
+        else { return }
+        // `refreshHomeUsers` goes through `plexTV`, which records reachability.
+        do { _ = try await refreshHomeUsers(ownerToken: ownerToken) } catch {
+            Self.log.error("Could not refresh from plex.tv")
+        }
     }
 
     /// Library count of the connected server, for the "Connected to <name>, <n> libraries" line.

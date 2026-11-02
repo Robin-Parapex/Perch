@@ -311,6 +311,60 @@ struct PlexSessionResumeTests {
         }
     }
 
+    /// A relaunch over the same stores: the server answers, plex.tv is down or up with `homeUsers`.
+    private func relaunch(
+        _ rig: SessionRig, plexTVDown: Bool, homeUsersBody: Data? = nil
+    ) async -> PlexSession {
+        let transport = FakeTransport()
+        await transport.script(path: "/identity", fixture: "identity")
+        if plexTVDown {
+            for path in ["/api/v2/user", "/api/v2/home/users", "/api/v2/resources"] {
+                await transport.script(path: path, .failure(.notConnectedToInternet))
+            }
+        } else {
+            await transport.script(path: "/api/v2/user", fixture: "user")
+            await transport.script(
+                path: "/api/v2/home/users", .response(status: 200, body: homeUsersBody ?? Fixture.data("home_users")))
+            await transport.script(path: "/api/v2/resources", fixture: "resources_single")
+        }
+        return rig.makeSession(transport: transport)
+    }
+
+    @Test func refreshAfterResumeWithPlexTVDownFlagsItAndKeepsTheProfile() async throws {
+        let (rig, _) = try await signedIn()
+        defer { rig.cleanup() }
+        let session = await relaunch(rig, plexTVDown: true)
+        #expect(await session.resume() == true)
+        #expect(await session.snapshot().plexTVReachable == true)  // resume alone never asked plex.tv
+
+        await session.refreshFromPlexTV()
+
+        let snapshot = await session.snapshot()
+        #expect(snapshot.plexTVReachable == false)
+        if case .ready(let profile, _) = snapshot.state { #expect(profile.id == owner) } else {
+            Issue.record("profile should stay ready while plex.tv is down")
+        }
+        #expect(await session.currentProfile()?.id == owner)
+    }
+
+    @Test func refreshAfterResumeWithPlexTVUpFlagsItAndSyncsRestrictions() async throws {
+        let (rig, _) = try await signedIn()
+        defer { rig.cleanup() }
+        let before = await rig.settings.document.profiles[PlexUserID("1003")]?.plexRestriction
+        #expect(before == .littleKid)
+        // plex.tv now says the little one is a teen.
+        let changed = String(decoding: Fixture.data("home_users"), as: UTF8.self)
+            .replacingOccurrences(of: "little_kid", with: "teen")
+        let session = await relaunch(rig, plexTVDown: false, homeUsersBody: Data(changed.utf8))
+        #expect(await session.resume() == true)
+
+        await session.refreshFromPlexTV()
+
+        #expect(await session.snapshot().plexTVReachable == true)
+        #expect(await session.currentProfile()?.id == owner)
+        #expect(await rig.settings.document.profiles[PlexUserID("1003")]?.plexRestriction == .teen)
+    }
+
     @Test func switchingWhilePlexTVIsDownIsUnreachableNotAWrongPIN() async throws {
         let (rig, first) = try await signedIn()
         defer { rig.cleanup() }
