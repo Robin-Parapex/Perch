@@ -25,5 +25,11 @@ All notable changes to Perch. Format follows Keep a Changelog; versions follow `
 - WP-03 PerchDesign: Reduce Motion turns scale, slide and pan into fades.
 - WP-03 PerchCore: TitleAvailability with the glossary wording ("Requested", "Waiting for a parent" for kids, "Getting it ready", "Some episodes ready", "Ready to watch", "Couldn't find this yet").
 - WP-03 App: a design gallery in debug builds only, opened from the placeholder screen or with the launch argument `-PerchDesignGallery`. The app is now dark only.
+- WP-04 PerchPlex: sign in with a code at plex.tv/link, or with a server address and token.
+- WP-04 PerchPlex: server choice, probing connections and using the best one (local, then remote, then relay).
+- WP-04 PerchPlex: Plex Home profiles with PIN-checked switching and lockout; restrictions synced from Plex and treated as restricted if in doubt.
+- WP-04 PerchPlex: tokens kept in the Keychain; the last profile resumes on relaunch, also when plex.tv is down.
+- WP-04 App: plain notices when the library or plex.tv can't be reached.
+- WP-04 App: plain sign-in screens and fault switches (`-PerchFakePlexTVDown`, `-PerchFakeServerDown`) in debug builds only.
 - Project document pack (README, CLAUDE.md, spec, roadmap with numbered work packages, modules, architecture, design, integrations, permissions, references, decisions, glossary).
 - Decisions through 1 November 2026: name Perch; build from scratch referencing Dusk and Swiftfin; app only with no proxy or hub; Plex PINs for profiles and an Admin PIN; provider-agnostic bring-your-own-key AI with permission levels and no free chat; setup wizard, welcome guide and feedback; Seerr-only polling and user-controlled Plex library refresh.

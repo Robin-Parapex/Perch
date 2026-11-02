@@ -2,6 +2,8 @@
 
 No third-party code ships yet.
 
+- **Dusk (MIT, github.com/marvinvr/dusk-player):** WP-04 (PerchPlex) took ideas only: the Plex endpoint set, connection tiers, and commit-on-success profile switching. No code was copied.
+
 Rules for when it does:
 
 - **Dusk (MIT):** adapted code keeps its notice, "Copyright (c) 2026 Marvin von Rappard".
