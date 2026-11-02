@@ -130,7 +130,31 @@ Append-only log of decisions and why. Newest at the bottom. Format: date, decisi
 - The App Store Connect app record is named "Perch TV" because "Perch" was taken as a store name. The bundle ID, the in-app name and the home screen name stay Perch.
 - Alternatives rejected: "Perch" (taken). Decided by Robin.
 
+## 2026-11-02 Role defaults and ceiling scale
+- Owner and unrestricted Plex Home users default to parent, restricted users to kid; teen only by assignment. The "others teen" wording in `docs/PERMISSIONS.md` is corrected.
+- Ceilings use U, PG, 12A, 15, 18; a 12 certificate counts as 12A (`docs/ARCHITECTURE.md` corrected). A restricted Plex user with custom ratings Perch cannot read gets U (fail closed). An unknown title certificate stays 15.
+- Alternatives rejected: a separate 12 step; unknown custom ratings mapped to 15. Decided by the lead in the WP-02 plan Robin approved.
+
+## 2026-11-02 Admin PIN rules
+- Source: a Perch PIN, when set, overrides; otherwise the owner's Plex Home PIN; otherwise setup is required and the wizard must set a Perch PIN. Removing the Perch PIN is refused while the owner has no Plex PIN.
+- Perch PIN: 4 to 8 digits, PBKDF2-SHA256 (CommonCrypto, 600k iterations, 16-byte salt), stored in the Keychain.
+- Lockout: five wrong PINs lock for 60 s; each further lockout doubles, capped at 1 h; a correct PIN resets it. The state survives relaunch (App Group defaults) and covers Plex and Perch PINs alike. plex.tv being unreachable is not a failed attempt.
+- PIN-fresh lasts 5 minutes and is held in memory only. Opening Admin needs the parent role and a fresh Admin PIN.
+- Alternatives rejected: an uncapped doubling lockout; a lockout that resets on relaunch. Decided by the lead in the WP-02 plan Robin approved.
+
+## 2026-11-02 Module permissions and tabs
+- `Module.policy(for:) -> ActionPolicy?` replaces `requiredRole(for:) -> Role`: a role alone cannot say PIN-fresh, queued or limited. Unknown actions are denied. The core matrix lives in `PerchCore`.
+- New `TabProvider` extension point so modules add sidebar tabs (Requests, Music, House).
+- Alternatives rejected: keeping `requiredRole`. Decided by the lead in the WP-02 plan Robin approved.
+
+## 2026-11-02 Local storage and Keychain sharing
+- tvOS only promises about 500 KB of persistent local storage, through UserDefaults; Apple's tvOS guide says all other local data must be purgeable (App Programming Guide for tvOS, "Local Storage for Your App Is Limited"). So the settings document (JSON with a schema version; keys never go in it), the audit log (capped at 500 entries, not part of a config export) and app-local state (lockout, last profile) are all stored in the App Group defaults suite. Storage sits behind `KeyValueStore`, so a file or iCloud backend can replace it.
+- Budget: the settings document plus the audit log stay well under 500 KB. Later WPs that add bulky data (per-title memory, artwork overrides) must check the budget or bring the iCloud sync forward.
+- The Keychain is shared by using the App Group ID as the access group, which the existing `application-groups` entitlement allows; no `keychain-access-groups` entitlement is added.
+- Alternatives rejected: JSON files in the App Group container (not guaranteed to persist on tvOS; this was the first WP-02 plan, changed after review); an iCloud key-value mirror now (needs iCloud and an entitlement; kept for the "Later" sync item); Core Data or SwiftData. Decided by the lead during WP-02 after the review; Robin to confirm.
+
 ## Open decisions (resolve in the named work package)
+- Recovery when the stored Perch PIN cannot be read (Admin is locked out by design): confirm the owner through Plex, audited, then allow a new Perch PIN (WP-05).
 - Assistant name (placeholder Pip) (WP-19).
 - Feedback endpoint hosting: Dokploy VPS or Cloudflare Worker (perch-site, later).
 - Whether to install on a locked kids' device via Xcode development signing (one-year validity) rather than TestFlight (90 days) (1.3).

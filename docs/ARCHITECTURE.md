@@ -68,7 +68,7 @@ Frame-rate and dynamic-range matching: set `AVPlayerViewController.appliesPrefer
 - Watch state, progress, ratings ceiling: **Plex** (source of truth).
 - Requests and states: **Seerr**, cached in the app.
 - Profiles, roles, rooms, row config, custom collections, artwork overrides, per-title memory (audio/sub/offset), audit log, AI spend: the app's settings document and local store (per-person data keyed by Plex user ID). Keys are kept separately in the Keychain.
-- **Rating ceilings** use the BBFC scale (U, PG, 12, 12A, 15, 18). Ceilings come from each Plex Home user's content restrictions, mirrored to a BBFC scale in the app. The app maps TMDB GB certifications to the same scale for discover, recommendation, seasonal and AI results; unknown certificate = treated as 15.
+- **Rating ceilings** use the BBFC scale U, PG, 12A, 15, 18 (12 is treated as 12A). Ceilings come from each Plex Home user's content restrictions, mirrored to a BBFC scale in the app. The app maps TMDB GB certifications to the same scale for discover, recommendation, seasonal and AI results; unknown certificate = treated as 15.
 - App-local: last profile, UI prefs, image cache. Nothing that would be lost badly if the Apple TV was reset.
 
 ## Security
