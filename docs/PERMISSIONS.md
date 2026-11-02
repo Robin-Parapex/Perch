@@ -59,7 +59,7 @@ There are two PINs: Plex Home PINs for profiles (verified by plex.tv) and the Ad
 ## Enforcement
 
 - `PerchCore` checks the matrix on every privileged action.
-- Roles default from Plex Home (owner parent, restricted kid, others teen) and are editable behind the Admin PIN.
+- Roles default from Plex Home (owner and unrestricted users parent, restricted users kid, teen only by assignment) and are editable behind the Admin PIN.
 - Home actions go through an explicit `domain.service` allow-list per role. Anything not listed is denied, even if Home Assistant would allow it.
 - Door and alarm actions require the Admin PIN entered in the last 5 minutes.
 - Seerr requests are created as the profile's Seerr user, so Seerr's approval rules also apply.

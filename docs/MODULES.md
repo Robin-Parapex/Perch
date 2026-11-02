@@ -16,15 +16,17 @@ How Perch stays modular, works with nothing but a Plex server, and lets a househ
 Each integration is a Swift package exposing one `Module`:
 
 ```
-protocol Module {
+@MainActor protocol Module: AnyObject {
   static var id: ModuleID { get }            // "seerr", "homeassistant", "ai", ...
   var status: ModuleStatus { get }           // notConfigured, ok, degraded(reason), error(reason)
-  func settings() -> any View                // its settings page (Admin PIN gated)
+  func settings() -> AnyView                 // its settings page (Admin PIN gated)
   func testConnection() async -> TestResult
   func contributions() -> [Contribution]     // what it adds to the app
-  func requiredRole(for action: ActionID) -> Role   // permissions it declares
+  func policy(for action: ActionID) -> ActionPolicy?   // access per role; nil = unknown, denied
 }
 ```
+
+`ActionPolicy` gives each role an `Access` (allow, deny, needsPIN, needsFreshPIN, queued, limited), so a module can say "PIN-fresh" or "queued", which a bare `Role` could not (WP-02).
 
 **Extension points** (the only ways a module touches the UI):
 - `RowProvider`: rows for Home, title pages, person pages (position hints, per-profile on/off).
@@ -34,6 +36,7 @@ protocol Module {
 - `EventSource`: streams events (doorbell, request ready).
 - `PlayerHook`: play, pause, credits, stop, failure.
 - `SettingsPage` and `AdminPanel` sections.
+- `TabProvider`: a sidebar tab (Requests, Music, House) added when its module is enabled.
 - `Poller`: a periodic job with an interval and a "while app is active" flag (replaces webhooks).
 
 The app shell (`PerchApp`) composes enabled modules at launch. Adding a feature means adding a module or extending one; the shell, the player and the design system don't change.
