@@ -40,5 +40,9 @@
 	</dict>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Perch uses your local network to reach your media server and home devices.</string>
+	<key>UILaunchScreen</key>
+	<dict/>
+	<key>UIUserInterfaceStyle</key>
+	<string>Automatic</string>
 </dict>
 </plist>

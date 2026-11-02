@@ -1,6 +1,7 @@
 name: Perch
 options:
   bundleIdPrefix: com.robrolabs
+  xcodeVersion: "2720"
   deploymentTarget:
     tvOS: "26.0"
   generateEmptyDirectories: true
@@ -54,6 +55,8 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         ITSAppUsesNonExemptEncryption: false
+        UILaunchScreen: {}
+        UIUserInterfaceStyle: Automatic
         NSLocalNetworkUsageDescription: Perch uses your local network to reach your media server and home devices.
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true

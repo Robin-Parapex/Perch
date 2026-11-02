@@ -17,7 +17,11 @@ Robin's steps, in order. Each says how to tell it worked.
    Worked when: the workflow is listed in App Store Connect under Xcode Cloud with these settings.
 5. **Add yourself as an internal tester** in App Store Connect.
    Worked when: your Apple ID shows in the internal testing group.
-6. **After merge**, confirm the build reached TestFlight, install it from the TestFlight app on the Apple TV, and confirm it opens to the wordmark. Record the build number.
+6. **Create an internal testing group** in App Store Connect (TestFlight tab of the Perch app), turn on access to all builds for it, and add Robin to it.
+   Worked when: the group is listed under Internal Testing with Robin as a member and all builds available.
+7. **Add the post-action "TestFlight Internal Testing"** to the workflow (edit the workflow, Post-Actions, add TestFlight Internal Testing) and point it at that group. (Not yet confirmed on Apple's page. The Forge notes only name this post-action and say an internal group with access to all builds receives every upload without it.)
+   Worked when: the workflow lists the post-action with the group, and a new build appears for the group in TestFlight without manual steps.
+8. **After merge**, confirm the build reached TestFlight, install it from the TestFlight app on the Apple TV, and confirm it opens to the wordmark. Record the build number.
    Worked when: the build is installed and the wordmark shows on launch.
 
 Notes:

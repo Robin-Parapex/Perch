@@ -8,7 +8,11 @@ LOGS="$ROOT/build/gate"
 mkdir -p "$LOGS"
 cd "$ROOT"
 
-PACKAGES=(PerchCore PerchDesign PerchPlex PerchPlayer PerchSeerr PerchTrakt PerchHome PerchFrigate PerchAI PerchTautulli)
+PACKAGES=()
+for manifest in Packages/*/Package.swift; do
+  [ -e "$manifest" ] || continue
+  PACKAGES+=("$(basename "$(dirname "$manifest")")")
+done
 FAILED=0
 
 pass() { echo "PASS  $1"; }
@@ -18,7 +22,7 @@ fail() { echo "FAIL  $1  (log: ${2:-n/a})"; [ -n "${2:-}" ] && tail -n 15 "$2" |
 DEVICES="$(xcrun simctl list devices available)"
 SIM_NAME="Apple TV 4K (3rd generation)"
 if ! grep -q "^ *$SIM_NAME (" <<<"$DEVICES"; then
-  SIM_NAME="$(grep -E '^ *Apple TV 4K' <<<"$DEVICES" | head -n 1 | sed -E 's/^ *//; s/ \([0-9A-F-]{36}\).*$//')"
+  SIM_NAME="$(grep -E '^ *Apple TV 4K' <<<"$DEVICES" | head -n 1 | sed -E 's/^ *//; s/ \([0-9A-F-]{36}\).*$//' || true)"
 fi
 if [ -z "$SIM_NAME" ]; then
   echo "FAIL  no Apple TV 4K simulator available"
@@ -31,11 +35,17 @@ echo "Simulator: $SIM_NAME"
 BEFORE="$(mktemp -d)"
 trap 'rm -rf "$BEFORE"' EXIT
 if [ -d Perch.xcodeproj ]; then cp -R Perch.xcodeproj "$BEFORE/Perch.xcodeproj"; fi
+if [ -f PerchApp/Info.plist ]; then cp PerchApp/Info.plist "$BEFORE/Info.plist"; fi
 if xcodegen generate >"$LOGS/xcodegen.log" 2>&1; then
-  if [ -d "$BEFORE/Perch.xcodeproj" ] && diff -r "$BEFORE/Perch.xcodeproj" Perch.xcodeproj >"$LOGS/drift.log" 2>&1; then
-    pass "xcodegen: Perch.xcodeproj matches project.yml"
+  if [ -d "$BEFORE/Perch.xcodeproj" ] && [ -f "$BEFORE/Info.plist" ] \
+    && diff -r "$BEFORE/Perch.xcodeproj" Perch.xcodeproj >"$LOGS/drift.log" 2>&1 \
+    && diff "$BEFORE/Info.plist" PerchApp/Info.plist >>"$LOGS/drift.log" 2>&1; then
+    pass "xcodegen: Perch.xcodeproj and PerchApp/Info.plist match project.yml"
   else
-    fail "xcodegen: Perch.xcodeproj differed from generated output (now regenerated, commit it)" "$LOGS/drift.log"
+    # Restore the pre-generate copies so a second run fails too.
+    if [ -d "$BEFORE/Perch.xcodeproj" ]; then rm -rf Perch.xcodeproj; cp -R "$BEFORE/Perch.xcodeproj" Perch.xcodeproj; fi
+    if [ -f "$BEFORE/Info.plist" ]; then cp "$BEFORE/Info.plist" PerchApp/Info.plist; fi
+    fail "xcodegen: Perch.xcodeproj or PerchApp/Info.plist differ from generated output (restored; run xcodegen generate and commit)" "$LOGS/drift.log"
   fi
 else
   fail "xcodegen generate" "$LOGS/xcodegen.log"
