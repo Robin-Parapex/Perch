@@ -126,6 +126,10 @@ Append-only log of decisions and why. Newest at the bottom. Format: date, decisi
 - Wordmark, icon layers and Top Shelf images are generated placeholders (`scripts/make-placeholder-art.swift`) until design exports are supplied. The wordmark is set in SF Pro. No third-party code ships yet; the Top Shelf placeholder follows Dusk's approach (MIT), idea only, no code copied.
 - Alternatives rejected: none recorded. Decided by the lead in the WP-01 plan Robin approved.
 
+## 2026-11-02 App Store name: Perch TV
+- The App Store Connect app record is named "Perch TV" because "Perch" was taken as a store name. The bundle ID, the in-app name and the home screen name stay Perch.
+- Alternatives rejected: "Perch" (taken). Decided by Robin.
+
 ## Open decisions (resolve in the named work package)
 - Assistant name (placeholder Pip) (WP-19).
 - Feedback endpoint hosting: Dokploy VPS or Cloudflare Worker (perch-site, later).
