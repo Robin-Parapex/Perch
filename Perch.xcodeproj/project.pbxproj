@@ -21,6 +21,7 @@
 		953A049EEFA1995A05CF2C41 /* PlaceholderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D11E7EAAD6441A75FF4CD087 /* PlaceholderView.swift */; };
 		B1A954E2E5DFA7D2B9301A03 /* PerchFrigate in Frameworks */ = {isa = PBXBuildFile; productRef = 17D4067A1DBC8192EF8649A5 /* PerchFrigate */; };
 		B36BB8C248139F5F008585AE /* PerchTopShelf.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = E970117425D5C7F16FF6DDFA /* PerchTopShelf.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		B43D5DC91E95AC408194BEF3 /* DesignGalleryUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF483B6C94B4DC73D18C4462 /* DesignGalleryUITests.swift */; };
 		B8D5B2787C3BA3A00A310831 /* PerchAI in Frameworks */ = {isa = PBXBuildFile; productRef = F656F949D78A4CE7629D0463 /* PerchAI */; };
 		D1B3DAA6B30566F205F9A79C /* PerchTrakt in Frameworks */ = {isa = PBXBuildFile; productRef = A709F0B77C976BE6027C7CF2 /* PerchTrakt */; };
 		DE8CF85EBA2C000902DEE287 /* PerchPlayer in Frameworks */ = {isa = PBXBuildFile; productRef = DCF36096C7A159128C1E58DB /* PerchPlayer */; };
@@ -83,6 +84,7 @@
 		EEC73F03519F0ABA8E1A202F /* ContentProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentProvider.swift; sourceTree = "<group>"; };
 		F5D99161830111DE7EC1F780 /* PerchTrakt */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PerchTrakt; path = Packages/PerchTrakt; sourceTree = SOURCE_ROOT; };
 		FB144107DD23A8D0BAD69C69 /* PerchMain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerchMain.swift; sourceTree = "<group>"; };
+		FF483B6C94B4DC73D18C4462 /* DesignGalleryUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignGalleryUITests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -145,6 +147,7 @@
 		9019F5C59F8C2B93EDFCB2BE /* PerchUITests */ = {
 			isa = PBXGroup;
 			children = (
+				FF483B6C94B4DC73D18C4462 /* DesignGalleryUITests.swift */,
 				7DCA53A26933A2B3B0B4F245 /* PerchUITests.swift */,
 			);
 			path = PerchUITests;
@@ -350,6 +353,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B43D5DC91E95AC408194BEF3 /* DesignGalleryUITests.swift in Sources */,
 				487B2E112C27D4631E1E3BA0 /* PerchUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

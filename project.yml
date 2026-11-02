@@ -56,7 +56,7 @@ targets:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         ITSAppUsesNonExemptEncryption: false
         UILaunchScreen: {}
-        UIUserInterfaceStyle: Automatic
+        UIUserInterfaceStyle: Dark
         NSLocalNetworkUsageDescription: Perch uses your local network to reach your media server and home devices.
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true
