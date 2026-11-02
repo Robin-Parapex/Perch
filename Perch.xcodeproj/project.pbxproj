@@ -7,35 +7,39 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		009ADC4509A75C94EF9C66B9 /* PlexLinkCodeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DCDB494D5A214FB10D23C7C /* PlexLinkCodeView.swift */; };
-		0CDEDB93ACE7CF15597FE0C7 /* PlexAddressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C16A8CC498DAA9C9907060B /* PlexAddressView.swift */; };
 		0E90752923D2A8DD20600D4A /* FaultInjectingTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4C5D477818723FF0622A0A1 /* FaultInjectingTransport.swift */; };
 		0EE7FF85102FEB9B6642D818 /* PerchCore in Frameworks */ = {isa = PBXBuildFile; productRef = 3A0D94F6E929D5A8D64ECE87 /* PerchCore */; };
+		13C2D6C32B8E74412EFFD95F /* ProfilePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8C9CDA7267F3A0FCDF12036 /* ProfilePickerView.swift */; };
+		14385D923BA789B87B7EA200 /* ProfileSwitcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 578031749B01762ADB2FC507 /* ProfileSwitcher.swift */; };
 		216985AF718481FBA2C86A17 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = DAFA42F3295D0579E36B8D6C /* PrivacyInfo.xcprivacy */; };
 		22E7464F851F3DFAE221147A /* PlexSignInModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84A9F221D541396CE0789A4C /* PlexSignInModel.swift */; };
+		2563C792550A55B37D94C1D3 /* SetupConnectStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9BAFB1253B478EA302FA009 /* SetupConnectStep.swift */; };
 		34E73F508EA639C0CB7DFB51 /* PerchMain.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB144107DD23A8D0BAD69C69 /* PerchMain.swift */; };
+		37996216A7C85B009A559C32 /* SetupFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4E088AAD12B918F3014DDE1 /* SetupFlowView.swift */; };
 		39C4BCB6D82B9258F5DA1FF4 /* PerchPlex in Frameworks */ = {isa = PBXBuildFile; productRef = 6BF6030B83AFC8D38A73E397 /* PerchPlex */; };
 		487B2E112C27D4631E1E3BA0 /* PerchUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DCA53A26933A2B3B0B4F245 /* PerchUITests.swift */; };
+		49FC74040CE062EA08425469 /* SetupFlowModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFCF9214DE208DF357C09CFF /* SetupFlowModel.swift */; };
+		4B921CDDAC347E69092ABAA5 /* ImageDiskCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B02FF9E38171AE52DBB210 /* ImageDiskCache.swift */; };
 		4FF43F306571912D3E44B717 /* PerchTautulli in Frameworks */ = {isa = PBXBuildFile; productRef = D9BB25903DF7795D7E6F6281 /* PerchTautulli */; };
 		53BE2DF0F4E4331D38A3670D /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 65B77FBA7B90AF35072DBB7E /* PrivacyInfo.xcprivacy */; };
-		5BEA187AA68AC9D2EC1E93B8 /* PlexServerPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E573CEC92489C39FD6BC8142 /* PlexServerPickerView.swift */; };
 		642A4DBDFED68899100CA244 /* CoreServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3FD1A399EE728F4D38CCD2C /* CoreServices.swift */; };
-		688796DA9B0B506FF8EB0827 /* PlexProfilesDebugView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FC52649D22DDFD197FBE301 /* PlexProfilesDebugView.swift */; };
 		69C7FBB43B8946F4217CBA80 /* ModuleManifest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72EBCD50A28455935FE5B81E /* ModuleManifest.swift */; };
-		71329D2594E3136A04B43D6A /* ConnectionNotice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E11A9CE395633930CFF5728 /* ConnectionNotice.swift */; };
-		7C920ADC6C5DC0C1F65C9994 /* PlexSignInUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A8A5F8ECF10DE2759E7231B /* PlexSignInUITests.swift */; };
+		737BC63B499B2034F488A938 /* SetupProfilesStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C0B3C5FC5D8A5ED71FF74CB /* SetupProfilesStep.swift */; };
 		7D0F980230F0EED73C737127 /* ContentProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEC73F03519F0ABA8E1A202F /* ContentProvider.swift */; };
 		93FFCFF78D87B171B9178117 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 243A1FBF501983A4028E086D /* Assets.xcassets */; };
 		953A049EEFA1995A05CF2C41 /* PlaceholderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D11E7EAAD6441A75FF4CD087 /* PlaceholderView.swift */; };
+		A50F4216A747F7CAF404ABF4 /* AppRoot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0274461E25099FBB92325409 /* AppRoot.swift */; };
 		B1A954E2E5DFA7D2B9301A03 /* PerchFrigate in Frameworks */ = {isa = PBXBuildFile; productRef = 17D4067A1DBC8192EF8649A5 /* PerchFrigate */; };
 		B36BB8C248139F5F008585AE /* PerchTopShelf.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = E970117425D5C7F16FF6DDFA /* PerchTopShelf.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		B43D5DC91E95AC408194BEF3 /* DesignGalleryUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF483B6C94B4DC73D18C4462 /* DesignGalleryUITests.swift */; };
 		B8D5B2787C3BA3A00A310831 /* PerchAI in Frameworks */ = {isa = PBXBuildFile; productRef = F656F949D78A4CE7629D0463 /* PerchAI */; };
-		B9F945C32473F945832D5515 /* PlexSignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44B435DCEAB1D2C69193AFE7 /* PlexSignInView.swift */; };
 		D1B3DAA6B30566F205F9A79C /* PerchTrakt in Frameworks */ = {isa = PBXBuildFile; productRef = A709F0B77C976BE6027C7CF2 /* PerchTrakt */; };
+		D8C1571D6EFC22A8F99D79AC /* FakeArt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46EFB7000E3577048BE61940 /* FakeArt.swift */; };
 		DE8CF85EBA2C000902DEE287 /* PerchPlayer in Frameworks */ = {isa = PBXBuildFile; productRef = DCF36096C7A159128C1E58DB /* PerchPlayer */; };
 		E17637F8E94A33E056B98D89 /* PerchSeerr in Frameworks */ = {isa = PBXBuildFile; productRef = 031D234884266E3D9F246CBF /* PerchSeerr */; };
 		E88B82642080560B6A1CD950 /* PerchDesign in Frameworks */ = {isa = PBXBuildFile; productRef = 2A13A1FF9EDEA28F7C994960 /* PerchDesign */; };
+		EA554CCC29B78E08008E449D /* FakeHouseholdTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 733569FCF6FF7AC55BDD33F9 /* FakeHouseholdTransport.swift */; };
+		EB703ED1F35EC501C0B06DC0 /* SetupAdminPINStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B6A2EAF62F625006D78BD53 /* SetupAdminPINStep.swift */; };
 		FBEAED2DA37B878394938DCF /* PerchHome in Frameworks */ = {isa = PBXBuildFile; productRef = 5737B578B94A41B308C80DFD /* PerchHome */; };
 /* End PBXBuildFile section */
 
@@ -71,36 +75,40 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		0DCDB494D5A214FB10D23C7C /* PlexLinkCodeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlexLinkCodeView.swift; sourceTree = "<group>"; };
-		1A8A5F8ECF10DE2759E7231B /* PlexSignInUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlexSignInUITests.swift; sourceTree = "<group>"; };
+		0274461E25099FBB92325409 /* AppRoot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRoot.swift; sourceTree = "<group>"; };
 		1FDF7616159B5794150C0A0B /* PerchApp.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = PerchApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		243A1FBF501983A4028E086D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		26359D6962867AF8FC484B0D /* PerchPlex */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PerchPlex; path = Packages/PerchPlex; sourceTree = SOURCE_ROOT; };
-		2C16A8CC498DAA9C9907060B /* PlexAddressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlexAddressView.swift; sourceTree = "<group>"; };
-		44B435DCEAB1D2C69193AFE7 /* PlexSignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlexSignInView.swift; sourceTree = "<group>"; };
+		3B6A2EAF62F625006D78BD53 /* SetupAdminPINStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupAdminPINStep.swift; sourceTree = "<group>"; };
+		46EFB7000E3577048BE61940 /* FakeArt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FakeArt.swift; sourceTree = "<group>"; };
+		578031749B01762ADB2FC507 /* ProfileSwitcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSwitcher.swift; sourceTree = "<group>"; };
 		65B77FBA7B90AF35072DBB7E /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		6C0B3C5FC5D8A5ED71FF74CB /* SetupProfilesStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupProfilesStep.swift; sourceTree = "<group>"; };
 		72EBCD50A28455935FE5B81E /* ModuleManifest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModuleManifest.swift; sourceTree = "<group>"; };
+		733569FCF6FF7AC55BDD33F9 /* FakeHouseholdTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FakeHouseholdTransport.swift; sourceTree = "<group>"; };
 		7DCA53A26933A2B3B0B4F245 /* PerchUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerchUITests.swift; sourceTree = "<group>"; };
 		81DCAA7AC3B9EB27244CB654 /* PerchSeerr */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PerchSeerr; path = Packages/PerchSeerr; sourceTree = SOURCE_ROOT; };
 		84A9F221D541396CE0789A4C /* PlexSignInModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlexSignInModel.swift; sourceTree = "<group>"; };
 		87964497C34D39061F3402E8 /* PerchHome */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PerchHome; path = Packages/PerchHome; sourceTree = SOURCE_ROOT; };
-		8E11A9CE395633930CFF5728 /* ConnectionNotice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionNotice.swift; sourceTree = "<group>"; };
+		90B02FF9E38171AE52DBB210 /* ImageDiskCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageDiskCache.swift; sourceTree = "<group>"; };
 		90C301A09F83201E1F03BCD0 /* PerchTautulli */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PerchTautulli; path = Packages/PerchTautulli; sourceTree = SOURCE_ROOT; };
 		9C77FB42827DCAB58DA4C110 /* PerchCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PerchCore; path = Packages/PerchCore; sourceTree = SOURCE_ROOT; };
 		9DEC51BF47974BCC5F748D16 /* PerchUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PerchUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9F61457CD2103D9581212D8C /* PerchDesign */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PerchDesign; path = Packages/PerchDesign; sourceTree = SOURCE_ROOT; };
-		9FC52649D22DDFD197FBE301 /* PlexProfilesDebugView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlexProfilesDebugView.swift; sourceTree = "<group>"; };
 		A33697F100E1EEE84F8DA0BE /* PerchPlayer */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PerchPlayer; path = Packages/PerchPlayer; sourceTree = SOURCE_ROOT; };
 		AE0A60A56E3483E4EDE906B0 /* PerchFrigate */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PerchFrigate; path = Packages/PerchFrigate; sourceTree = SOURCE_ROOT; };
+		B4E088AAD12B918F3014DDE1 /* SetupFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupFlowView.swift; sourceTree = "<group>"; };
 		BD04E58E88BA9BC35355C563 /* PerchAI */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PerchAI; path = Packages/PerchAI; sourceTree = SOURCE_ROOT; };
 		D11E7EAAD6441A75FF4CD087 /* PlaceholderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaceholderView.swift; sourceTree = "<group>"; };
 		DAFA42F3295D0579E36B8D6C /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		DFCF9214DE208DF357C09CFF /* SetupFlowModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupFlowModel.swift; sourceTree = "<group>"; };
 		E3FD1A399EE728F4D38CCD2C /* CoreServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreServices.swift; sourceTree = "<group>"; };
-		E573CEC92489C39FD6BC8142 /* PlexServerPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlexServerPickerView.swift; sourceTree = "<group>"; };
+		E8C9CDA7267F3A0FCDF12036 /* ProfilePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfilePickerView.swift; sourceTree = "<group>"; };
 		E970117425D5C7F16FF6DDFA /* PerchTopShelf.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = PerchTopShelf.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		EEC73F03519F0ABA8E1A202F /* ContentProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentProvider.swift; sourceTree = "<group>"; };
 		F4C5D477818723FF0622A0A1 /* FaultInjectingTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaultInjectingTransport.swift; sourceTree = "<group>"; };
 		F5D99161830111DE7EC1F780 /* PerchTrakt */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PerchTrakt; path = Packages/PerchTrakt; sourceTree = SOURCE_ROOT; };
+		F9BAFB1253B478EA302FA009 /* SetupConnectStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupConnectStep.swift; sourceTree = "<group>"; };
 		FB144107DD23A8D0BAD69C69 /* PerchMain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerchMain.swift; sourceTree = "<group>"; };
 		FF483B6C94B4DC73D18C4462 /* DesignGalleryUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignGalleryUITests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -149,6 +157,9 @@
 			children = (
 				B956201D89DBC48508D1EC94 /* Placeholder */,
 				9D9986DF05F45C9003E895A1 /* PlexSignIn */,
+				7BE2AAEA9B8FD98152F54513 /* Profiles */,
+				E86044BBCB0A035590DE5407 /* Root */,
+				73BF864FAFE4E917B2F7CF28 /* Setup */,
 			);
 			path = Features;
 			sourceTree = "<group>";
@@ -163,12 +174,42 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		73BF864FAFE4E917B2F7CF28 /* Setup */ = {
+			isa = PBXGroup;
+			children = (
+				3B6A2EAF62F625006D78BD53 /* SetupAdminPINStep.swift */,
+				F9BAFB1253B478EA302FA009 /* SetupConnectStep.swift */,
+				DFCF9214DE208DF357C09CFF /* SetupFlowModel.swift */,
+				B4E088AAD12B918F3014DDE1 /* SetupFlowView.swift */,
+				6C0B3C5FC5D8A5ED71FF74CB /* SetupProfilesStep.swift */,
+			);
+			path = Setup;
+			sourceTree = "<group>";
+		};
+		7BE2AAEA9B8FD98152F54513 /* Profiles */ = {
+			isa = PBXGroup;
+			children = (
+				90B02FF9E38171AE52DBB210 /* ImageDiskCache.swift */,
+				E8C9CDA7267F3A0FCDF12036 /* ProfilePickerView.swift */,
+				578031749B01762ADB2FC507 /* ProfileSwitcher.swift */,
+			);
+			path = Profiles;
+			sourceTree = "<group>";
+		};
+		7D511CA5EE4CBA62FDB94228 /* Debug */ = {
+			isa = PBXGroup;
+			children = (
+				46EFB7000E3577048BE61940 /* FakeArt.swift */,
+				733569FCF6FF7AC55BDD33F9 /* FakeHouseholdTransport.swift */,
+			);
+			path = Debug;
+			sourceTree = "<group>";
+		};
 		9019F5C59F8C2B93EDFCB2BE /* PerchUITests */ = {
 			isa = PBXGroup;
 			children = (
 				FF483B6C94B4DC73D18C4462 /* DesignGalleryUITests.swift */,
 				7DCA53A26933A2B3B0B4F245 /* PerchUITests.swift */,
-				1A8A5F8ECF10DE2759E7231B /* PlexSignInUITests.swift */,
 			);
 			path = PerchUITests;
 			sourceTree = "<group>";
@@ -193,14 +234,8 @@
 		9D9986DF05F45C9003E895A1 /* PlexSignIn */ = {
 			isa = PBXGroup;
 			children = (
-				8E11A9CE395633930CFF5728 /* ConnectionNotice.swift */,
 				F4C5D477818723FF0622A0A1 /* FaultInjectingTransport.swift */,
-				2C16A8CC498DAA9C9907060B /* PlexAddressView.swift */,
-				0DCDB494D5A214FB10D23C7C /* PlexLinkCodeView.swift */,
-				9FC52649D22DDFD197FBE301 /* PlexProfilesDebugView.swift */,
-				E573CEC92489C39FD6BC8142 /* PlexServerPickerView.swift */,
 				84A9F221D541396CE0789A4C /* PlexSignInModel.swift */,
-				44B435DCEAB1D2C69193AFE7 /* PlexSignInView.swift */,
 			);
 			path = PlexSignIn;
 			sourceTree = "<group>";
@@ -219,6 +254,7 @@
 				E3FD1A399EE728F4D38CCD2C /* CoreServices.swift */,
 				72EBCD50A28455935FE5B81E /* ModuleManifest.swift */,
 				FB144107DD23A8D0BAD69C69 /* PerchMain.swift */,
+				7D511CA5EE4CBA62FDB94228 /* Debug */,
 				300CB41960DEE18DE47F421E /* Features */,
 				2F3E67284B009E2CA88625B4 /* Resources */,
 			);
@@ -234,6 +270,14 @@
 				9019F5C59F8C2B93EDFCB2BE /* PerchUITests */,
 				5604ACE44E439FA92A920531 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		E86044BBCB0A035590DE5407 /* Root */ = {
+			isa = PBXGroup;
+			children = (
+				0274461E25099FBB92325409 /* AppRoot.swift */,
+			);
+			path = Root;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -390,7 +434,6 @@
 			files = (
 				B43D5DC91E95AC408194BEF3 /* DesignGalleryUITests.swift in Sources */,
 				487B2E112C27D4631E1E3BA0 /* PerchUITests.swift in Sources */,
-				7C920ADC6C5DC0C1F65C9994 /* PlexSignInUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -398,18 +441,23 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				71329D2594E3136A04B43D6A /* ConnectionNotice.swift in Sources */,
+				A50F4216A747F7CAF404ABF4 /* AppRoot.swift in Sources */,
 				642A4DBDFED68899100CA244 /* CoreServices.swift in Sources */,
+				D8C1571D6EFC22A8F99D79AC /* FakeArt.swift in Sources */,
+				EA554CCC29B78E08008E449D /* FakeHouseholdTransport.swift in Sources */,
 				0E90752923D2A8DD20600D4A /* FaultInjectingTransport.swift in Sources */,
+				4B921CDDAC347E69092ABAA5 /* ImageDiskCache.swift in Sources */,
 				69C7FBB43B8946F4217CBA80 /* ModuleManifest.swift in Sources */,
 				34E73F508EA639C0CB7DFB51 /* PerchMain.swift in Sources */,
 				953A049EEFA1995A05CF2C41 /* PlaceholderView.swift in Sources */,
-				0CDEDB93ACE7CF15597FE0C7 /* PlexAddressView.swift in Sources */,
-				009ADC4509A75C94EF9C66B9 /* PlexLinkCodeView.swift in Sources */,
-				688796DA9B0B506FF8EB0827 /* PlexProfilesDebugView.swift in Sources */,
-				5BEA187AA68AC9D2EC1E93B8 /* PlexServerPickerView.swift in Sources */,
 				22E7464F851F3DFAE221147A /* PlexSignInModel.swift in Sources */,
-				B9F945C32473F945832D5515 /* PlexSignInView.swift in Sources */,
+				13C2D6C32B8E74412EFFD95F /* ProfilePickerView.swift in Sources */,
+				14385D923BA789B87B7EA200 /* ProfileSwitcher.swift in Sources */,
+				EB703ED1F35EC501C0B06DC0 /* SetupAdminPINStep.swift in Sources */,
+				2563C792550A55B37D94C1D3 /* SetupConnectStep.swift in Sources */,
+				49FC74040CE062EA08425469 /* SetupFlowModel.swift in Sources */,
+				37996216A7C85B009A559C32 /* SetupFlowView.swift in Sources */,
+				737BC63B499B2034F488A938 /* SetupProfilesStep.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

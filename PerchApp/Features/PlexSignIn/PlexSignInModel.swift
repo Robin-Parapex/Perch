@@ -3,20 +3,6 @@ import Observation
 import PerchCore
 import PerchPlex
 
-/// Navigation targets of the sign-in flow, pushed onto the placeholder's stack.
-enum PlexRoute: Hashable {
-    case signIn, code, address, servers, connected, profiles
-}
-
-/// One Home user as the debug profile screen shows it.
-struct PlexProfileRow: Identifiable, Equatable {
-    let id: String
-    let name: String
-    let roleLabel: String
-    let ceilingLabel: String
-    let isProtected: Bool
-}
-
 /// Bridges the PlexSession actor's update stream to SwiftUI.
 @Observable @MainActor
 final class PlexSignInModel {
@@ -55,36 +41,6 @@ final class PlexSignInModel {
 
     var isReady: Bool {
         if case .ready = snapshot.state { true } else { false }
-    }
-
-    /// "Connected to <name>, <n> libraries".
-    func connectedSummary() async -> String? {
-        guard case .ready(_, let server) = snapshot.state else { return nil }
-        guard let summary = try? await session.librarySummary() else { return "Connected to \(server.name)" }
-        let count = summary.sectionCount
-        return "Connected to \(server.name), \(count) \(count == 1 ? "library" : "libraries")"
-    }
-
-    func profileRows() async throws -> [PlexProfileRow] {
-        let users = try await session.homeUsers()
-        let document = await settings.document
-        return users.map { user in
-            let stored = document.profiles[PlexUserID(user.id)]
-            let role = stored?.role ?? (user.admin ? .parent : .kid)
-            let ceiling = stored?.ceilingOverride ?? RatingCeiling(plex: stored?.plexRestriction ?? user.restriction)
-            return PlexProfileRow(
-                id: user.id, name: user.displayName, roleLabel: Self.label(role), ceilingLabel: ceiling.label,
-                isProtected: user.protected)
-        }
-    }
-
-    private static func label(_ role: Role) -> String {
-        switch role {
-        case .parent: "Parent"
-        case .teen: "Teen"
-        case .kid: "Kid"
-        case .topShelf: "Top Shelf"
-        }
     }
 
     var plexTVReachable: Bool { snapshot.plexTVReachable }

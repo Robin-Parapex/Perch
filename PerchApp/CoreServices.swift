@@ -15,11 +15,17 @@ final class CoreServices {
     let adminPIN: AdminPIN
     let modules: ModuleRegistry
     let plexSignIn: PlexSignInModel
+    let setupCompletion: SetupCompletion
+    let profileSwitcher: ProfileSwitcher
+    let launch = LaunchState()
     let eventBus = EventBus()
     let pollers = PollerCoordinator()
 
     init() {
         secrets = KeychainStore()
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-PerchResetSetup") { Self.debugReset(secrets: secrets) }
+        #endif
         let keyValues = UserDefaultsStore()
         self.keyValues = keyValues
         settings = SettingsStore(store: keyValues)
@@ -27,7 +33,8 @@ final class CoreServices {
         // Plex: transport, identity and the owner PIN verifier are built before AdminPIN (WP-04 decision 10).
         let baseTransport: any PlexTransport = URLSessionTransport()
         #if DEBUG
-        let transport = FaultInjectingTransport.wrapping(baseTransport)
+        // `-PerchFakeHousehold` serves canned answers; the fault switches wrap whichever transport is in use.
+        let transport = FaultInjectingTransport.wrapping(FakeHouseholdTransport.fromArguments() ?? baseTransport)
         #else
         let transport = baseTransport
         #endif
@@ -42,6 +49,9 @@ final class CoreServices {
             settings: settings, adminPIN: adminPIN)
         plexSignIn = PlexSignInModel(
             session: session, transport: transport, endpoints: endpoints, adminPIN: adminPIN, settings: settings)
+        setupCompletion = SetupCompletion(store: keyValues)
+        profileSwitcher = ProfileSwitcher(
+            session: session, settings: settings, adminPIN: adminPIN, defaults: Self.plexDefaults())
         let modules = ModuleRegistry(modules: [PlexModule(session: session)])
         self.modules = modules
         authoriser = Authoriser(
@@ -50,11 +60,29 @@ final class CoreServices {
     }
 
     /// A fresh handle on the App Group defaults (UserDefaults is not Sendable, so each owner gets its own).
-    private nonisolated static func plexDefaults() -> UserDefaults {
+    nonisolated static func plexDefaults() -> UserDefaults {
         UserDefaults(suiteName: PerchConstants.appGroupID) ?? .standard
     }
 
     #if DEBUG
+    /// `-PerchResetSetup`: back to a first run for tests and screenshots. Clears the setup flag, the last
+    /// profile, the Plex and Admin PIN records, the settings document, the image cache and the Keychain
+    /// items of the fake household (and the signed-in owner). Runs before any service reads its state.
+    private static func debugReset(secrets: any SecretStore) {
+        let defaults = plexDefaults()
+        for key in defaults.dictionaryRepresentation().keys
+        where ["plex.", "admin.", "perch."].contains(where: key.hasPrefix) {
+            defaults.removeObject(forKey: key)
+        }
+        try? secrets.remove(.plexOwnerToken)
+        try? secrets.remove(.adminPerchPIN)
+        for id in ["1001", "1002", "1003", "manual"] {
+            try? secrets.remove(.plexUserToken(PlexUserID(id)))
+            try? secrets.remove(.module(ModuleID("plex"), "server.\(id)"))
+        }
+        ImageDiskCache.shared.removeAll()
+    }
+
     /// Proves on hardware that the Keychain and the App Group defaults are reachable.
     /// Writes, reads back and deletes probe items; never touches real keys.
     func runStorageSelfCheck() {
