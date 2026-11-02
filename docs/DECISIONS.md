@@ -153,6 +153,49 @@ Append-only log of decisions and why. Newest at the bottom. Format: date, decisi
 - The Keychain is shared by using the App Group ID as the access group, which the existing `application-groups` entitlement allows; no `keychain-access-groups` entitlement is added.
 - Alternatives rejected: JSON files in the App Group container (not guaranteed to persist on tvOS; this was the first WP-02 plan, changed after review); an iCloud key-value mirror now (needs iCloud and an entitlement; kept for the "Later" sync item); Core Data or SwiftData. Decided by the lead during WP-02 after the review; Robin to confirm.
 
+## 2026-11-02 Dark only
+- Perch sets `UIUserInterfaceStyle` to Dark. `docs/DESIGN.md` defines a dark palette only.
+- Alternatives rejected: following the system appearance (DESIGN has no light palette). Decided by the WP-03 lead (Claude) in the WP-03 plan Robin approved.
+
+## 2026-11-02 Liquid Glass always
+- tvOS 26 is the minimum, so chrome uses `glassEffect` with no fallback materials.
+- Alternatives rejected: fallback materials (no device below tvOS 26). Decided by the WP-03 lead (Claude) in the WP-03 plan Robin approved.
+
+## 2026-11-02 Focus look
+- Focus uses the system highlight effect (lift, shadow and parallax, as in the TV app), plus DESIGN's white ring at 3 pt. Labels under artwork do not scale. The focus scale token is 1.06. Card focus scale is set by the system highlight effect. DESIGN's 1.05 to 1.08 card scale is checked by eye on the Apple TV; the 1.06 token applies to buttons.
+- Alternatives rejected: a custom scale-and-shadow ButtonStyle (loses native parallax). Decided by the WP-03 lead (Claude) in the WP-03 plan Robin approved.
+
+## 2026-11-02 Reduce Motion
+- With Reduce Motion on, scale, Ken Burns and slides become 0.3 s crossfades, and the row lift becomes dim only. One testable function, `PerchMotion.resolve`, decides this.
+- Alternatives rejected: per-component ad hoc checks. Decided by the WP-03 lead (Claude) in the WP-03 plan Robin approved.
+
+## 2026-11-02 PerchDesign takes artwork as generic views
+- PerchDesign takes artwork as generic views and has no image library. Nuke arrives with WP-08 without PerchDesign depending on it.
+- Alternatives rejected: adding Nuke now. Decided by the WP-03 lead (Claude) in the WP-03 plan Robin approved.
+
+## 2026-11-02 Availability wording lives in PerchCore
+- Availability wording lives in `PerchCore` (`TitleAvailability`), because feature modules may import `PerchCore` only. PerchDesign renders it.
+- Alternatives rejected: wording in PerchDesign (feature modules could not reach it). Decided by the WP-03 lead (Claude) in the WP-03 plan Robin approved.
+
+## 2026-11-02 Design gallery is debug only
+- The design gallery is compiled only in DEBUG and never ships in TestFlight. It opens from the placeholder screen or with `-PerchDesignGallery`.
+- Alternatives rejected: a hidden Settings switch in release builds. Decided by the WP-03 lead (Claude) in the WP-03 plan Robin approved.
+
+## 2026-11-02 Overlays are containers only in WP-03
+- Overlays in WP-03 are SwiftUI containers only. The overlay `UIWindow` host is WP-07 (`PerchPlayer`). The `FocusCoordinator` and remembered focus per screen come with the first real screen.
+- Alternatives rejected: building the overlay window now. Decided by the WP-03 lead (Claude) in the WP-03 plan Robin approved.
+
+## 2026-11-02 Layout values fixed in code
+- Some layout values have no `docs/DESIGN.md` number and are fixed in code until hardware review: hero height 80% of the screen (heightFraction), logo box 600x140, synopsis width 900, panel corner radius 24. Pages ignore the system safe area and apply the DESIGN margins once.
+- Alternatives rejected: guessing DESIGN numbers. Decided by the WP-03 lead (Claude) in the WP-03 plan Robin approved.
+
+## 2026-11-02 Overlays that take focus use a clear full-screen cover
+- The side panel, top sheet and corner pill are shown in a `.fullScreenCover` with a clear presentation background and the system animation off. The overlay animates itself in and out.
+- tvOS then moves focus into the overlay, keeps the host out of reach and returns focus to the exact element focused before. Menu closes the overlay, not the screen behind it. The corner notice stays passive and does not take focus.
+- Proven by UI tests in `PerchUITests/DesignGalleryUITests.swift`.
+- Known limits, to revisit with the WP-07 overlay window: the corner pill blocks the host (and a player's transport controls) while it shows, and only one such overlay can be up at a time.
+- Alternatives rejected: disabling the host and pulling focus into the overlay (it lost the focused element, so focus could not be restored, and Menu popped the screen). Decided by the WP-03 lead (Claude) in the WP-03 plan Robin approved.
+
 ## Open decisions (resolve in the named work package)
 - Recovery when the stored Perch PIN cannot be read (Admin is locked out by design): confirm the owner through Plex, audited, then allow a new Perch PIN (WP-05).
 - Assistant name (placeholder Pip) (WP-19).
