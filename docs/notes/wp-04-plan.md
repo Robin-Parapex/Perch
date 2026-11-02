@@ -3,9 +3,9 @@
 ## Context
 WP-04 is the fourth of five WPs in 0.1.0 (ROADMAP:48). PerchPlex is a stub. WP-05 (wizard and profile picker) needs a working Plex sign-in underneath it: link code, manual address, server choice, Home users with restriction profiles, PIN-checked switching, tokens in the Keychain, resume on relaunch, and clear unreachable states. WP-04 delivers that client plus plain screens to exercise it on the Apple TV. Wizard styling and the real profile picker stay in WP-05.
 
-**Status:** planned in a cloud session (no Swift toolchain there); building continues locally on the Mac.
+**Status:** approved by Robin on 2 Nov 2026 with the changes below; building locally on the Mac.
 
-Branch `wp-04-plex-signin` from `main`, commits `feat(WP-04): ...`, one draft PR. Not stacked on WP-03 (still draft PR #4): sign-in screens use native SwiftUI controls only, so no PerchDesign dependency; WP-05 restyles them. If WP-03 merges first I rebase (expected conflict only in `PlaceholderView`).
+Branch `wp-04-plex-signin` from `main`, commits `feat(WP-04): ...`, one draft PR. WP-03 has merged (main merged into this branch), so sign-in screens use PerchDesign's page background, `.perchPageMargins()` and the primary and secondary button styles, with native controls (TextField, SecureField, List). WP-05 does the full styling.
 
 ## Decisions I am taking (recorded in DECISIONS.md)
 1. **Link flow = short code** at plex.tv/link (non-strong `POST /api/v2/pins`), as ROADMAP says. Poll `GET /api/v2/pins/{id}` every 2 s; new code automatically on expiry. No QR in WP-04.
@@ -20,6 +20,7 @@ Branch `wp-04-plex-signin` from `main`, commits `feat(WP-04): ...`, one draft PR
 10. **Owner PIN verifier** built before `AdminPIN` in `CoreServices` (it reads the token at call time, so no PerchCore change).
 11. **Unreachable wording** (GLOSSARY: "Profile", no jargon outside setup): signed-in screens say "Can't reach your library right now" with Try again; plex.tv down says "Profile PINs can't be checked right now", current profile stays, PIN-protected switches locked. "Plex" appears only in the sign-in screens (setup context).
 12. **Screens live in the app target**, debug-reachable from the placeholder ("Plex sign-in" button) and launch argument `-PerchPlexSignIn`. PerchPlex stays UI-free apart from its `Module` conformance.
+13. **Fault switches for demos (DEBUG only).** Launch arguments `-PerchFakePlexTVDown` and `-PerchFakeServerDown` wrap the transport in the app so plex.tv calls, or server calls, fail as unreachable. They exist only in DEBUG builds and let acceptance items 7 and 8 be shown in the simulator.
 
 ## Files
 **Packages/PerchPlex/Sources/PerchPlex/**
@@ -49,19 +50,22 @@ Branch `wp-04-plex-signin` from `main`, commits `feat(WP-04): ...`, one draft PR
 1. builder A: networking, models, address parser, endpoints. tester alongside: fixtures and model/parser/header tests.
 2. builder B: link flow, session, switching, verifier, profile sync, discovery and prober. tester: flow and session tests.
 3. builder C: app screens, CoreServices wiring, UI test.
-4. reviewer (Opus) on the full diff, focused on Swift 6 concurrency and compile risk since nothing can be compiled here; I fix findings. scribe: CHANGELOG, DECISIONS, notices.
+4. verifier: `scripts/gate.sh` locally.
+5. reviewer (Opus) on the full diff, focused on Swift 6 concurrency and compile risk; I fix findings. scribe: CHANGELOG, DECISIONS, notices.
 
 ## Verification
 - Reviewer pass on the full diff before the PR.
-- **Robin on the Mac:** `scripts/gate.sh` green (xcodegen drift, all package tests, UI test). Send me any build errors.
-- **On the Apple TV 4K (Debug over network), acceptance list for the PR:**
+- `scripts/gate.sh` green, run locally by the verifier.
+- **In the tvOS simulator (Robin asked for simulator only; no device installs), acceptance list for the PR:**
   1. Sign in with code at plex.tv/link on the phone; app moves on by itself.
   2. Manual address plus token connects; wrong token says so; wrong address says can't reach.
   3. Several servers: picker shows them; one server: chosen automatically.
   4. Home users listed with the right role and ceiling (kid profile shows U or PG as Plex says).
   5. Wrong profile PIN refused, right one switches; five wrong lock for 60 s.
   6. Quit and relaunch: last profile resumes with no PIN.
-  7. Server off: "Can't reach your library right now", Try again works when it is back.
-  8. Wi-Fi to WAN blocked (plex.tv down, LAN up): current profile keeps playing, PIN switches locked with the message.
+  7. Server off: "Can't reach your library right now", Try again works when it is back. (shown with the DEBUG fault switch, decision 13)
+  8. Wi-Fi to WAN blocked (plex.tv down, LAN up): current profile keeps playing, PIN switches locked with the message. (shown with the DEBUG fault switch, decision 13)
   9. Admin PIN with the owner's Plex PIN works (AdminPIN verifier wired).
+
+The on-device check from CLAUDE.md is listed in the PR as not done.
 - Then push and open the draft PR.

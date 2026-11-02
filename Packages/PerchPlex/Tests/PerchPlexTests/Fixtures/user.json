@@ -1,0 +1,1 @@
+{"id": 1001, "uuid": "uuid-owner-0001", "username": "owner", "title": "Owner", "email": "owner@example.invalid", "thumb": "https://plex.tv/users/aaa/avatar", "authToken": "FAKE-TOKEN-1", "hasPassword": true, "protected": false, "admin": true, "home": true, "homeAdmin": true, "restricted": false}
