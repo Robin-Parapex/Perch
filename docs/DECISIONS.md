@@ -98,6 +98,34 @@ Append-only log of decisions and why. Newest at the bottom. Format: date, decisi
 ## 2026-11-01 Apple TV model and ATS
 - Target device is the Apple TV 4K 3rd generation (HDR10+ capable); older models supported with HDR10+ shown as HDR10. The private build sets `NSAllowsArbitraryLoads` because users type plain-HTTP addresses; a public release would revisit this.
 
+## 2026-11-01 Identifiers and team
+- Team Parapex Ltd, ID 3TWLQK4535. Bundle ID `com.robrolabs.perch`, Top Shelf `com.robrolabs.perch.topshelf`, App Group and Keychain access group `group.com.robrolabs.perch`, URL scheme `perch`. Against the domain robrolabs.com.
+- Reasons: confirmed in WP-01. Alternatives rejected: the proposed `uk.familybrown` identifiers. Decided by Robin.
+
+## 2026-11-01 The GitHub repo stays public
+- Robin-Parapex/Perch stays public. Consequences accepted: anything committed is world-readable, and feedback issues opened through the WP-19 QR route would be public.
+- Alternatives rejected: none recorded. Decided by Robin.
+
+## 2026-11-01 XcodeGen for the Xcode project
+- `project.yml` (XcodeGen) is the source and the generated `Perch.xcodeproj` is committed. XcodeGen is a local dev tool only, nothing ships in the app, and Xcode Cloud needs no `ci_scripts`.
+- Alternatives rejected: none recorded. Decided by Robin.
+
+## 2026-11-01 ATS wording
+- `NSAllowsArbitraryLoads` stays, per the existing ATS decision. The "ATS local-network exception" wording in `docs/KICKOFF.md` step 2 is superseded.
+- Alternatives rejected: the local-network exception wording. Decided by the lead in the WP-01 plan Robin approved.
+
+## 2026-11-01 Local network usage key
+- Info.plist carries `NSLocalNetworkUsageDescription` because Apple documents the key for tvOS 14 and later. `docs/ARCHITECTURE.md` said tvOS has no Local Network privacy prompt; that is corrected. Real prompt behaviour on tvOS 26 is still to be checked on the Apple TV.
+- Alternatives rejected: the earlier claim of no prompt on tvOS. Decided by the lead in the WP-01 plan Robin approved.
+
+## 2026-11-01 Module dependencies
+- Every module package depends on `PerchCore` only, following `docs/MODULES.md`.
+- Alternatives rejected: none recorded. Decided by the lead in the WP-01 plan Robin approved.
+
+## 2026-11-01 Placeholder art
+- Wordmark, icon layers and Top Shelf images are generated placeholders (`scripts/make-placeholder-art.swift`) until design exports are supplied. The wordmark is set in SF Pro. No third-party code ships yet; the Top Shelf placeholder follows Dusk's approach (MIT), idea only, no code copied.
+- Alternatives rejected: none recorded. Decided by the lead in the WP-01 plan Robin approved.
+
 ## Open decisions (resolve in the named work package)
 - Assistant name (placeholder Pip) (WP-19).
 - Feedback endpoint hosting: Dokploy VPS or Cloudflare Worker (perch-site, later).

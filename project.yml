@@ -1,0 +1,128 @@
+name: Perch
+options:
+  bundleIdPrefix: com.robrolabs
+  xcodeVersion: "2720"
+  deploymentTarget:
+    tvOS: "26.0"
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    DEVELOPMENT_TEAM: 3TWLQK4535
+    CODE_SIGN_STYLE: Automatic
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    TARGETED_DEVICE_FAMILY: "3"
+    TVOS_DEPLOYMENT_TARGET: "26.0"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+
+packages:
+  PerchCore:
+    path: Packages/PerchCore
+  PerchDesign:
+    path: Packages/PerchDesign
+  PerchPlex:
+    path: Packages/PerchPlex
+  PerchPlayer:
+    path: Packages/PerchPlayer
+  PerchSeerr:
+    path: Packages/PerchSeerr
+  PerchTrakt:
+    path: Packages/PerchTrakt
+  PerchHome:
+    path: Packages/PerchHome
+  PerchFrigate:
+    path: Packages/PerchFrigate
+  PerchAI:
+    path: Packages/PerchAI
+  PerchTautulli:
+    path: Packages/PerchTautulli
+
+targets:
+  PerchApp:
+    type: application
+    platform: tvOS
+    sources:
+      - path: PerchApp
+        excludes:
+          - "*.entitlements"
+          - Info.plist
+    info:
+      path: PerchApp/Info.plist
+      properties:
+        CFBundleDisplayName: Perch
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        ITSAppUsesNonExemptEncryption: false
+        UILaunchScreen: {}
+        UIUserInterfaceStyle: Automatic
+        NSLocalNetworkUsageDescription: Perch uses your local network to reach your media server and home devices.
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+        CFBundleURLTypes:
+          - CFBundleURLName: com.robrolabs.perch
+            CFBundleURLSchemes:
+              - perch
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.robrolabs.perch
+        CODE_SIGN_ENTITLEMENTS: PerchApp/PerchApp.entitlements
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        GENERATE_INFOPLIST_FILE: NO
+    dependencies:
+      - package: PerchCore
+      - package: PerchDesign
+      - package: PerchPlex
+      - package: PerchPlayer
+      - package: PerchSeerr
+      - package: PerchTrakt
+      - package: PerchHome
+      - package: PerchFrigate
+      - package: PerchAI
+      - package: PerchTautulli
+      - target: PerchTopShelf
+        embed: true
+
+  PerchTopShelf:
+    type: tv-app-extension
+    platform: tvOS
+    sources:
+      - path: PerchTopShelf
+        excludes:
+          - "*.entitlements"
+          - Info.plist
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.robrolabs.perch.topshelf
+        PRODUCT_NAME: PerchTopShelf
+        INFOPLIST_FILE: PerchTopShelf/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        CODE_SIGN_ENTITLEMENTS: PerchTopShelf/PerchTopShelf.entitlements
+        APPLICATION_EXTENSION_API_ONLY: YES
+
+  PerchUITests:
+    type: bundle.ui-testing
+    platform: tvOS
+    sources:
+      - path: PerchUITests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.robrolabs.perch.uitests
+        GENERATE_INFOPLIST_FILE: YES
+    dependencies:
+      - target: PerchApp
+
+schemes:
+  PerchApp:
+    build:
+      targets:
+        PerchApp: all
+    test:
+      config: Debug
+      targets:
+        - PerchUITests
+    run:
+      config: Debug
+    archive:
+      config: Release

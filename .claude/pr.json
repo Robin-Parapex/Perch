@@ -1,0 +1,9 @@
+{
+  "repo": "Robin-Parapex/Perch",
+  "gate": "scripts/gate.sh",
+  "autoFix": false,
+  "merger": "robin",
+  "pushNeedsWord": true,
+  "codexReview": false,
+  "status": null
+}
