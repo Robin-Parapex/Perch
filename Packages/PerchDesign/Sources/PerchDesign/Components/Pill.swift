@@ -29,18 +29,21 @@ public struct Pill: View {
                 .padding(.horizontal, 12).padding(.vertical, 4)
                 .background(Capsule().fill(Color.white))
         case .availability(let availability, let kids):
-            VStack(spacing: 4) {
-                Text(availability.label(forKids: kids))
-                    .font(PerchFont.badge(style))
-                    .foregroundStyle(PerchColor.textPrimary)
-                if let progress = availability.progress {
-                    ProgressView(value: progress)
-                        .progressViewStyle(.linear)
-                        .tint(.white)
-                        .frame(height: 3)
+            // The bar is an overlay so the label sets the pill width; a bar in a stack takes all offered width.
+            let progress = availability.progress
+            Text(availability.label(forKids: kids))
+                .font(PerchFont.badge(style))
+                .foregroundStyle(PerchColor.textPrimary)
+                .padding(.bottom, progress == nil ? 0 : 7)
+                .overlay(alignment: .bottom) {
+                    if let progress {
+                        ProgressView(value: progress)
+                            .progressViewStyle(.linear)
+                            .tint(.white)
+                            .frame(height: 3)
+                    }
                 }
-            }
-            .padding(.horizontal, 14).padding(.vertical, 6)
+                .padding(.horizontal, 14).padding(.vertical, 6)
             .glassEffect(.regular, in: Capsule())
         }
     }
