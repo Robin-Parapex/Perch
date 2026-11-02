@@ -13,6 +13,11 @@ struct PlaceholderView: View {
         var path = NavigationPath()
         if arguments.contains("-PerchDesignGallery") { path.append(Route.gallery) }
         if arguments.contains("-PerchPlexSignIn") { path.append(PlexRoute.signIn) }
+        // UI tests: the Connected screen without a live sign-in.
+        if arguments.contains("-PerchPlexConnected") {
+            path.append(PlexRoute.signIn)
+            path.append(PlexRoute.connected)
+        }
         return path
     }
     #endif

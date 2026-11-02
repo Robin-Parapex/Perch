@@ -8,16 +8,17 @@ struct PlexLinkCodeView: View {
     @Binding var path: NavigationPath
     @State private var code: String?
     @State private var failed = false
+    @State private var message = "Can't reach Plex right now"
     @State private var attempt = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: PerchSpacing.rowGap) {
             if failed {
-                Text("Can't reach Plex right now")
+                Text(message)
                     .font(.system(size: PerchFont.sectionSize, weight: .semibold))
                     .foregroundStyle(PerchColor.textPrimary)
                     .accessibilityIdentifier("plexCode.error")
-                Button("Try again") { failed = false; attempt += 1 }
+                Button("Try again") { failed = false; message = "Can't reach Plex right now"; attempt += 1 }
                     .buttonStyle(.perchPrimary)
                     .accessibilityIdentifier("plexCode.retry")
             } else {
@@ -56,6 +57,7 @@ struct PlexLinkCodeView: View {
             if !path.isEmpty { path.removeLast() }
             path.append(servers.count > 1 ? PlexRoute.servers : PlexRoute.connected)
         } catch {
+            message = PlexSignInModel.message(for: error)
             failed = true
         }
     }

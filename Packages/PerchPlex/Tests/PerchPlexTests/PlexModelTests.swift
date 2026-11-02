@@ -97,6 +97,22 @@ struct PlexModelTests {
         }
     }
 
+    @Test func switchResultReadsXMLToken() throws {
+        let xml = #"<?xml version="1.0" encoding="UTF-8"?><user id="1002" uuid="u" authenticationToken="FAKE-TOKEN-PROFILE-1"><subscription active="0"/></user>"#
+        #expect(try PlexSwitchResult.decode(from: Data(xml.utf8)).authToken == "FAKE-TOKEN-PROFILE-1")
+    }
+
+    @Test func switchResultReadsJSONThroughDecode() throws {
+        #expect(try PlexSwitchResult.decode(from: Fixture.data("switch_ok")).authToken == "FAKE-TOKEN-PROFILE-1")
+    }
+
+    @Test func switchResultWithoutTokenInXMLFails() {
+        #expect(throws: PlexError.decoding) {
+            try PlexSwitchResult.decode(from: Data(#"<user id="1002" authenticationToken=""/>"#.utf8))
+        }
+        #expect(throws: PlexError.decoding) { try PlexSwitchResult.decode(from: Data("not xml".utf8)) }
+    }
+
     @Test func resourcesKeepOnlyServers() throws {
         let servers = try PlexResource.servers(from: Fixture.data("resources"))
         #expect(servers.map(\.clientIdentifier) == ["FAKE-MACHINE-LOUNGE", "FAKE-MACHINE-GARAGE"])

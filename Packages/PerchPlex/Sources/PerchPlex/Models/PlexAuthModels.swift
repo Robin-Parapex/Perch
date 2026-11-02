@@ -159,4 +159,32 @@ public struct PlexSwitchResult: Decodable, Sendable, Equatable {
                 CodingKeys.authToken, .init(codingPath: [], debugDescription: "No token"))
         }
     }
+
+    /// The legacy switch endpoint answers in XML even when asked for JSON, so try JSON first and
+    /// then the root element's `authenticationToken` attribute. Approach after Dusk (MIT).
+    public static func decode(from data: Data) throws -> PlexSwitchResult {
+        if let result = try? PlexJSON.decoder().decode(PlexSwitchResult.self, from: data) { return result }
+        let reader = SwitchTokenReader()
+        let parser = XMLParser(data: data)
+        parser.delegate = reader
+        // The reader stops after the root element, so `parse()` reports false; the token decides.
+        _ = parser.parse()
+        guard let token = reader.token else { throw PlexError.decoding }
+        return PlexSwitchResult(authToken: token)
+    }
+}
+
+/// Reads the token attribute from the first XML element of a switch response.
+private final class SwitchTokenReader: NSObject, XMLParserDelegate {
+    private(set) var token: String?
+
+    func parser(
+        _ parser: XMLParser, didStartElement elementName: String, namespaceURI: String?,
+        qualifiedName qName: String?, attributes attributeDict: [String: String] = [:]
+    ) {
+        guard token == nil else { return }
+        token = [attributeDict["authenticationToken"], attributeDict["authToken"]]
+            .compactMap { $0 }.first { !$0.isEmpty }
+        parser.abortParsing()
+    }
 }

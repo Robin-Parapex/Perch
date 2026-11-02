@@ -194,6 +194,18 @@ struct PlexSessionSwitchingTests {
         #expect(try rig.secrets.string(for: .plexOwnerToken) == "TOKEN-OWNER")
     }
 
+    @Test func anXMLSwitchResponseCommitsTheProfile() async throws {
+        let (rig, session) = try await signedIn()
+        defer { rig.cleanup() }
+        let xml = #"<?xml version="1.0" encoding="UTF-8"?><user id="1002" authenticationToken="FAKE-TOKEN-PROFILE-1"/>"#
+        await rig.transport.scriptSwitch(userID: "1002", .response(status: 201, body: Data(xml.utf8)))
+
+        try await session.switchProfile(to: partner, pin: "1234")
+
+        #expect(await session.currentProfile()?.id == partner)
+        #expect(try rig.secrets.string(for: .plexUserToken(partner)) == "FAKE-TOKEN-PROFILE-1")
+    }
+
     @Test func aWrongPINIsRefusedAndChangesNothing() async throws {
         let (rig, session) = try await signedIn()
         defer { rig.cleanup() }

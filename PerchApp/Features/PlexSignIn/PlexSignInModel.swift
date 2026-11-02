@@ -23,6 +23,8 @@ final class PlexSignInModel {
     let session: PlexSession
     let transport: any PlexTransport
     let endpoints: PlexEndpoints
+    /// For the debug "Check Admin PIN" demo (acceptance item 9); the real Admin entry is later.
+    let adminPIN: AdminPIN
     private let settings: SettingsStore
 
     private(set) var snapshot = PlexSessionSnapshot.signedOut
@@ -30,10 +32,14 @@ final class PlexSignInModel {
 
     @ObservationIgnored private var observer: Task<Void, Never>?
 
-    init(session: PlexSession, transport: any PlexTransport, endpoints: PlexEndpoints, settings: SettingsStore) {
+    init(
+        session: PlexSession, transport: any PlexTransport, endpoints: PlexEndpoints, adminPIN: AdminPIN,
+        settings: SettingsStore
+    ) {
         self.session = session
         self.transport = transport
         self.endpoints = endpoints
+        self.adminPIN = adminPIN
         self.settings = settings
         observer = Task { [weak self] in
             let updates = await session.updates()
@@ -100,7 +106,9 @@ final class PlexSignInModel {
             _ = address
             return "Check the address"
         }
-        switch error as? PlexError {
+        if error is KeychainError { return "Couldn't save your sign-in" }
+        guard let error = error as? PlexError else { return "Something went wrong. Try again" }
+        switch error {
         case .unauthorized: return switchingProfile ? "That PIN isn't right" : "That token wasn't accepted"
         case .pinRequired: return "Enter the PIN for this profile"
         case .notSignedIn: return "Sign in first"
@@ -109,6 +117,7 @@ final class PlexSignInModel {
         case .pinIncorrect: return "That PIN isn't right"
         case .lockedOut(let until): return "Too many tries. Try again in \(duration(until))"
         case .plexTVUnreachable: return "Can't reach Plex right now"
+        case .decoding: return "Something went wrong. Try again"
         default: return "Can't reach that server"
         }
     }

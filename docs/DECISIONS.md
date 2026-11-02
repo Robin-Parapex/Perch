@@ -264,6 +264,11 @@ Append-only log of decisions and why. Newest at the bottom. Format: date, decisi
 - The profile PIN lockout applies only when switching to a PIN-protected profile, and switches are serialised.
 - Decided by the WP-04 lead (Claude) after review.
 
+## 2026-11-02 WP-04 PIN screen stays simple
+- WP-04 ships a centred phone-keypad PIN screen (dots, 3x3 keys with 0 below, outcome line) in the debug sign-in flow. The two-column layout from Dusk's tvOS Home PIN screen (avatar and text left, keypad right) is left for the real profile picker in WP-05. Dusk's behaviour is used now: the fourth digit submits, input pauses while checking, a spinner shows.
+- Home users are cached in memory only, so after a relaunch with plex.tv down the profile list is empty; WP-05 should keep the last list so locked profiles still show.
+- Alternatives rejected: restyling to Dusk's layout in WP-04 (first-run design belongs to WP-05). Decided by the WP-04 lead (Claude); Robin confirmed the remote path works.
+
 ## Open decisions (resolve in the named work package)
 - Recovery when the stored Perch PIN cannot be read (Admin is locked out by design): confirm the owner through Plex, audited, then allow a new Perch PIN (WP-05).
 - Assistant name (placeholder Pip) (WP-19).

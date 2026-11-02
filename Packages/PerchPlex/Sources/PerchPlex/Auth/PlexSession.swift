@@ -360,7 +360,7 @@ public actor PlexSession {
                 id: user.id, pin: user.protected ? enteredPIN : nil, ownerToken: ownerToken)
             do {
                 let data = try await plexTV(request)
-                let result = try PlexJSON.decode(PlexSwitchResult.self, from: data)
+                let result = try PlexSwitchResult.decode(from: data)
                 accountToken = isOwner ? ownerToken : result.authToken
             } catch PlexError.unauthorized where user.protected {
                 lockout = loadLockout()

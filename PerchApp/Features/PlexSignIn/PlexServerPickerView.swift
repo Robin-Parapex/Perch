@@ -7,6 +7,9 @@ struct PlexServerPickerView: View {
     let model: PlexSignInModel
     @Binding var path: NavigationPath
     @State private var error: String?
+    // Reached by replacing the link-code screen, which has nothing focusable, so tvOS
+    // assigns no focus on its own; claim it explicitly.
+    @FocusState private var focusedServer: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: PerchSpacing.itemGap) {
@@ -20,10 +23,12 @@ struct PlexServerPickerView: View {
                     HStack(spacing: PerchSpacing.itemGap) {
                         Text(server.name)
                         Text(server.hasLocalConnection ? "This home" : "Away")
-                            .foregroundStyle(PerchColor.textSecondary)
+                            // Relative to the button's colour, so it stays legible when focused.
+                            .foregroundStyle(.secondary)
                     }
                 }
                 .buttonStyle(.perchSecondary)
+                .focused($focusedServer, equals: server.machineID)
                 .accessibilityIdentifier("plexServers.\(server.machineID)")
             }
             if let error {
@@ -37,6 +42,7 @@ struct PlexServerPickerView: View {
         .perchPageMargins()
         .ignoresSafeArea()
         .perchPageBackground()
+        .onAppear { focusedServer = model.servers.first?.machineID }
     }
 
     private func choose(_ server: PlexServer) async {
@@ -46,7 +52,7 @@ struct PlexServerPickerView: View {
             if !path.isEmpty { path.removeLast() }
             path.append(PlexRoute.connected)
         } catch {
-            self.error = "Can't reach that server"
+            self.error = PlexSignInModel.message(for: error)
         }
     }
 }
@@ -55,6 +61,8 @@ struct PlexConnectedView: View {
     let model: PlexSignInModel
     @Binding var path: NavigationPath
     @State private var summary: String?
+    // Same as the server picker: replaces a screen with nothing focusable.
+    @FocusState private var profilesFocused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: PerchSpacing.rowGap) {
@@ -62,12 +70,11 @@ struct PlexConnectedView: View {
                 .font(.system(size: PerchFont.sectionSize, weight: .semibold))
                 .foregroundStyle(PerchColor.textPrimary)
                 .accessibilityIdentifier("plexConnected.summary")
-            Button("Profiles") {
-                if !path.isEmpty { path.removeLast() }
-                path.append(PlexRoute.profiles)
-            }
-            .buttonStyle(.perchPrimary)
-            .accessibilityIdentifier("plexConnected.profiles")
+            // Pushed, not replacing Connected, so Back returns here.
+            Button("Profiles") { path.append(PlexRoute.profiles) }
+                .buttonStyle(.perchPrimary)
+                .focused($profilesFocused)
+                .accessibilityIdentifier("plexConnected.profiles")
             Button("Done") { path = NavigationPath() }
                 .buttonStyle(.perchSecondary)
                 .accessibilityIdentifier("plexConnected.done")
@@ -77,6 +84,7 @@ struct PlexConnectedView: View {
         .perchPageMargins()
         .ignoresSafeArea()
         .perchPageBackground()
+        .onAppear { profilesFocused = true }
         .task { summary = await model.connectedSummary() }
     }
 }

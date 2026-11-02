@@ -41,7 +41,7 @@ final class CoreServices {
             transport: transport, identity: endpoints.identity, secrets: secrets, defaults: Self.plexDefaults(),
             settings: settings, adminPIN: adminPIN)
         plexSignIn = PlexSignInModel(
-            session: session, transport: transport, endpoints: endpoints, settings: settings)
+            session: session, transport: transport, endpoints: endpoints, adminPIN: adminPIN, settings: settings)
         let modules = ModuleRegistry(modules: [PlexModule(session: session)])
         self.modules = modules
         authoriser = Authoriser(

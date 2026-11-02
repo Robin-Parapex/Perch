@@ -1,4 +1,7 @@
 import Foundation
+import os
+
+let plexLog = Logger(subsystem: "com.robrolabs.perch", category: "plex")
 
 /// One HTTP round trip. Tests swap in a fake; the app uses `URLSessionTransport`.
 public protocol PlexTransport: Sendable {
@@ -72,12 +75,18 @@ extension PlexTransport {
     public func perform(_ request: URLRequest, host: PlexHost) async throws -> Data {
         let data: Data
         let response: HTTPURLResponse
+        // Path only: the query can carry a profile PIN, and tokens travel in headers.
+        let path = request.url?.path ?? "?"
         do {
             (data, response) = try await send(request)
         } catch {
+            plexLog.error("\(request.httpMethod ?? "GET", privacy: .public) \(path, privacy: .public) failed: \((error as? URLError)?.code.rawValue ?? -1, privacy: .public)")
             throw PlexError.transport(error, host: host)
         }
-        if let failure = PlexError.forStatus(response.statusCode) { throw failure }
+        if let failure = PlexError.forStatus(response.statusCode) {
+            plexLog.error("\(request.httpMethod ?? "GET", privacy: .public) \(path, privacy: .public) returned \(response.statusCode, privacy: .public)")
+            throw failure
+        }
         return data
     }
 }
@@ -98,8 +107,25 @@ public enum PlexJSON {
     public static func decode<T: Decodable>(_ type: T.Type, from data: Data) throws -> T {
         do {
             return try decoder().decode(type, from: data)
+        } catch let error as DecodingError {
+            // Coding path and reason only; DecodingError does not carry the values.
+            plexLog.error("Decoding \(String(describing: T.self), privacy: .public) failed: \(decodingSummary(error), privacy: .public)")
+            throw PlexError.decoding
         } catch {
             throw PlexError.decoding
+        }
+    }
+
+    private static func decodingSummary(_ error: DecodingError) -> String {
+        func path(_ context: DecodingError.Context) -> String {
+            context.codingPath.map { $0.intValue.map(String.init) ?? $0.stringValue }.joined(separator: ".")
+        }
+        switch error {
+        case .keyNotFound(let key, let context): return "missing \(key.stringValue) at \(path(context))"
+        case .typeMismatch(let type, let context): return "expected \(type) at \(path(context))"
+        case .valueNotFound(let type, let context): return "null \(type) at \(path(context))"
+        case .dataCorrupted(let context): return "corrupt at \(path(context))"
+        @unknown default: return "unknown"
         }
     }
 

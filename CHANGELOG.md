@@ -31,5 +31,7 @@ All notable changes to Perch. Format follows Keep a Changelog; versions follow `
 - WP-04 PerchPlex: tokens kept in the Keychain; the last profile resumes on relaunch, also when plex.tv is down.
 - WP-04 App: plain notices when the library or plex.tv can't be reached.
 - WP-04 App: plain sign-in screens and fault switches (`-PerchFakePlexTVDown`, `-PerchFakeServerDown`) in debug builds only.
+- WP-04 App: a full-screen four-digit PIN screen for protected profiles and a debug "Check Admin PIN": the fourth digit submits (on-screen keys or a keyboard), a spinner shows while the PIN is checked, and a wrong PIN shakes the dots.
+- WP-04 PerchPlex: the profile switch answer from plex.tv is read as JSON or XML; failed plex.tv and server calls are logged by path and status only, never the query or tokens.
 - Project document pack (README, CLAUDE.md, spec, roadmap with numbered work packages, modules, architecture, design, integrations, permissions, references, decisions, glossary).
 - Decisions through 1 November 2026: name Perch; build from scratch referencing Dusk and Swiftfin; app only with no proxy or hub; Plex PINs for profiles and an Admin PIN; provider-agnostic bring-your-own-key AI with permission levels and no free chat; setup wizard, welcome guide and feedback; Seerr-only polling and user-controlled Plex library refresh.
