@@ -126,7 +126,8 @@ public struct PlexHomeUser: Decodable, Sendable, Equatable, Identifiable {
 
     /// Plex is the source of truth; an unknown profile on a restricted user fails closed in PerchCore.
     public var restriction: PlexRestriction {
-        PlexRestriction(restricted: restricted, restrictionProfile: restrictionProfile)
+        // Fail closed: a named restriction profile means restricted even if the flag is false or missing.
+        PlexRestriction(restricted: restricted || restrictionProfile != nil, restrictionProfile: restrictionProfile)
     }
 
     /// Accepts a bare array or an object wrapping the list under `users`.

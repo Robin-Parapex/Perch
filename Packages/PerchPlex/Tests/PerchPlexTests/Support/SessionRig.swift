@@ -34,10 +34,14 @@ struct SessionRig {
         defaults = UserDefaults(suiteName: suite)!
     }
 
-    func makeSession(transport: (any PlexTransport)? = nil) -> PlexSession {
+    func makeSession(
+        transport: (any PlexTransport)? = nil, adminPIN: AdminPIN? = nil,
+        now: @escaping NowProvider = { fixedNow }
+    ) -> PlexSession {
         PlexSession(
             transport: transport ?? self.transport, identity: testIdentity, secrets: secrets,
-            defaults: UserDefaults(suiteName: suite)!, settings: settings, proberTiming: fastTiming, now: { fixedNow })
+            defaults: UserDefaults(suiteName: suite)!, settings: settings, adminPIN: adminPIN,
+            proberTiming: fastTiming, now: now)
     }
 
     func cleanup() { defaults.removePersistentDomain(forName: suite) }

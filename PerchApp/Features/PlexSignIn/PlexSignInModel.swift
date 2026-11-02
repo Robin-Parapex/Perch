@@ -95,13 +95,17 @@ final class PlexSignInModel {
     }
 
     /// Plain-words text for a sign-in or connect failure.
-    static func message(for error: Error) -> String {
+    static func message(for error: Error, switchingProfile: Bool = false) -> String {
         if let address = error as? ServerAddressError {
             _ = address
             return "Check the address"
         }
         switch error as? PlexError {
-        case .unauthorized: return "That token wasn't accepted"
+        case .unauthorized: return switchingProfile ? "That PIN isn't right" : "That token wasn't accepted"
+        case .pinRequired: return "Enter the PIN for this profile"
+        case .notSignedIn: return "Sign in first"
+        case .notHomeOwner: return "Sign in with the account that manages your Plex Home"
+        case .switchInProgress: return "Still switching profiles"
         case .pinIncorrect: return "That PIN isn't right"
         case .lockedOut(let until): return "Too many tries. Try again in \(duration(until))"
         case .plexTVUnreachable: return "Can't reach Plex right now"

@@ -11,22 +11,22 @@ public struct ProfileSyncResult: Sendable, Equatable {
 
 /// Plex Home users -> the settings document. Pure; the caller saves the result.
 public enum ProfileSync {
-    /// The owner is the user whose id is the account id, else the admin user.
-    public static func ownerUser(in users: [PlexHomeUser], account: PlexAccount) -> PlexHomeUser? {
-        users.first { $0.id == String(account.id) } ?? users.first(where: \.admin)
+    /// The owner is the Plex Home admin, never just whichever account signed in.
+    public static func ownerUser(in users: [PlexHomeUser]) -> PlexHomeUser? {
+        users.first(where: \.admin)
     }
 
     public static func sync(
         homeUsers: [PlexHomeUser], ownerAccount account: PlexAccount, into document: SettingsDocument
     ) -> ProfileSyncResult {
         var doc = document
-        let owner = ownerUser(in: homeUsers, account: account)
+        let owner = ownerUser(in: homeUsers)
         let ownerID = PlexUserID(owner?.id ?? String(account.id))
         doc.household.ownerPlexUserID = ownerID
 
         for user in homeUsers {
             let id = PlexUserID(user.id)
-            let isOwner = id == ownerID
+            let isOwner = user.admin && id == ownerID
             // Plex is the source of truth for the restriction; roles and overrides stay as set.
             let restriction: PlexRestriction = isOwner ? .unrestricted : user.restriction
             if var existing = doc.profiles[id] {

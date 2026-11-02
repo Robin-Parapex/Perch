@@ -11,6 +11,7 @@ struct PlexProfilesDebugView: View {
     @State private var selected: PlexProfileRow?
     @State private var pin = ""
     @State private var message: String?
+    @State private var switching = false
 
     var body: some View {
         ScrollView {
@@ -31,7 +32,7 @@ struct PlexProfilesDebugView: View {
                         }
                     }
                     .buttonStyle(.perchSecondary)
-                    .disabled(locked(row))
+                    .disabled(locked(row) || switching)
                     .accessibilityIdentifier("plexProfiles.\(row.id)")
                 }
                 if let selected {
@@ -39,7 +40,7 @@ struct PlexProfilesDebugView: View {
                         .accessibilityIdentifier("plexProfiles.pin")
                     Button("Switch") { Task { await switchTo(selected) } }
                         .buttonStyle(.perchPrimary)
-                        .disabled(pin.isEmpty)
+                        .disabled(pin.isEmpty || switching)
                         .accessibilityIdentifier("plexProfiles.switch")
                 }
                 if let message {
@@ -87,6 +88,9 @@ struct PlexProfilesDebugView: View {
     }
 
     private func switchTo(_ row: PlexProfileRow) async {
+        guard !switching else { return }
+        switching = true
+        defer { switching = false }
         do {
             try await model.session.switchProfile(to: PlexUserID(row.id), pin: row.isProtected ? pin : nil)
             selected = nil
@@ -94,7 +98,7 @@ struct PlexProfilesDebugView: View {
             message = nil
         } catch {
             pin = ""
-            message = PlexSignInModel.message(for: error)
+            message = PlexSignInModel.message(for: error, switchingProfile: true)
         }
     }
 }

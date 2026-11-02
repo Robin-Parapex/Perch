@@ -84,6 +84,7 @@ public actor PlexSession {
     private var homeUsersCache: [PlexHomeUser] = []
     private var profile: PlexActiveProfile?
     private var knownServers: [PlexServer] = []
+    private var switchInFlight = false
 
     public init(
         transport: any PlexTransport,
@@ -174,6 +175,7 @@ public actor PlexSession {
     /// caller shows the list and calls `choose(server:)`.
     @discardableResult
     public func signIn(accountToken: String) async throws -> [PlexServer] {
+        let previous = capturePrevious()
         setState(.connecting)
         do {
             let data = try await plexTV(endpoints.user(token: accountToken))
@@ -188,20 +190,50 @@ public actor PlexSession {
             if found.count == 1 { try await choose(server: found[0]) }
             return found
         } catch {
-            if case .ready = snapshotValue.state {} else {
-                try? secrets.remove(.plexOwnerToken)
-                setState(.signedOut)
-            }
+            restore(previous)
             throw error
         }
+    }
+
+    /// What a failed sign-in must put back: a failed attempt never wipes an existing sign-in.
+    private struct PreviousSignIn {
+        var state: PlexSessionState
+        var ownerToken: String?
+        var account: PlexAccount?
+        var homeUsers: [PlexHomeUser]
+        var profile: PlexActiveProfile?
+        var single: Bool
+        var switching: Bool
+    }
+
+    private func capturePrevious() -> PreviousSignIn {
+        PreviousSignIn(
+            state: snapshotValue.state, ownerToken: (try? secrets.string(for: .plexOwnerToken)) ?? nil,
+            account: account, homeUsers: homeUsersCache, profile: profile,
+            single: defaults.bool(forKey: DefaultsKey.singleProfile),
+            switching: snapshotValue.profileSwitchingAvailable)
+    }
+
+    private func restore(_ previous: PreviousSignIn) {
+        if let token = previous.ownerToken {
+            try? secrets.setString(token, for: .plexOwnerToken)
+        } else {
+            try? secrets.remove(.plexOwnerToken)
+        }
+        account = previous.account
+        homeUsersCache = previous.homeUsers
+        profile = previous.profile
+        defaults.set(previous.single, forKey: DefaultsKey.singleProfile)
+        setSwitchingAvailable(previous.switching)
+        setState(previous.state == .connecting ? .signedOut : previous.state)
     }
 
     /// Server-only route: an address plus a token. The token is stored as the owner token. If plex.tv
     /// accepts it as an account token, Home users and switching work; otherwise there is one profile.
     public func signInManually(address: String, token: String) async throws {
         let url = try ServerAddress.parse(address)
+        let previous = capturePrevious()
         setState(.connecting)
-        let previousState = snapshotValue.state
         do {
             let found = try await prober.probe(connections: [.manual(url: url)])
             // /identity needs no token, so check the token against a call that does.
@@ -211,17 +243,25 @@ public actor PlexSession {
             try secrets.setString(token, for: .plexOwnerToken)
             var ownerID = Self.singleProfileID
             var switching = false
+            // Only plex.tv refusing the token means "server-only token"; any other failure is a failed sign-in.
+            var accountData: Data?
             do {
-                let accountData = try await plexTV(endpoints.user(token: token))
+                accountData = try await plexTV(endpoints.user(token: token))
+            } catch PlexError.unauthorized {
+                accountData = nil
+            }
+            if let accountData {
                 let user = try PlexJSON.decode(PlexAccount.self, from: accountData)
                 account = user
                 let users = try await refreshHomeUsers(ownerToken: token)
-                ownerID = PlexUserID(ProfileSync.ownerUser(in: users, account: user)?.id ?? String(user.id))
+                ownerID = PlexUserID(ProfileSync.ownerUser(in: users)?.id ?? String(user.id))
                 switching = true
-            } catch {
+            } else {
                 account = nil
                 homeUsersCache = []
                 try await saveSingleProfile()
+                // No Plex PIN to reuse, so a Perch Admin PIN can be set.
+                await adminPIN?.setOwnerHasPlexPIN(false)
             }
             defaults.set(!switching, forKey: DefaultsKey.singleProfile)
             setSwitchingAvailable(switching)
@@ -232,10 +272,7 @@ public actor PlexSession {
                 manualURL: url)
             try await activate(profileID: ownerID, accountToken: token, serverToken: token, on: server)
         } catch {
-            if case .ready = previousState {} else {
-                try? secrets.remove(.plexOwnerToken)
-                setState(.signedOut)
-            }
+            restore(previous)
             throw error
         }
     }
@@ -295,11 +332,21 @@ public actor PlexSession {
         if id == profile?.id, case .ready = snapshotValue.state { return }
         guard let saved = await savedChoice() else { throw PlexError.notSignedIn }
 
+        // One switch at a time: a second concurrent request is refused (the UI disables the button too).
+        guard !switchInFlight else { throw PlexError.switchInProgress }
+        switchInFlight = true
+        defer { switchInFlight = false }
+
+        // The lockout only guards protected users. Before asking plex.tv, use the last known list
+        // (unknown user counts as protected) so a locked-out attempt makes no request.
         var lockout = loadLockout()
-        if lockout.isLocked(at: clock()), let until = lockout.lockedUntil { throw PlexError.lockedOut(until: until) }
+        if homeUsersCache.first(where: { PlexUserID($0.id) == id })?.protected ?? true {
+            try throwIfLocked(lockout)
+        }
 
         let users = try await refreshHomeUsers(ownerToken: ownerToken)
         guard let user = users.first(where: { PlexUserID($0.id) == id }) else { throw PlexError.unauthorized }
+        if user.protected { try throwIfLocked(loadLockout()) }
         let ownerID = await ownerUserID()
         let isOwner = id == ownerID
         let enteredPIN = pin ?? ""
@@ -326,7 +373,9 @@ public actor PlexSession {
             }
         }
         if user.protected {
+            // Re-check after the plex.tv await: the lock may have started meanwhile; nothing is committed then.
             lockout = loadLockout()
+            try throwIfLocked(lockout)
             lockout.recordSuccess()
             saveLockout(lockout)
         }
@@ -472,7 +521,8 @@ public actor PlexSession {
 
     private static func activeProfile(_ stored: ProfileSettings, owner: PlexUserID?) -> PlexActiveProfile {
         PlexActiveProfile(
-            id: stored.plexUserID, displayName: stored.displayName, isOwner: stored.plexUserID == owner,
+            id: stored.plexUserID, displayName: stored.displayName,
+            isOwner: stored.plexUserID == owner || stored.plexUserID == singleProfileID,
             restriction: stored.plexRestriction)
     }
 
@@ -586,7 +636,10 @@ public actor PlexSession {
         let data = try await plexTV(endpoints.homeUsers(token: ownerToken))
         let users = try PlexHomeUser.decodeList(from: data)
         let owner = try await ownerAccount(token: ownerToken)
-        let pinProtected = ProfileSync.ownerUser(in: users, account: owner)?.protected
+        // Only the Plex Home admin can own the household; refuse before anything is stored.
+        let admin = ProfileSync.ownerUser(in: users)
+        if let admin, admin.id != String(owner.id) { throw PlexError.notHomeOwner }
+        let pinProtected = admin?.protected
         do {
             try await settings.update { doc in
                 doc = ProfileSync.sync(homeUsers: users, ownerAccount: owner, into: doc).document
@@ -597,14 +650,27 @@ public actor PlexSession {
         }
         homeUsersCache = users
         if let pinProtected { await adminPIN?.setOwnerHasPlexPIN(pinProtected) }
+        await applySyncedRestriction()
         return users
     }
 
-    /// Manual route without plex.tv: one unrestricted parent profile.
+    /// After any Home users sync: the active profile takes Plex's current restriction.
+    private func applySyncedRestriction() async {
+        guard let current = profile else { return }
+        let doc = await settings.document
+        guard let stored = doc.profiles[current.id] else { return }
+        let updated = Self.activeProfile(stored, owner: doc.household.ownerPlexUserID)
+        guard updated != current else { return }
+        profile = updated
+        if case .ready(_, let server) = snapshotValue.state {
+            setState(.ready(profile: updated, server: server))
+        }
+    }
+
+    /// Manual route without plex.tv: one unrestricted parent profile (no owner id is recorded).
     private func saveSingleProfile() async throws {
         let id = Self.singleProfileID
         try await settings.update { doc in
-            doc.household.ownerPlexUserID = id
             if doc.profiles[id] == nil {
                 doc.profiles[id] = ProfileSettings.defaults(
                     plexUserID: id, displayName: "Me", isOwner: true, restriction: .unrestricted)
@@ -612,13 +678,20 @@ public actor PlexSession {
         }
     }
 
+    private func throwIfLocked(_ lockout: PINLockout) throws {
+        if lockout.isLocked(at: clock()), let until = lockout.lockedUntil { throw PlexError.lockedOut(until: until) }
+    }
+
     private func loadLockout() -> PINLockout {
         guard let data = defaults.data(forKey: DefaultsKey.profilePINLockout) else { return PINLockout() }
         if let decoded = try? JSONDecoder().decode(PINLockout.self, from: data) { return decoded }
-        // A corrupt record must not unlock: start locked for the base period (as AdminPIN does).
-        return PINLockout(
+        // A corrupt record must not unlock: start locked for the base period (as AdminPIN does),
+        // and save it so the lock ends instead of being rebuilt on every load.
+        let replacement = PINLockout(
             failedAttempts: 0, lockoutCount: 1,
             lockedUntil: clock().addingTimeInterval(PINLockout.baseLockout))
+        saveLockout(replacement)
+        return replacement
     }
 
     private func saveLockout(_ lockout: PINLockout) {

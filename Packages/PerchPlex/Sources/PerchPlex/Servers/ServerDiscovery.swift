@@ -32,6 +32,15 @@ public struct PlexServer: Sendable, Equatable, Identifiable {
     public var hasLocalConnection: Bool { connections.contains { $0.tier == .local } }
 }
 
+extension PlexServer: CustomStringConvertible, CustomDebugStringConvertible {
+    /// Never includes the access token.
+    public var description: String {
+        "PlexServer(name: \(name), machineID: \(machineID), owned: \(owned), connections: \(connections.count))"
+    }
+
+    public var debugDescription: String { description }
+}
+
 /// plex.tv resources -> servers. Only resources that provide "server" are kept.
 public struct ServerDiscovery: Sendable {
     private let transport: any PlexTransport

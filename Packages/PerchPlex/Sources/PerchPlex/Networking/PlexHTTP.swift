@@ -37,6 +37,10 @@ public enum PlexError: Error, Equatable, Sendable {
     case http(Int)
     case decoding
     case serverMismatch
+    /// The signed-in account is not the Plex Home admin.
+    case notHomeOwner
+    /// A profile switch is already running.
+    case switchInProgress
 }
 
 /// Which side of the network a request was talking to, so a transport failure maps to the right case.
