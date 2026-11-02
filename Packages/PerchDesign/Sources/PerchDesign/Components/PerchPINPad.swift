@@ -3,20 +3,23 @@ import SwiftUI
 /// Four-digit PIN entry in the phone-keypad layout Plex and Apple use: dots that fill as digits go
 /// in, a 3x3 grid with 0 centred underneath and delete beside it. Number keys on a connected
 /// keyboard work too. Calls `onComplete` on the last digit; bump `failures` to shake and clear.
+/// `isDisabled` dims the pad and ignores input while a PIN is being checked.
 public struct PerchPINPad: View {
     @Binding private var pin: String
     private let length: Int
     private let failures: Int
+    private let isDisabled: Bool
     private let onComplete: (String) -> Void
     @State private var shake: CGFloat = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private static let rows: [[String?]] = [["1", "2", "3"], ["4", "5", "6"], ["7", "8", "9"], [nil, "0", "delete"]]
 
-    public init(pin: Binding<String>, length: Int = 4, failures: Int = 0, onComplete: @escaping (String) -> Void) {
+    public init(pin: Binding<String>, length: Int = 4, failures: Int = 0, isDisabled: Bool = false, onComplete: @escaping (String) -> Void) {
         _pin = pin
         self.length = length
         self.failures = failures
+        self.isDisabled = isDisabled
         self.onComplete = onComplete
     }
 
@@ -34,6 +37,8 @@ public struct PerchPINPad: View {
             }
             .focusSection()
         }
+        .opacity(isDisabled ? 0.5 : 1)
+        .animation(PerchMotion.spring, value: isDisabled)
         .onKeyPress(characters: .decimalDigits, phases: .down) { press in
             add(press.characters)
             return .handled
@@ -84,7 +89,7 @@ public struct PerchPINPad: View {
     }
 
     private func add(_ digit: String) {
-        guard pin.count < length, digit.count == 1 else { return }
+        guard !isDisabled, pin.count < length, digit.count == 1 else { return }
         // Work from a local copy: inside a key press handler, reading the binding straight after
         // writing it still returns the old value, so the fourth digit never looked complete.
         let entered = pin + digit
@@ -93,7 +98,7 @@ public struct PerchPINPad: View {
     }
 
     private func deleteLast() {
-        if !pin.isEmpty { pin.removeLast() }
+        if !isDisabled, !pin.isEmpty { pin.removeLast() }
     }
 }
 
