@@ -41,6 +41,7 @@ There are two PINs: Plex Home PINs for profiles (verified by plex.tv) and the Ad
 | Switch profile / exit profile | yes | yes | PIN |
 | Open Settings | yes | limited | PIN |
 | Open Admin | yes | no | no |
+| Edit setup or run setup again (`editSetup`) | PIN-fresh, audited | no | no |
 | Request a title | yes (auto-approve) | yes (queued) | yes (queued) |
 | Approve requests | yes | no | no |
 | See doorbell overlay | yes | yes | yes |
@@ -61,6 +62,8 @@ There are two PINs: Plex Home PINs for profiles (verified by plex.tv) and the Ad
 - `PerchCore` checks the matrix on every privileged action.
 - Roles default from Plex Home (owner and unrestricted users parent, restricted users kid, teen only by assignment) and are editable behind the Admin PIN.
 - Home actions go through an explicit `domain.service` allow-list per role. Anything not listed is denied, even if Home Assistant would allow it.
+- `editSetup` is parent only and needs a fresh Admin PIN; teen and kid are denied whatever PIN they type.
+- Leaving a kid profile always needs the target adult's Plex PIN, or the Admin PIN when that adult has none. The rule keys on the kid role, not on `pinRequiredToExit`, and lives in `PerchCore` (`ProfileSwitchPolicy`).
 - Door and alarm actions require the Admin PIN entered in the last 5 minutes.
 - Seerr requests are created as the profile's Seerr user, so Seerr's approval rules also apply.
 - AI permission levels (1 to 4 as in `MODULES.md`) are enforced before any tool runs.

@@ -269,6 +269,65 @@ Append-only log of decisions and why. Newest at the bottom. Format: date, decisi
 - Home users are cached in memory only, so after a relaunch with plex.tv down the profile list is empty; WP-05 should keep the last list so locked profiles still show.
 - Alternatives rejected: restyling to Dusk's layout in WP-04 (first-run design belongs to WP-05). Decided by the WP-04 lead (Claude); Robin confirmed the remote path works.
 
+## 2026-11-03 Root routing derives from state
+- `AppRoot` shows the wizard until setup is complete, then the profile picker when no profile resumes, otherwise the home. Setup-complete is an app-local flag in App Group defaults (`perch.setupComplete`), next to `plex.lastProfileID`; the settings document schema does not change. Being signed out after setup reopens the wizard at Connect Plex. The idea is from Dusk's ContentView (MIT).
+- Decided by the WP-05 lead (Claude) in the WP-05 plan; Robin reviews.
+
+## 2026-11-03 Setup steps
+- Welcome, Connect Plex (code, or address and token; confirms with the server name and library count), Choose server (only when more than one), Admin PIN, Profiles and roles, Add later, Done. Connect Plex and Admin PIN cannot be skipped; the others have "Skip for now". Step order, which steps apply, can-skip and can-finish are pure code in `PerchCore` (`SetupProgress`), tested.
+- Add later lists entries registered by modules (Requests, Library refresh, Trakt, Home Assistant, Tautulli, AI) as "Coming soon" and writes nothing, so later work packages plug in.
+- Decided by the WP-05 lead (Claude) in the WP-05 plan; the critic pass added module registration.
+
+## 2026-11-03 Setup Admin PIN rules
+- Setup cannot finish while the Admin PIN source is setup-required or unavailable. Both routes verify through `AdminPIN.verify`: "Use your Plex PIN" (enter it once), or "Set a Perch PIN" (verify the Plex PIN first if the owner has one, then set and confirm by entering it twice). An owner with no Plex PIN must set a Perch PIN. Wizard PINs are 4 digits; longer PINs (up to 8) come with Settings. If plex.tv has not been reached the step shows a wait and Try again, never a way past. Lockout shows in the wizard.
+- Profiles and roles: roles change freely, ceilings only downwards, kids default to PIN-to-exit. Edits and re-run use a new `CoreAction.editSetup` (parent only, fresh Admin PIN, audited), with a kid-denied test.
+- Decided by the WP-05 lead (Claude) in the WP-05 plan; the critic pass made verification mandatory on both routes.
+
+## 2026-11-03 Leaving a kid profile
+- The rule lives in `PerchCore` (`ProfileSwitchPolicy`) and keys on `role == .kid`, not on `pinRequiredToExit`, so a profile changed to kid in setup is covered. Leaving a kid profile for a non-kid needs the target adult's Plex PIN, or the Admin PIN when that adult has none. Otherwise a protected target needs its own Plex PIN; else none.
+- When nothing resumed, the "from" profile falls back to the role of the stored `plex.lastProfileID`, so a kid last on the TV cannot pick an adult freely after a failed resume.
+- Alternatives rejected: keying on `pinRequiredToExit` (can be switched off). Decided by the WP-05 lead (Claude) after the critic pass.
+
+## 2026-11-03 One profile switching route
+- `PlexSession.switchProfile` is internal behind a public entry that needs the policy decision, and the app's `ProfileSwitcher` asks the policy first, so no screen can switch around it. Tested.
+- Decided by the WP-05 lead (Claude) after the critic pass.
+
+## 2026-11-03 Offline picker and cached avatars
+- PlexSession keeps the last Home user list (id, name, thumb URL, protected, restricted, admin; nothing secret) in App Group defaults, and avatars are cached to disk in a small purgeable cache, so locked profiles show and avatars do not pop in when plex.tv is down. Switching needs plex.tv: offline the current profile stays and the picker says "Can't switch profiles right now" with Try again. This closes the WP-04 note about the in-memory list.
+- Decided by the WP-05 lead (Claude) in the WP-05 plan; the critic pass added the avatar cache.
+
+## 2026-11-03 Re-run keeps setup complete until Done
+- "Run setup again" is on the temporary home, behind the Admin PIN through the Authoriser, until Settings exists (WP-18). `setupComplete` stays true during a re-run until Done; Back at Welcome during a re-run returns home. A kid sees "Ask a parent to change setup".
+- Decided by the WP-05 lead (Claude) after the critic pass.
+
+## 2026-11-03 Network scan and QR code out of scope
+- Local network discovery (Bonjour `_plexmediasvr._tcp` or GDM) and a QR code on the link screen are not in WP-05. Both need a check on tvOS and add little while sign-in uses plex.tv. Bonjour is the low-risk route if Robin wants a scan.
+- Decided by the WP-05 lead (Claude); Robin to confirm.
+
+## 2026-11-03 DEBUG fake households
+- `-PerchFakeHousehold withPINs` (owner with a PIN, a protected adult, a kid) and `-PerchFakeHousehold noPINs` (owner without a PIN, an adult without a PIN, a kid) swap in a canned plex.tv and server transport, with bundled sample art, so both "cannot finish without an Admin PIN" and "leaving a kid asks for a PIN when adults have none" are shown. `-PerchFakeSignedOut` and `-PerchResetSetup` support the signed-out and clean-install cases. DEBUG only; the fake PIN is fixed in the fake. The WP-04 debug sign-in screens are removed; the fault switches stay.
+- Decided by the WP-05 lead (Claude) after the critic pass.
+
+## 2026-11-03 One white primary per setup step
+- Each setup step has one white primary button; everything else is a glass secondary such as "Skip for now".
+- Decided by the WP-05 lead (Claude).
+
+## 2026-11-03 Lock badge and "Watching now"
+- In the picker the lock badge marks protected profiles and is the same for every viewer. The current profile shows "Watching now".
+- Decided by the WP-05 lead (Claude).
+
+## 2026-11-03 Welcome and Connect have no artwork yet
+- Welcome and Connect Plex stay without artwork until a bundled art set exists, because there is no server art before sign-in. From Choose server on, the background is blurred, dimmed library art from the connected server, fetched with the token in a header, never in a URL.
+- Alternatives rejected: a gradient background (DESIGN has none). Decided by the WP-05 lead (Claude).
+
+## 2026-11-03 UI tests build signed on a pinned simulator
+- The gate builds UI tests signed and runs them on simulator 11ACEAE4 (Apple TV 4K, 3rd generation), because the Keychain needs the entitlement, and fails if any test is skipped. Robin's live simulator is never used.
+- Decided by the WP-05 lead (Claude).
+
+## 2026-11-03 Design gallery opens whatever the setup state
+- `-PerchDesignGallery` opens the gallery whatever the setup state.
+- Decided by the WP-05 lead (Claude).
+
 ## Open decisions (resolve in the named work package)
 - Recovery when the stored Perch PIN cannot be read (Admin is locked out by design): confirm the owner through Plex, audited, then allow a new Perch PIN (WP-05).
 - Assistant name (placeholder Pip) (WP-19).
