@@ -2,6 +2,7 @@ import Foundation
 import OSLog
 import PerchCore
 import PerchPlex
+import Synchronization
 
 /// The PerchCore services the app shell owns, built once at launch.
 /// Modules and screens receive these; nothing else constructs its own store.
@@ -14,6 +15,7 @@ final class CoreServices {
     let authoriser: Authoriser
     let adminPIN: AdminPIN
     let modules: ModuleRegistry
+    let library: PlexLibrary
     let plexSignIn: PlexSignInModel
     let setupCompletion: SetupCompletion
     let profileSwitcher: ProfileSwitcher
@@ -35,7 +37,9 @@ final class CoreServices {
         let baseTransport: any PlexTransport = URLSessionTransport()
         #if DEBUG
         // `-PerchFakeHousehold` serves canned answers; the fault switches wrap whichever transport is in use.
-        let transport = FaultInjectingTransport.wrapping(FakeHouseholdTransport.fromArguments() ?? baseTransport)
+        // `-PerchLibraryDump` writes server library responses to Caches/library-dump (live checks).
+        let transport = LibraryDumpTransport.wrapping(
+            FaultInjectingTransport.wrapping(FakeHouseholdTransport.fromArguments() ?? baseTransport))
         #else
         let transport = baseTransport
         #endif
@@ -53,11 +57,38 @@ final class CoreServices {
         setupCompletion = SetupCompletion(store: keyValues)
         profileSwitcher = ProfileSwitcher(
             session: session, settings: settings, adminPIN: adminPIN, defaults: Self.plexDefaults())
-        let modules = ModuleRegistry(modules: [PlexModule(session: session)])
-        self.modules = modules
-        authoriser = Authoriser(
+        // The library needs the Authoriser and the Authoriser asks the modules, which hold the library:
+        // the registry is filled in through a box once everything exists.
+        let registryBox = RegistryBox()
+        let authoriser = Authoriser(
             auditLog: auditLog, adminPIN: adminPIN,
-            modulePolicies: { action in await modules.policy(for: action) })
+            modulePolicies: { action in await registryBox.registry?.policy(for: action) })
+        let library = PlexLibrary.make(
+            session: session, transport: transport, identity: endpoints.identity, settings: settings,
+            authoriser: authoriser, snapshotsDirectory: Self.homeSnapshotsDirectory())
+        let modules = ModuleRegistry(modules: [PlexModule(session: session, library: library)])
+        registryBox.set(modules)
+        self.modules = modules
+        self.library = library
+        self.authoriser = authoriser
+        // Once at launch: sign-out deletes the Home snapshots, a profile change clears memory.
+        Task { await library.observe(session) }
+    }
+
+    private final class RegistryBox: Sendable {
+        private let lock = Mutex<ModuleRegistry?>(nil)
+        var registry: ModuleRegistry? { lock.withLock { $0 } }
+        func set(_ registry: ModuleRegistry) { lock.withLock { $0 = registry } }
+    }
+
+    /// Home snapshots live in the App Group Caches (purgeable); the app's own Caches when the group
+    /// container is not available.
+    nonisolated static func homeSnapshotsDirectory() -> URL {
+        let base =
+            FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: PerchConstants.appGroupID)?
+            .appending(path: "Library/Caches", directoryHint: .isDirectory)
+            ?? FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+        return base.appending(path: "PlexHome", directoryHint: .isDirectory)
     }
 
     /// A fresh handle on the App Group defaults (UserDefaults is not Sendable, so each owner gets its own).

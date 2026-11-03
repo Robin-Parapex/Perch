@@ -26,6 +26,7 @@ struct PlaceholderView: View {
         case picker
         #if DEBUG
         case gallery
+        case libraryCheck
         #endif
     }
 
@@ -63,6 +64,8 @@ struct PlaceholderView: View {
                 #if DEBUG
                 case .gallery:
                     DesignGallery()
+                case .libraryCheck:
+                    LibraryCheckView(core: core)
                 #endif
                 }
             }
@@ -112,6 +115,9 @@ struct PlaceholderView: View {
                 Button("Design gallery") { path.append(Route.gallery) }
                     .buttonStyle(.perchSecondary)
                     .accessibilityIdentifier("placeholder.gallery")
+                Button("Library check") { path.append(Route.libraryCheck) }
+                    .buttonStyle(.perchSecondary)
+                    .accessibilityIdentifier("placeholder.libraryCheck")
                 #endif
             }
             .padding(.top, 40)

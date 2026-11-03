@@ -148,6 +148,18 @@ public actor PlexLibrary: PlexWatchStateSink {
         self.watchState = PlexWatchState(transport: transport, endpoints: endpoints)
     }
 
+    /// How the app builds the library: the session supplies the server and token, the snapshots go to
+    /// `snapshotsDirectory` (a purgeable Caches folder).
+    public static func make(
+        session: PlexSession, transport: any PlexTransport, identity: PlexClientIdentity,
+        settings: SettingsStore, authoriser: Authoriser, snapshotsDirectory: URL
+    ) -> PlexLibrary {
+        PlexLibrary(
+            contextSource: session, transport: transport, endpoints: PlexEndpoints(identity: identity),
+            settings: settings, authoriser: authoriser,
+            snapshots: PlexHomeSnapshotStore(directory: snapshotsDirectory))
+    }
+
     // MARK: sections
 
     public func sections() async throws -> [PlexLibrarySection] {
@@ -410,6 +422,14 @@ public actor PlexLibrary: PlexWatchStateSink {
             throw error
         }
         refreshInBackground()
+    }
+
+    /// Puts the resume point back (the live check restores an item after a simulated playback).
+    /// Authorised like playback.
+    public func restoreProgress(itemID: String, positionMs: Int) async throws {
+        let context = try await current()
+        try await authorisePlay(context, entity: itemID)
+        try await watchState.restoreProgress(itemID: itemID, positionMs: positionMs, context: context)
     }
 
     private func recordToggle(_ watched: Bool, itemID: String, key: RowsKey) {
