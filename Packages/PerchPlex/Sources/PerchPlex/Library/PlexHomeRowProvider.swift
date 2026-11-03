@@ -13,8 +13,10 @@ struct PlexHomeRowProvider: RowProvider {
     }
 
     func refreshRow(in context: RowContext) async throws -> MediaRow {
-        let rows = try await library.homeRows()
-        guard let row = rows.row(id: id) else { throw PlexError.decoding }
+        let owned = try await library.ownedHomeRows()
+        // A switch mid-flight: these are another profile's rows.
+        guard owned.profileID == context.profileID else { throw CancellationError() }
+        guard let row = owned.rows.row(id: id) else { throw PlexError.decoding }
         return row
     }
 }

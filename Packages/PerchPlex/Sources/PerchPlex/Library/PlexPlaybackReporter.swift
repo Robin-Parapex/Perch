@@ -66,8 +66,6 @@ public actor PlexPlaybackReporter: PlaybackReporting {
         // Queued before any suspension, so the order of calls is the order of sends.
         let send = state != lastQueuedState
         if send { queue(Pending(state: state, positionMs: position)) }
-        await sink?.playbackProgressed(
-            PlaybackProgress(itemID: itemID, state: state, positionMs: position, durationMs: durationMs))
         if send { await flush() }
     }
 
@@ -78,17 +76,17 @@ public actor PlexPlaybackReporter: PlaybackReporting {
         loopTask = nil
         pending = nil
         queue(Pending(state: .stopped, positionMs: positionMs))
-        await sink?.playbackProgressed(
-            PlaybackProgress(itemID: itemID, state: .stopped, positionMs: positionMs, durationMs: durationMs))
         await flush()
-        guard !inert, let durationMs, durationMs > 0, positionMs * 10 >= durationMs * 9 else { return }
+        guard !inert, let durationMs, durationMs > 0, positionMs <= durationMs,
+            positionMs * 10 >= durationMs * 9
+        else { return }
         guard await contextSource.currentGeneration() == context.generation else {
             goInert()
             return
         }
         do {
             try await watchState.setWatched(true, itemID: itemID, context: context)
-            await sink?.watchStateChanged(itemID: itemID, watched: true)
+            await sink?.watchStateChanged(itemID: itemID, watched: true, generation: context.generation)
         } catch {
             plexLog.error("Marking watched failed after stop")
         }
@@ -126,6 +124,14 @@ public actor PlexPlaybackReporter: PlaybackReporting {
                 timeMs: next.positionMs, durationMs: durationMs, sessionID: sessionID)
             do {
                 _ = try await transport.perform(request, host: .server)
+                // Accepted by the server; tell the sink only while this playback is still current.
+                if await contextSource.currentGeneration() == context.generation {
+                    await sink?.playbackProgressed(
+                        PlaybackProgress(
+                            itemID: itemID, state: next.state, positionMs: next.positionMs,
+                            durationMs: durationMs),
+                        generation: context.generation)
+                }
             } catch {
                 // perform has already logged the path; reporting never throws to the player.
                 plexLog.error("Timeline report failed")

@@ -132,7 +132,8 @@ public actor PlexLibrary: PlexWatchStateSink {
     private var refreshTask: Task<Void, Never>?
     private var observeTask: Task<Void, Never>?
     private var lastReadyKey: RowsKey?
-    private var hasBeenReady = false
+    /// Nil until the first state is seen; then whether the latest one was signed out.
+    private var lastWasSignedOut: Bool?
 
     init(
         contextSource: any PlexServerContextProviding, transport: any PlexTransport,
@@ -170,10 +171,12 @@ public actor PlexLibrary: PlexWatchStateSink {
     }
 
     /// Pages `/library/sections/{id}/all`. `sort` is one Plex sort such as "titleSort" or "addedAt:desc".
-    public func pager(sectionID: String, sort: String?) -> PlexSectionPager {
+    /// The pager is bound to the generation current now: after a profile or server change it returns
+    /// nothing from the old one.
+    public func pager(sectionID: String, sort: String?) async -> PlexSectionPager {
         PlexSectionPager(
-            sectionID: sectionID, sort: sort, contextSource: contextSource, transport: transport,
-            endpoints: endpoints)
+            sectionID: sectionID, sort: sort, generation: await contextSource.currentGeneration(),
+            contextSource: contextSource, transport: transport, endpoints: endpoints)
     }
 
     public func count(sectionID: String) async throws -> Int {
@@ -196,9 +199,16 @@ public actor PlexLibrary: PlexWatchStateSink {
     /// providers ask at once). On success the rows are kept in memory and written as a snapshot; on
     /// failure this throws and the last good rows stay.
     public func homeRows() async throws -> PlexHomeRows {
+        try await ownedHomeRows().rows
+    }
+
+    /// `homeRows()` with the profile the rows belong to, so a caller serving another profile can drop them.
+    func ownedHomeRows() async throws -> (profileID: String, rows: PlexHomeRows) {
         let context = try await current()
-        if let flight, flight.generation == context.generation { return try await flight.task.value }
-        return try await startFetch(context)
+        if let flight, flight.generation == context.generation {
+            return (context.profileID, try await flight.task.value)
+        }
+        return (context.profileID, try await startFetch(context))
     }
 
     private func startFetch(_ context: PlexServerContext) async throws -> PlexHomeRows {
@@ -303,7 +313,8 @@ public actor PlexLibrary: PlexWatchStateSink {
                 context,
                 endpoints.recentlyAdded(
                     base: context.baseURL, token: context.token, limit: Self.homeRowLimit))
-            return PlexLibraryMapping.summaries(container.items)
+            let kinds: Set<MediaKind> = [.film, .series, .season, .episode]
+            return PlexLibraryMapping.summaries(container.items).filter { kinds.contains($0.kind) }
         }
         let sorted = merged.enumerated().sorted { lhs, rhs in
             switch (lhs.element.addedAt, rhs.element.addedAt) {
@@ -435,7 +446,16 @@ public actor PlexLibrary: PlexWatchStateSink {
     private func recordToggle(_ watched: Bool, itemID: String, key: RowsKey) {
         toggleCounts[itemID, default: 0] += 1
         localWatched[itemID] = watched
-        rows[key]?.apply(watched: watched, itemID: itemID)
+        if var changed = rows[key] ?? snapshots.read(profileID: key.profileID, machineID: key.machineID) {
+            changed.apply(watched: watched, itemID: itemID)
+            store(changed, for: key, keepInMemory: rows[key] != nil)
+        }
+    }
+
+    /// Writes changed rows through to the snapshot, so a cached read agrees with memory at once.
+    private func store(_ changed: PlexHomeRows, for key: RowsKey, keepInMemory: Bool) {
+        if keepInMemory { rows[key] = changed }
+        snapshots.write(changed, profileID: key.profileID, machineID: key.machineID)
     }
 
     /// Reconciles with the server after a toggle. A fetch already running started before the toggle,
@@ -482,9 +502,9 @@ public actor PlexLibrary: PlexWatchStateSink {
 
     // MARK: PlexWatchStateSink
 
-    func playbackProgressed(_ progress: PlaybackProgress) async {
-        let generation = await contextSource.currentGeneration()
-        guard let key = activeKey, activeGeneration == generation, var current = rows[key],
+    func playbackProgressed(_ progress: PlaybackProgress, generation: UInt64) async {
+        guard await contextSource.currentGeneration() == generation, let key = activeKey,
+            activeGeneration == generation, var current = rows[key],
             progress.positionMs > 0
         else { return }
         let itemID = progress.itemID
@@ -513,12 +533,13 @@ public actor PlexLibrary: PlexWatchStateSink {
         }
         setOffset(&current.recentlyAdded)
         setOffset(&current.upNext)
-        rows[key] = current
+        store(current, for: key, keepInMemory: true)
     }
 
-    func watchStateChanged(itemID: String, watched: Bool) async {
-        let generation = await contextSource.currentGeneration()
-        guard let key = activeKey, activeGeneration == generation else { return }
+    func watchStateChanged(itemID: String, watched: Bool, generation: UInt64) async {
+        guard await contextSource.currentGeneration() == generation, let key = activeKey,
+            activeGeneration == generation
+        else { return }
         recordToggle(watched, itemID: itemID, key: key)
     }
 
@@ -540,19 +561,24 @@ public actor PlexLibrary: PlexWatchStateSink {
         }
     }
 
-    private func sessionChanged(_ state: PlexSessionState) {
+    func sessionChanged(_ state: PlexSessionState) {
+        defer { if case .signedOut = state { lastWasSignedOut = true } else { lastWasSignedOut = false } }
         switch state {
         case .ready(let profile, let server):
             let key = RowsKey(profileID: profile.id.rawValue, machineID: server.machineID)
             if let lastReadyKey, lastReadyKey != key { clearMemory() }
             lastReadyKey = key
-            hasBeenReady = true
+            // A snapshot from another server is not shown once this one is ready.
+            if let owner = snapshots.machineID(profileID: key.profileID), owner != key.machineID {
+                snapshots.delete(profileID: key.profileID)
+            }
         case .signedOut:
-            guard hasBeenReady else { return }
+            // The first state seen at launch does not wipe: `resume()` has not run yet. Any later
+            // change into signed out does, whatever state came before.
+            guard lastWasSignedOut == false else { return }
             snapshots.deleteAll()
             clearMemory()
             lastReadyKey = nil
-            hasBeenReady = false
         case .connecting, .serverUnreachable:
             break
         }

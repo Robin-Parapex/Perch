@@ -539,18 +539,23 @@ struct PlexLibraryWatchedTests {
         await rig.scriptHome()
         let library = rig.library
         _ = try await library.homeRows()
+        let generation = await rig.session.currentGeneration()
 
         // An Up next episode starts: it goes to the front of Continue watching.
         await library.playbackProgressed(
-            PlaybackProgress(itemID: "3102", state: .playing, positionMs: 120_000, durationMs: 3_000_000))
+            PlaybackProgress(itemID: "3102", state: .playing, positionMs: 120_000, durationMs: 3_000_000),
+            generation: generation)
         // An item already there only changes its offset.
         await library.playbackProgressed(
-            PlaybackProgress(itemID: "1001", state: .playing, positionMs: 3_000_000, durationMs: 7_200_000))
+            PlaybackProgress(itemID: "1001", state: .playing, positionMs: 3_000_000, durationMs: 7_200_000),
+            generation: generation)
         // Nothing known about this one, and zero is not progress.
         await library.playbackProgressed(
-            PlaybackProgress(itemID: "nope", state: .playing, positionMs: 5_000, durationMs: nil))
+            PlaybackProgress(itemID: "nope", state: .playing, positionMs: 5_000, durationMs: nil),
+            generation: generation)
         await library.playbackProgressed(
-            PlaybackProgress(itemID: "2101", state: .playing, positionMs: 0, durationMs: nil))
+            PlaybackProgress(itemID: "2101", state: .playing, positionMs: 0, durationMs: nil),
+            generation: generation)
 
         let rows = try #require(await library.currentRows())
         #expect(ids(rows.continueWatching) == ["3102", "1001", "2101"])
@@ -568,10 +573,174 @@ struct PlexLibraryWatchedTests {
         _ = try await library.homeRows()
         let sent = await rig.transport.requests.count
 
-        await library.watchStateChanged(itemID: "2101", watched: true)
+        await library.watchStateChanged(
+            itemID: "2101", watched: true, generation: await rig.session.currentGeneration())
 
         let rows = try #require(await library.currentRows())
         #expect(ids(rows.continueWatching) == ["1001"])
         #expect(await rig.transport.requests.count == sent)
+    }
+}
+
+@Suite("Library review fixes", .timeLimit(.minutes(1)))
+struct PlexLibraryReviewFixTests {
+    private func home(_ rig: LibraryRig) async {
+        await rig.scriptHome()
+        await rig.transport.script(path: "/:/scrobble", json: "{}")
+        await rig.transport.script(path: "/:/unscrobble", json: "{}")
+    }
+
+    // Sign-out wipe
+
+    @Test func aSignOutAfterAnyEarlierStateWipesTheSnapshots() async throws {
+        let rig = try await LibraryRig.make()
+        defer { rig.cleanup() }
+        rig.snapshots.write(PlexHomeRows(), profileID: "1001", machineID: "m")
+        let library = rig.library
+
+        await library.sessionChanged(.connecting)
+        await library.sessionChanged(.serverUnreachable)
+        #expect(library.cachedHomeRows(profileID: "1001") != nil)
+        await library.sessionChanged(.signedOut)
+
+        #expect(library.cachedHomeRows(profileID: "1001") == nil)
+    }
+
+    @Test func aFirstObservedSignedOutWipesNothing() async throws {
+        let rig = try await LibraryRig.make()
+        defer { rig.cleanup() }
+        rig.snapshots.write(PlexHomeRows(), profileID: "1001", machineID: "m")
+
+        await rig.library.sessionChanged(.signedOut)
+        await rig.library.sessionChanged(.signedOut)
+
+        #expect(rig.library.cachedHomeRows(profileID: "1001") != nil)
+    }
+
+    // Write-through
+
+    @Test func aToggleReachesTheSnapshotEvenWhenTheRefreshFails() async throws {
+        let rig = try await LibraryRig.make()
+        defer { rig.cleanup() }
+        await home(rig)
+        await rig.transport.script(path: "/hubs/continueWatching", json: "", status: 500)
+        let library = rig.library
+        let initial = try await library.homeRows()
+        #expect(ids(initial.continueWatching).contains("1001"))
+
+        try await library.markWatched("1001")
+        await library.settle()
+
+        let cached = try #require(library.cachedHomeRows(profileID: "1001"))
+        #expect(!ids(cached.continueWatching).contains("1001"))
+    }
+
+    @Test func playerProgressReachesTheSnapshot() async throws {
+        let rig = try await LibraryRig.make()
+        defer { rig.cleanup() }
+        await home(rig)
+        let library = rig.library
+        _ = try await library.homeRows()
+        let generation = await rig.session.currentGeneration()
+
+        await library.playbackProgressed(
+            PlaybackProgress(itemID: "1001", state: .playing, positionMs: 3_100_000, durationMs: 7_200_000),
+            generation: generation)
+
+        let cached = try #require(library.cachedHomeRows(profileID: "1001"))
+        #expect(cached.continueWatching.items.first { $0.id == "1001" }?.viewOffsetMs == 3_100_000)
+    }
+
+    @Test func aStaleGenerationFromThePlayerIsIgnored() async throws {
+        let rig = try await LibraryRig.make()
+        defer { rig.cleanup() }
+        await home(rig)
+        let library = rig.library
+        let initial = try await library.homeRows()
+        let generation = await rig.session.currentGeneration()
+
+        await library.playbackProgressed(
+            PlaybackProgress(itemID: "1001", state: .playing, positionMs: 3_100_000, durationMs: 7_200_000),
+            generation: generation &+ 1)
+        await library.watchStateChanged(itemID: "1001", watched: true, generation: generation &+ 1)
+
+        #expect(await library.currentRows() == initial)
+        #expect(library.cachedHomeRows(profileID: "1001") == initial)
+    }
+
+    // Provider and profile
+
+    @Test func aRefreshForAnotherProfileThrowsInsteadOfReturningTheCurrentOnesRows() async throws {
+        let rig = try await LibraryRig.make()
+        defer { rig.cleanup() }
+        await home(rig)
+        await rig.sessionRig.transport.scriptSwitch(
+            userID: "1002", .response(status: 200, body: Fixture.data("switch_ok")))
+        try await rig.session.switchProfile(to: partner, pin: "1234")
+        let provider = PlexHomeRowProvider(
+            id: PlexHomeRows.continueWatchingID, title: "Continue watching", placement: .home(order: 0),
+            library: rig.library)
+        let stale = RowContext(profileID: "1001", serviceCeiling: .eighteen, ceiling: .eighteen)
+        let current = RowContext(profileID: "1002", serviceCeiling: .eighteen, ceiling: .eighteen)
+
+        await #expect(throws: CancellationError.self) { try await provider.refreshRow(in: stale) }
+        let row = try await provider.refreshRow(in: current)
+        #expect(row.id == PlexHomeRows.continueWatchingID)
+    }
+
+    // Pager
+
+    @Test func aPagerMadeBeforeAProfileSwitchReturnsNothingAfterIt() async throws {
+        let rig = try await LibraryRig.make()
+        defer { rig.cleanup() }
+        await rig.transport.script(
+            path: "/library/sections/1/all",
+            json: #"{"MediaContainer":{"size":1,"totalSize":1,"Metadata":[{"ratingKey":"1","type":"movie","title":"T"}]}}"#)
+        let pager = await rig.library.pager(sectionID: "1", sort: nil)
+        await rig.sessionRig.transport.scriptSwitch(
+            userID: "1002", .response(status: 200, body: Fixture.data("switch_ok")))
+        try await rig.session.switchProfile(to: partner, pin: "1234")
+
+        await #expect(throws: CancellationError.self) { try await pager.nextPage() }
+        #expect(await rig.transport.requests(forPath: "/library/sections/1/all").isEmpty)
+    }
+
+    // Recently added fallback
+
+    @Test func theRecentlyAddedFallbackKeepsOnlyFilmsAndShows() async throws {
+        let rig = try await LibraryRig.make()
+        defer { rig.cleanup() }
+        let onlyMusic = #"""
+            {"MediaContainer":{"size":1,"Hub":[{"hubIdentifier":"music.recent.added.3","type":"album",
+             "Metadata":[{"ratingKey":"9001","type":"album","title":"A"}]}]}}
+            """#
+        let mixed = #"""
+            {"MediaContainer":{"size":4,"Metadata":[
+             {"ratingKey":"1","type":"movie","title":"M"},
+             {"ratingKey":"2","type":"album","title":"A"},
+             {"ratingKey":"3","type":"clip","title":"C"},
+             {"ratingKey":"4","type":"show","title":"S"}]}}
+            """#
+        await rig.transport.script(path: "/hubs/continueWatching", fixture: "lib-continue-watching")
+        await rig.transport.script(path: "/hubs", json: onlyMusic)
+        await rig.transport.script(path: "/library/recentlyAdded", json: mixed)
+        await rig.transport.script(path: "/library/onDeck", json: #"{"MediaContainer":{"size":0}}"#)
+
+        let rows = try await rig.library.homeRows()
+
+        #expect(ids(rows.recentlyAdded) == ["1", "4"])
+    }
+
+    // Snapshot machine
+
+    @Test func aSnapshotFromAnotherServerIsDroppedOnceTheSessionIsReady() async throws {
+        let rig = try await LibraryRig.make()
+        defer { rig.cleanup() }
+        rig.snapshots.write(PlexHomeRows(), profileID: "1001", machineID: "ANOTHER-SERVER")
+        #expect(rig.library.cachedHomeRows(profileID: "1001") != nil)
+
+        await rig.library.observe(rig.session)
+
+        #expect(rig.library.cachedHomeRows(profileID: "1001") == nil)
     }
 }

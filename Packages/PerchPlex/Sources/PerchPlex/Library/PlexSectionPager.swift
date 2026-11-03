@@ -6,7 +6,7 @@ import PerchCore
 /// shifts the window). Paging stops on an empty page or when the server's total is reached.
 /// Approach from Dusk (MIT) and Swiftfin (MPL-2.0); nothing is copied.
 ///
-/// The pager binds to the session generation on its first page. If the profile or server changes
+/// The pager is bound to the session generation it was made under. If the profile or server changes
 /// later, `nextPage()` throws `CancellationError` and returns nothing from the old profile.
 public actor PlexSectionPager {
     static let firstPageSize = 50
@@ -21,14 +21,15 @@ public actor PlexSectionPager {
     private var offset = 0
     private var total: Int?
     private var finished = false
-    private var boundGeneration: UInt64?
+    private let generation: UInt64
 
     init(
-        sectionID: String, sort: String?, contextSource: any PlexServerContextProviding,
+        sectionID: String, sort: String?, generation: UInt64, contextSource: any PlexServerContextProviding,
         transport: any PlexTransport, endpoints: PlexEndpoints
     ) {
         self.sectionID = sectionID
         self.sort = sort
+        self.generation = generation
         self.contextSource = contextSource
         self.transport = transport
         self.endpoints = endpoints
@@ -43,7 +44,7 @@ public actor PlexSectionPager {
     public func nextPage() async throws -> [MediaSummary] {
         guard !finished else { return [] }
         let context = try await contextSource.libraryContext()
-        if let boundGeneration, boundGeneration != context.generation { throw CancellationError() }
+        guard context.generation == generation else { throw CancellationError() }
         let start = offset
         let size = start == 0 ? Self.firstPageSize : Self.laterPageSize
         let request = endpoints.sectionItems(
@@ -56,7 +57,6 @@ public actor PlexSectionPager {
         let container = try PlexWireContainer.decode(from: data)
         // A concurrent call may have moved on while this one waited.
         guard offset == start else { throw CancellationError() }
-        boundGeneration = context.generation
         let returned = container.rowCount
         if let reported = container.totalCount { total = reported }
         offset += returned

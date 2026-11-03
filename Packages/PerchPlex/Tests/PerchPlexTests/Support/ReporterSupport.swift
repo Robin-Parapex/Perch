@@ -22,9 +22,13 @@ actor FakeContextSource: PlexServerContextProviding {
 
 actor RecordingSink: PlexWatchStateSink {
     private(set) var progress: [PlaybackProgress] = []
+    private(set) var generations: [UInt64] = []
     private(set) var watched: [(itemID: String, watched: Bool)] = []
-    func playbackProgressed(_ progress: PlaybackProgress) async { self.progress.append(progress) }
-    func watchStateChanged(itemID: String, watched: Bool) async {
+    func playbackProgressed(_ progress: PlaybackProgress, generation: UInt64) async {
+        self.progress.append(progress)
+        generations.append(generation)
+    }
+    func watchStateChanged(itemID: String, watched: Bool, generation: UInt64) async {
         self.watched.append((itemID, watched))
     }
 }

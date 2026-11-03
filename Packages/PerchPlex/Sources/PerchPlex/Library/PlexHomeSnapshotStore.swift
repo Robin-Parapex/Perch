@@ -31,6 +31,12 @@ public final class PlexHomeSnapshotStore: Sendable {
         stored(profileID: profileID)?.rows
     }
 
+    /// The rows, only when they were taken from this server.
+    func read(profileID: String, machineID: String) -> PlexHomeRows? {
+        guard let entry = stored(profileID: profileID), entry.machineID == machineID else { return nil }
+        return entry.rows
+    }
+
     /// The server the snapshot was taken from, for callers that want to ignore another server's rows.
     func machineID(profileID: String) -> String? {
         stored(profileID: profileID)?.machineID
@@ -49,6 +55,15 @@ public final class PlexHomeSnapshotStore: Sendable {
             } catch {
                 Self.log.error("Home snapshot write failed")
             }
+        }
+    }
+
+    /// Removes one profile's snapshot (another server's rows).
+    func delete(profileID: String) {
+        let url = fileURL(profileID: profileID)
+        cache.withLock { cache in
+            cache[profileID] = nil
+            try? FileManager.default.removeItem(at: url)
         }
     }
 

@@ -24,8 +24,10 @@ protocol PlexServerContextProviding: Sendable {
 }
 
 /// Where playback progress and watched changes go once the server has them, so a cache can follow
-/// without refetching. Called after a send is accepted, never before.
+/// without refetching. Called only after the server accepted the send, and only while the sender's
+/// context is still current. `generation` is the sender's own; an implementation ignores any call
+/// whose generation is not the current one.
 protocol PlexWatchStateSink: Sendable {
-    func playbackProgressed(_ progress: PlaybackProgress) async
-    func watchStateChanged(itemID: String, watched: Bool) async
+    func playbackProgressed(_ progress: PlaybackProgress, generation: UInt64) async
+    func watchStateChanged(itemID: String, watched: Bool, generation: UInt64) async
 }

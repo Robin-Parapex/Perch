@@ -33,13 +33,6 @@ private struct Rig {
         await transport.requests.compactMap { $0.url?.path == "/:/timeline" ? $0.query("time") : nil }
     }
 
-    func waitForProgress(_ count: Int) async {
-        for _ in 0..<20_000 {
-            if await sink.progress.count >= count { return }
-            await Task.yield()
-        }
-    }
-
     /// Gives stray work a chance to run so "nothing was sent" is a real check.
     func settle() async {
         for _ in 0..<500 { await Task.yield() }
@@ -127,9 +120,9 @@ struct PlexPlaybackReporterTests {
         let first = Task { await rig.reporter.report(.playing, positionMs: 1000) }
         await rig.transport.waitForRequests(1)
         let second = Task { await rig.reporter.report(.paused, positionMs: 2000) }
-        await rig.waitForProgress(2)
+        await rig.settle()
         let third = Task { await rig.reporter.report(.playing, positionMs: 3000) }
-        await rig.waitForProgress(3)
+        await rig.settle()
         #expect(await rig.transport.requests.count == 1)
         await rig.transport.releaseAll()
         await first.value
@@ -144,7 +137,7 @@ struct PlexPlaybackReporterTests {
         let first = Task { await rig.reporter.report(.playing, positionMs: 1000) }
         await rig.transport.waitForRequests(1)
         let second = Task { await rig.reporter.report(.paused, positionMs: 2000) }
-        await rig.waitForProgress(2)
+        await rig.settle()
         await rig.settle()
         #expect(await rig.transport.requests.count == 1)
         await rig.transport.releaseOne()
@@ -155,7 +148,7 @@ struct PlexPlaybackReporterTests {
         #expect(await rig.states() == ["playing", "paused"])
     }
 
-    @Test func everyReportTellsTheSinkIncludingBufferingWithTheHeldTime() async {
+    @Test func theSinkHearsOnlyOfSentReportsWithTheHeldTimeForBuffering() async {
         let rig = Rig()
         await rig.reporter.report(.playing, positionMs: 4000)
         await rig.reporter.report(.playing, positionMs: 6000)
@@ -164,9 +157,34 @@ struct PlexPlaybackReporterTests {
         #expect(
             progress == [
                 PlaybackProgress(itemID: "42", state: .playing, positionMs: 4000, durationMs: 100_000),
-                PlaybackProgress(itemID: "42", state: .playing, positionMs: 6000, durationMs: 100_000),
                 PlaybackProgress(itemID: "42", state: .buffering, positionMs: 6000, durationMs: 100_000),
             ])
+        #expect(await rig.sink.generations == [1, 1])
+    }
+
+    @Test func aFailedSendDoesNotReachTheSink() async {
+        let fake = FakeTransport()
+        await fake.script(path: "/:/timeline", .failure(.notConnectedToInternet))
+        let sink = RecordingSink()
+        let reporter = PlexPlaybackReporter(
+            itemID: "42", durationMs: 100_000, sessionID: "S", context: reporterContext,
+            contextSource: FakeContextSource(), transport: fake, endpoints: testEndpoints,
+            watchState: PlexWatchState(transport: fake, endpoints: testEndpoints), sink: sink,
+            sleep: { _ in try await Task.sleep(for: .seconds(3600)) })
+        await reporter.report(.playing, positionMs: 1000)
+        await reporter.stop(positionMs: 2000)
+        #expect(await fake.requests.count == 2)
+        #expect(await sink.progress.isEmpty)
+    }
+
+    @Test func aReportAfterAGenerationChangeDoesNotReachTheSink() async {
+        let rig = Rig()
+        await rig.reporter.report(.playing, positionMs: 1000)
+        await rig.source.setGeneration(2)
+        await rig.reporter.report(.paused, positionMs: 2000)
+        await rig.reporter.stop(positionMs: 3000)
+        await rig.settle()
+        #expect(await rig.sink.progress.map(\.positionMs) == [1000])
     }
 
     // MARK: stop
@@ -198,9 +216,9 @@ struct PlexPlaybackReporterTests {
         let first = Task { await rig.reporter.report(.playing, positionMs: 1000) }
         await rig.transport.waitForRequests(1)
         let second = Task { await rig.reporter.report(.paused, positionMs: 2000) }
-        await rig.waitForProgress(2)
+        await rig.settle()
         let stop = Task { await rig.reporter.stop(positionMs: 3000) }
-        await rig.waitForProgress(3)
+        await rig.settle()
         await rig.transport.releaseAll()
         await first.value
         await second.value
@@ -229,6 +247,14 @@ struct PlexPlaybackReporterTests {
         #expect(await rig.transport.requests.filter { $0.url?.path == "/:/scrobble" }.isEmpty)
         #expect(await rig.sink.watched.isEmpty)
         #expect(await rig.watchState.revision(of: "42") == 0)
+    }
+
+    @Test func noScrobbleWhenThePositionIsPastTheDuration() async {
+        let rig = Rig(durationMs: 600_000)
+        await rig.reporter.report(.playing, positionMs: 1000)
+        await rig.reporter.stop(positionMs: 720_000)
+        #expect(await rig.transport.requests.filter { $0.url?.path == "/:/scrobble" }.isEmpty)
+        #expect(await rig.sink.watched.isEmpty)
     }
 
     @Test func noScrobbleWithoutASaneDuration() async {
