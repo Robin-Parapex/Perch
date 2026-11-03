@@ -15,11 +15,11 @@ public struct SetupStepContainer<Content: View>: View {
     private let primaryAction: () -> Void
     private let skipTitle: String
     private let skipAction: (() -> Void)?
-    private let backdrop: AnyView?
+    private let backdrops: [AnyView]
     private let content: Content
     @Environment(\.perchStyle) private var style
 
-    /// `step` is 1-based; pass `skipAction` to show the secondary "Skip for now"; `backdrop` is shown blurred and dimmed.
+    /// `step` is 1-based; pass `skipAction` to show the secondary "Skip for now"; `backdrop` (or several `backdrops`, crossfaded) is shown blurred and dimmed.
     public init(
         title: String,
         helper: String? = nil,
@@ -31,6 +31,7 @@ public struct SetupStepContainer<Content: View>: View {
         skipTitle: String = "Skip for now",
         skipAction: (() -> Void)? = nil,
         backdrop: (any View)? = nil,
+        backdrops: [any View] = [],
         @ViewBuilder content: () -> Content
     ) {
         self.title = title
@@ -42,7 +43,7 @@ public struct SetupStepContainer<Content: View>: View {
         self.primaryAction = primaryAction
         self.skipTitle = skipTitle
         self.skipAction = skipAction
-        self.backdrop = backdrop.map { AnyView($0) }
+        self.backdrops = backdrops.isEmpty ? backdrop.map { [AnyView($0)] } ?? [] : backdrops.map { AnyView($0) }
         self.content = content()
     }
 
@@ -51,11 +52,12 @@ public struct SetupStepContainer<Content: View>: View {
 
     public var body: some View {
         ZStack {
-            SetupBackdrop(art: backdrop)
+            SetupBackdrop(arts: backdrops)
             column
                 .frame(maxWidth: Self.maxColumnWidth)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .perchPageMargins([.horizontal, .vertical])
+                .padding(.bottom, 90)  // sits a little above the vertical centre, as on the Apple TV app
         }
         .overlay(alignment: .topTrailing) {
             ProgressDots(current: step, total: totalSteps)
@@ -69,7 +71,7 @@ public struct SetupStepContainer<Content: View>: View {
     private var column: some View {
         VStack(spacing: 28) {
             Text(title)
-                .font(titleSize == .hero ? PerchFont.hero(style) : PerchFont.section(style).weight(.bold))
+                .font(titleSize == .hero ? PerchFont.hero(style) : PerchFont.stepTitle(style))
                 .foregroundStyle(PerchColor.textPrimary)
                 .multilineTextAlignment(.center)
                 .accessibilityAddTraits(.isHeader)
@@ -78,7 +80,7 @@ public struct SetupStepContainer<Content: View>: View {
                 if let helper {
                     Text(helper)
                         .font(PerchFont.body(style))
-                        .foregroundStyle(PerchColor.textBody)
+                        .foregroundStyle(PerchColor.textHelper)
                         .multilineTextAlignment(.center)
                 }
                 content
@@ -101,28 +103,61 @@ public struct SetupStepContainer<Content: View>: View {
 }
 
 /// Flat base colour, or art blurred and dimmed under a scrim so text stays readable. No gradients.
+/// The art drifts slowly (Ken Burns, docs/DESIGN.md); several images crossfade every `interval` seconds.
+/// With Reduce Motion there is no drift, only the crossfade.
 public struct SetupBackdrop: View {
-    private let art: AnyView?
+    private let arts: [AnyView]
+    private let interval: Double
+    @State private var index = 0
+    @State private var drifting = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// Pass nil for the plain page background.
-    public init(art: AnyView?) { self.art = art }
+    public init(art: AnyView?) { self.init(arts: art.map { [$0] } ?? []) }
+
+    /// Several images crossfade in turn; an empty list is the plain page background.
+    public init(arts: [AnyView], interval: Double = 12) {
+        self.arts = arts
+        self.interval = interval
+    }
+
+    /// Blur radius and dim opacity of the backdrop.
+    public static let blurRadius: CGFloat = 20
+    public static let dimOpacity: Double = 0.4
 
     public var body: some View {
         // Art sits in an overlay so its overflow cannot change the size of the page.
         PerchColor.base
             .overlay {
-                if let art {
+                if !arts.isEmpty {
                     ZStack {
-                        art
-                            .scaledToFill()
-                            .blur(radius: 40)
-                            .scaleEffect(1.1)  // hides the soft edge the blur leaves
-                        Color.black.opacity(0.55)
+                        ForEach(arts.indices, id: \.self) { position in
+                            arts[position]
+                                .scaledToFill()
+                                .blur(radius: Self.blurRadius)
+                                .scaleEffect(1.1 * (drifting ? 1 + PerchMotion.kenBurnsAmount : 1))  // 1.1 hides the soft edge the blur leaves
+                                .offset(x: drifting ? -24 : 24, y: drifting ? 8 : -8)
+                                .opacity(position == index ? 1 : 0)
+                        }
+                        Color.black.opacity(Self.dimOpacity)
                     }
+                    .animation(.easeInOut(duration: 1.2), value: index)
                 }
             }
-        .clipped()
-        .ignoresSafeArea()
-        .accessibilityHidden(true)
+            .clipped()
+            .ignoresSafeArea()
+            .accessibilityHidden(true)
+            .onAppear {
+                guard !reduceMotion, PerchMotion.resolve(.kenBurns(amount: PerchMotion.kenBurnsAmount), reduceMotion: reduceMotion) != .none else { return }
+                withAnimation(.easeInOut(duration: PerchMotion.kenBurnsDuration).repeatForever(autoreverses: true)) { drifting = true }
+            }
+            .task(id: arts.count) {
+                guard arts.count > 1 else { return }
+                while !Task.isCancelled {
+                    try? await Task.sleep(for: .seconds(interval))
+                    if Task.isCancelled { break }
+                    index = (index + 1) % arts.count
+                }
+            }
     }
 }

@@ -8,12 +8,16 @@ public struct ProfilePickerItem: Identifiable {
     public let isLocked: Bool
     public let isCurrent: Bool
 
-    /// `id` is the caller's profile id, handed back on selection.
-    public init(id: String, name: String, image: (any View)? = nil, isLocked: Bool = false, isCurrent: Bool = false) {
+    /// `id` is the caller's profile id, handed back on selection. The lock glyph shows when `isProtected`
+    /// (or the older `isLocked`) is true: it describes the profile, so pass the same value whoever is watching.
+    public init(
+        id: String, name: String, image: (any View)? = nil, isLocked: Bool = false, isCurrent: Bool = false,
+        isProtected: Bool = false
+    ) {
         self.id = id
         self.name = name
         self.image = image.map { AnyView($0) }
-        self.isLocked = isLocked
+        self.isLocked = isLocked || isProtected
         self.isCurrent = isCurrent
     }
 }

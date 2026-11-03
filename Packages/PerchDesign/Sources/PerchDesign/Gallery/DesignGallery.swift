@@ -190,9 +190,19 @@ public struct DesignGallery: View {
 
     private static let sampleProfiles: [ProfilePickerItem] = [
         ProfilePickerItem(id: "sam", name: "Sam", image: sampleArt(.indigo, "person.fill"), isCurrent: true),
-        ProfilePickerItem(id: "alex", name: "Alex Brown", isLocked: true),
+        ProfilePickerItem(id: "alex", name: "Alex Brown", isProtected: true),
         ProfilePickerItem(id: "kit", name: "Kit", image: sampleArt(.teal, "star.fill")),
         ProfilePickerItem(id: "guest", name: "Guest", image: sampleArt(.orange, "figure.wave")),
+    ]
+
+    private struct GridRow: Identifiable {
+        let id: String, name: String, role: String, rating: String
+    }
+
+    private static let gridRows: [GridRow] = [
+        GridRow(id: "sam", name: "Sam", role: "Parent", rating: "All ratings"),
+        GridRow(id: "alex", name: "Alex Brown", role: "Parent", rating: "Up to 15"),
+        GridRow(id: "kit", name: "Kit", role: "Kid", rating: "Up to PG"),
     ]
 
     private var setupSection: some View {
@@ -205,11 +215,19 @@ public struct DesignGallery: View {
                 ProfilePickerRow(items: Self.sampleProfiles, defaultFocusID: "sam") { _ in }
                     .frame(width: 1760)
                     .accessibilityIdentifier("gallery.profilePicker")
+                SetupProfileGrid(
+                    rows: Self.gridRows, name: \.name, roleTitle: \.role, ratingTitle: \.rating,
+                    onRole: { _ in }, onRating: { _ in }
+                )
+                .frame(width: 1400)
                 HStack(spacing: 24) {
                     Button("Open step screen") { cover = .step }
                         .accessibilityIdentifier("gallery.openStep")
                     Button("Open PIN screen") { cover = .pin }
                         .accessibilityIdentifier("gallery.openPIN")
+                    Button("PIN wrong") { cover = .pinWrong }
+                    Button("PIN locked") { cover = .pinLocked }
+                    Button("Profiles") { cover = .profiles }
                 }
                 .buttonStyle(.perchSecondary)
             }
@@ -226,13 +244,36 @@ public struct DesignGallery: View {
                 }
                 .perchPageBackground()
             case .pin:
-                PINEntryScreen(name: "Alex Brown", prompt: "Enter your PIN", pin: .constant("12")) { _ in }
+                PINEntryScreen(
+                    name: "Alex Brown", backdrop: Self.sampleArt(.indigo, "film.stack"), prompt: "Enter your PIN",
+                    pin: .constant("12")
+                ) { _ in }
+            case .pinWrong:
+                PINEntryScreen(
+                    name: "Alex Brown", backdrop: Self.sampleArt(.indigo, "film.stack"),
+                    pin: .constant(""), failures: 1, errorMessage: "That PIN is not right. Try again."
+                ) { _ in }
+            case .pinLocked:
+                PINEntryScreen(
+                    name: "Alex Brown", backdrop: Self.sampleArt(.indigo, "film.stack"),
+                    pin: .constant(""), lockedUntil: Date().addingTimeInterval(45), onBack: { cover = nil }
+                ) { _ in }
+            case .profiles:
+                ZStack {
+                    SetupBackdrop(arts: [AnyView(Self.sampleArt(.indigo, "film.stack")), AnyView(Self.sampleArt(.teal, "tv"))])
+                    VStack(spacing: 56) {
+                        Text("Who's watching?").font(PerchFont.stepTitle(style)).foregroundStyle(PerchColor.textPrimary)
+                        ProfilePickerRow(items: Self.sampleProfiles, defaultFocusID: "kit") { _ in }
+                    }
+                    .padding(.bottom, 60)
+                }
+                .ignoresSafeArea()
             }
         }
     }
 
     private enum Cover: String, Identifiable {
-        case step, pin
+        case step, pin, pinWrong, pinLocked, profiles
         var id: String { rawValue }
     }
 

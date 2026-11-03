@@ -3,6 +3,7 @@ import SwiftUI
 /// Type tokens (docs/DESIGN.md). Sizes are in points; kids scale up and nothing drops below `minimumSize`.
 public enum PerchFont {
     public static let heroSize: CGFloat = 96
+    public static let stepTitleSize: CGFloat = 64
     public static let sectionSize: CGFloat = 28
     public static let bodySize: CGFloat = 26
     public static let metadataSize: CGFloat = 22
@@ -17,6 +18,10 @@ public enum PerchFont {
 
     public static func hero(_ style: PerchStyle) -> Font {
         .system(size: size(heroSize, for: style), weight: .bold)
+    }
+    /// Wizard step titles and "Who's watching?".
+    public static func stepTitle(_ style: PerchStyle) -> Font {
+        .system(size: size(stepTitleSize, for: style), weight: .bold)
     }
     public static func section(_ style: PerchStyle) -> Font {
         .system(size: size(sectionSize, for: style), weight: .semibold)
