@@ -30,7 +30,17 @@ struct AppRoot: View {
         self.core = core
         let complete = core.setupCompletion.isComplete
         _setupComplete = State(initialValue: complete)
-        _route = State(initialValue: complete ? .loading : .setup)
+        _route = State(initialValue: Self.opensGallery ? .home : complete ? .loading : .setup)
+    }
+
+    /// DEBUG `-PerchDesignGallery`: home from the first frame, whatever the stored setup or sign-in, so the
+    /// gallery pushed by the placeholder home is never routed away or re-mounted (WP-04 behaviour).
+    private static var opensGallery: Bool {
+        #if DEBUG
+        ProcessInfo.processInfo.arguments.contains("-PerchDesignGallery")
+        #else
+        false
+        #endif
     }
 
     /// No stored sign-in at all (as opposed to a sign-in whose server or plex.tv cannot be reached).
@@ -42,6 +52,7 @@ struct AppRoot: View {
 
     /// Nil while a connection is being made: the screen stays as it is.
     private var desired: Route? {
+        if Self.opensGallery { return .home }
         if isRerun { return .rerun }
         if !setupComplete { return .setup }
         if !core.launch.resumeFinished { return .loading }
