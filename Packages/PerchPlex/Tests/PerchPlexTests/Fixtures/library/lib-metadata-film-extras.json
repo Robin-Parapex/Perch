@@ -1,0 +1,10 @@
+{"MediaContainer": {"size": 1, "Metadata": [
+  {"ratingKey": "1001", "key": "/library/metadata/1001", "type": "movie", "title": "Harbour Lights", "year": 2019, "contentRating": "PG-13", "tagline": "Some lights never go out.", "summary": "A lighthouse keeper's last winter.", "duration": 7200000, "librarySectionID": 1, "originallyAvailableAt": "2019-06-14",
+    "Media": [{"id": 7101, "duration": 7200000, "container": "mp4", "videoCodec": "h264", "audioCodec": "aac", "videoResolution": "1080", "Part": [{"id": 8101, "key": "/library/parts/8101/1700000000/file.mp4", "duration": 7199000, "size": 2345678901, "container": "mp4"}]}],
+    "Extras": {"size": 3, "Metadata": [
+      {"ratingKey": "5001", "key": "/library/metadata/5001", "type": "clip", "subtype": "trailer", "extraType": 1, "title": "Official Trailer", "duration": 125000, "thumb": "/library/metadata/5001/thumb/1"},
+      {"ratingKey": "5002", "key": "/library/metadata/5002", "type": "clip", "subtype": "behindTheScenes", "title": "Building the Lighthouse", "duration": 540000, "thumb": "/library/metadata/5002/thumb/1"},
+      {"key": "/library/metadata/5003", "type": "clip", "subtype": "trailer", "extraType": 1, "title": "Teaser without a key", "duration": 30000}
+    ]}
+  }
+]}}

@@ -1,0 +1,37 @@
+{"MediaContainer": {"size": 1, "allowSync": true, "librarySectionID": "2", "Metadata": [
+  {"ratingKey": "2103", "key": "/library/metadata/2103", "type": "episode", "title": "The Long Night",
+    "grandparentRatingKey": "2000", "grandparentTitle": "The Lantern Keepers", "grandparentThumb": "/library/metadata/2000/thumb/1700000000",
+    "parentRatingKey": "2100", "parentTitle": "Season 1", "parentIndex": 1, "index": "5",
+    "librarySectionID": "2", "contentRating": "TV-14", "summary": "The keepers watch for a light that never comes.",
+    "year": 2024, "originallyAvailableAt": "2024-03-09", "studio": "Fictional Pictures",
+    "thumb": "/library/metadata/2103/thumb/1700000000", "art": "/library/metadata/2103/art/1700000000",
+    "duration": 2700000, "viewOffset": 120000, "viewCount": 0, "addedAt": 1700000400, "lastViewedAt": 1790000600,
+    "Genre": [{"tag": "Drama"}, {"tag": "Mystery"}],
+    "Guid": [{"id": "imdb://tt0000501"}, {"id": "tmdb://501"}, {"id": "tvdb://5010"}],
+    "Media": [
+      {"id": 7001, "duration": 2700000, "bitrate": 18000, "width": 3840, "height": 2160, "videoResolution": "4k", "container": "mkv", "videoCodec": "hevc", "audioCodec": "eac3",
+        "Part": [
+          {"id": 8001, "key": "/library/parts/8001/1700000000/file.mkv", "duration": 2699500, "file": "/media/tv/lantern/s01e05.mkv", "size": 4123456789, "container": "mkv", "accessible": true, "exists": true,
+            "Stream": [
+              {"id": 9001, "streamType": 1, "codec": "hevc", "index": 0, "bitDepth": 10, "colorTrc": "smpte2084", "colorSpace": "bt2020nc", "DOVIProfile": 8, "DOVIPresent": true, "frameRate": 23.976, "width": 3840, "height": 2160, "default": true, "selected": true, "displayTitle": "4K DoVi/HDR10 (HEVC Main 10)"},
+              {"id": 9002, "streamType": 2, "codec": "eac3", "index": 1, "channels": 6, "languageCode": "eng", "displayTitle": "English (EAC3 5.1)", "default": true, "selected": true},
+              {"id": 9003, "streamType": 3, "codec": "srt", "format": "srt", "key": "/library/streams/9003", "languageCode": "eng", "displayTitle": "English (SRT External)", "title": "SDH", "default": false, "forced": false},
+              {"id": 9004, "streamType": 3, "codec": "pgs", "index": 3, "languageCode": "eng", "displayTitle": "English (PGS)", "forced": 1},
+              {"id": 9999, "streamType": "banana", "codec": "mystery"},
+              "not a stream"
+            ]}
+        ]}
+    ],
+    "Marker": [
+      {"id": 501, "type": "intro", "startTimeOffset": 5000, "endTimeOffset": 65000},
+      {"id": 502, "type": "credits", "startTimeOffset": 1800000, "endTimeOffset": 1830000, "final": false},
+      {"id": 503, "type": "credits", "startTimeOffset": 2600000, "endTimeOffset": 2700000, "final": true},
+      {"id": 504, "type": "commercial", "startTimeOffset": 900000, "endTimeOffset": 960000}
+    ],
+    "Chapter": [
+      {"id": 601, "filter": "thumb=601", "index": 1, "startTimeOffset": 0, "endTimeOffset": 900000, "tag": "Cold open", "thumb": "/library/metadata/2103/thumb/601"},
+      {"id": 602, "filter": "thumb=602", "index": 2, "startTimeOffset": 900000, "endTimeOffset": 1800000, "tag": "The Signal", "thumb": "/library/metadata/2103/thumb/602"},
+      {"id": 603, "filter": "thumb=603", "index": 3, "startTimeOffset": 1800000, "endTimeOffset": 2700000, "tag": "Dawn", "thumb": "/library/metadata/2103/thumb/603"}
+    ]
+  }
+]}}

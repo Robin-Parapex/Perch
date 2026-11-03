@@ -1,0 +1,18 @@
+{"MediaContainer": {"size": 5, "Hub": [
+  {"hubIdentifier": "movie.recentlyadded.1", "title": "Recently Added Movies", "type": "movie", "key": "/hubs/sections/1/recentlyAdded?type=1", "size": 2, "more": true, "Metadata": [
+    {"ratingKey": "1003", "type": "movie", "title": "Paper Boats", "year": 2024, "thumb": "/library/metadata/1003/thumb/1", "addedAt": 1790000300},
+    {"ratingKey": "1002", "type": "movie", "title": "The Quiet Orchard", "year": 2023, "thumb": "/library/metadata/1002/thumb/1", "addedAt": 1790000100}
+  ]},
+  {"hubIdentifier": "tv.recentlyadded.2", "title": "Recently Added TV", "type": "episode", "key": "/hubs/sections/2/recentlyAdded?type=4", "size": 1, "more": true, "Metadata": [
+    {"ratingKey": "2104", "type": "episode", "title": "Slack Water", "grandparentRatingKey": "2000", "grandparentTitle": "The Lantern Keepers", "parentRatingKey": "2100", "parentIndex": 1, "index": 5, "thumb": "/library/metadata/2104/thumb/1", "addedAt": 1790000200}
+  ]},
+  {"hubIdentifier": "music.recent.added.3", "title": "Recently Added Music", "type": "album", "key": "/hubs/sections/3/recentlyAdded?type=9", "size": 1, "more": false, "Metadata": [
+    {"ratingKey": "9001", "type": "album", "title": "Tin Roof Sessions", "parentTitle": "The Gull Orchestra", "thumb": "/library/metadata/9001/thumb/1", "addedAt": 1790000250}
+  ]},
+  {"hubIdentifier": "playlists.recent", "title": "Playlists", "type": "playlist", "key": "/hubs/playlists", "size": 1, "more": false, "Metadata": [
+    {"ratingKey": "9500", "type": "playlist", "title": "Friday Night", "addedAt": 1790000050}
+  ]},
+  {"hubIdentifier": "home.continue", "title": "Continue Watching", "type": "mixed", "key": "/hubs/continueWatching/items", "size": 1, "more": false, "Metadata": [
+    {"ratingKey": "1001", "type": "movie", "title": "Harbour Lights", "viewOffset": 2400000, "duration": 7200000}
+  ]}
+]}}

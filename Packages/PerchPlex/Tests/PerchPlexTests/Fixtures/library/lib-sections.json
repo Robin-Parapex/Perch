@@ -1,0 +1,7 @@
+{"MediaContainer": {"size": 5, "allowSync": false, "title1": "Plex Library", "Directory": [
+  {"allowSync": true, "key": "1", "type": "movie", "title": "Films", "agent": "tv.plex.agents.movie", "scanner": "Plex Movie", "uuid": "fake-sec-1"},
+  {"allowSync": true, "key": "2", "type": "show", "title": "TV", "agent": "tv.plex.agents.series", "scanner": "Plex TV Series", "uuid": "fake-sec-2"},
+  {"allowSync": true, "key": "3", "type": "artist", "title": "Music", "agent": "tv.plex.agents.music", "scanner": "Plex Music", "uuid": "fake-sec-3"},
+  {"allowSync": true, "key": "4", "type": "movie", "subtype": "clip", "title": "Home Clips", "agent": "tv.plex.agents.movie", "scanner": "Plex Movie", "uuid": "fake-sec-4"},
+  {"allowSync": true, "key": "5", "type": "movie", "title": "Family Videos", "agent": "com.plexapp.agents.none", "scanner": "Plex Video Files", "uuid": "fake-sec-5"}
+]}}

@@ -1,0 +1,5 @@
+{"MediaContainer": {"size": 3, "Metadata": [
+  {"ratingKey": "1003", "key": "/library/metadata/1003", "type": "movie", "title": "Paper Boats", "year": 2024, "contentRating": "PG", "thumb": "/library/metadata/1003/thumb/1", "art": "/library/metadata/1003/art/1", "duration": 5400000, "addedAt": 1790000300, "librarySectionID": 1},
+  {"ratingKey": "2104", "key": "/library/metadata/2104", "type": "episode", "title": "Slack Water", "grandparentRatingKey": "2000", "grandparentTitle": "The Lantern Keepers", "grandparentThumb": "/library/metadata/2000/thumb/1700000000", "parentRatingKey": "2100", "parentIndex": 1, "index": 5, "thumb": "/library/metadata/2104/thumb/1", "duration": 2700000, "addedAt": 1790000200, "librarySectionID": 2},
+  {"ratingKey": "3100", "key": "/library/metadata/3100/children", "type": "season", "title": "Season 2", "parentRatingKey": "3000", "parentTitle": "Cold Harbour Files", "index": 2, "thumb": "/library/metadata/3100/thumb/1", "leafCount": 8, "addedAt": 1790000150, "librarySectionID": 2}
+]}}
