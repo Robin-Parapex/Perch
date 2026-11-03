@@ -79,7 +79,6 @@ struct SetupAddLaterStep: View {
             helper: "These connect from Settings when they are ready. Nothing here is needed now.",
             step: model.stepNumber, of: model.stepCount,
             primaryTitle: "Continue", primaryAction: { Task { await model.advance() } },
-            skipAction: { Task { await model.skip() } },
             backdrop: model.backdropView
         ) {
             VStack(spacing: 14) {
@@ -87,7 +86,7 @@ struct SetupAddLaterStep: View {
                     HStack {
                         Text(entry.title).foregroundStyle(PerchColor.textPrimary)
                         Spacer()
-                        Text(entry.detail).foregroundStyle(PerchColor.textSecondary)
+                        Text(entry.detail).foregroundStyle(PerchColor.textHelper)
                     }
                     .font(PerchFont.body(style))
                     .accessibilityElement(children: .combine)

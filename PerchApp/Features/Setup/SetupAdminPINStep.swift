@@ -15,6 +15,8 @@ struct SetupAdminPINStep: View {
             title: title, helper: helper,
             step: model.stepNumber, of: model.stepCount,
             primaryTitle: primaryTitle, primaryAction: { Task { await primary() } },
+            skipTitle: "Set a Perch PIN instead",
+            skipAction: showsPerchRoute ? { Task { await model.startPIN(.verifyPlexForPerch) } } : nil,
             backdrop: model.backdropView
         ) {
             VStack(spacing: 24) {
@@ -30,11 +32,6 @@ struct SetupAdminPINStep: View {
                         .font(.system(size: PerchFont.sectionSize, weight: .semibold))
                         .foregroundStyle(PerchColor.textPrimary)
                         .accessibilityIdentifier("setup.admin.message")
-                }
-                if showsPerchRoute {
-                    Button("Set a Perch PIN instead") { Task { await model.startPIN(.verifyPlexForPerch) } }
-                        .buttonStyle(.perchSecondary)
-                        .accessibilityIdentifier("setup.admin.perch")
                 }
             }
         }
@@ -52,7 +49,8 @@ struct SetupAdminPINStep: View {
     }
 
     private var helper: String? {
-        model.adminSource == .unavailable && !confirmed ? nil : Self.protects
+        if confirmed { return "Only a parent can use it." }
+        return model.adminSource == .unavailable ? nil : Self.protects
     }
 
     private var detail: String? {
@@ -93,22 +91,19 @@ struct SetupAdminPINStep: View {
 }
 
 /// Full-screen PIN entry for the Admin PIN routes and for profile edits that need a fresh PIN.
+/// Shows the owner and the same library art as the steps; no progress dots (they belong to the step container).
 struct SetupPINScreen: View {
     @Bindable var model: SetupFlowModel
     let mode: SetupFlowModel.PINMode
 
     var body: some View {
         PINEntryScreen(
-            name: "Admin", prompt: mode.prompt, pin: $model.pin, failures: model.pinFailures,
+            name: model.adminName,
+            image: model.adminAvatar.map { Image(uiImage: $0).resizable() },
+            backdrop: model.backdropView, prompt: mode.prompt, pin: $model.pin, failures: model.pinFailures,
             isChecking: model.pinChecking, errorMessage: model.pinError,
+            lockedUntil: model.pinLockedUntil, onBack: { Task { await model.back() } },
             onComplete: { entered in Task { await model.submitPIN(entered) } }
         )
-        .overlay(alignment: .topTrailing) {
-            if !mode.isReauthorise {
-                ProgressDots(current: model.stepNumber, total: model.stepCount)
-                    .padding(.top, PerchSpacing.topMargin)
-                    .padding(.trailing, PerchSpacing.horizontalMargin)
-            }
-        }
     }
 }

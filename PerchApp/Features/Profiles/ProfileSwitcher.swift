@@ -13,8 +13,10 @@ final class ProfileSwitcher {
         case switched
         /// The move needs a PIN that was not given yet: the target's Plex PIN, or the Admin PIN.
         case needsPIN(SwitchRequirement)
-        /// A wrong PIN or a lockout: show the message and shake.
+        /// A wrong PIN: show the message and shake.
         case rejected(String)
+        /// Too many wrong PINs: the keypad stays dimmed until this time.
+        case locked(Date)
         /// Anything else: show the message, nothing changed.
         case failed(String)
     }
@@ -76,7 +78,7 @@ final class ProfileSwitcher {
             switch result {
             case .accepted: verification = result
             case .rejected: return .rejected(Self.wrongPIN)
-            case .lockedOut(let until): return .rejected(Self.lockedMessage(until))
+            case .lockedOut(let until): return .locked(until)
             case .setupRequired, .plexUnreachable, .unavailable: return .failed(Self.cannotSwitch)
             }
         }
@@ -96,7 +98,7 @@ final class ProfileSwitcher {
         switch error {
         case .pinIncorrect: .rejected(wrongPIN)
         case .unauthorized: hadPIN ? .rejected(wrongPIN) : .failed(cannotSwitch)
-        case .lockedOut(let until): .rejected(lockedMessage(until))
+        case .lockedOut(let until): .locked(until)
         case .pinRequired: .failed("Enter the PIN for this profile")
         default: .failed(cannotSwitch)  // plex.tv unreachable, server trouble: the current profile stays
         }

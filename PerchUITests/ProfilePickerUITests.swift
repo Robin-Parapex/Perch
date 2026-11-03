@@ -71,12 +71,13 @@ final class ProfilePickerUITests: XCTestCase {
         var locked = false
         for _ in 0..<6 {
             enterPIN("1111", in: app)
-            if waitUntil(4, { app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Too many tries'")).count > 0 }) {
+            if waitUntil(4, { self.element(app, "pinEntry.locked").exists }) {
                 locked = true
                 break
             }
         }
         XCTAssertTrue(locked, "five wrong PINs lock the profile")
+        XCTAssertTrue(text(element(app, "pinEntry.locked")).hasPrefix("Try again in"), "a countdown shows")
         shot("24-picker-pin-locked")
     }
 
@@ -125,11 +126,14 @@ final class ProfilePickerUITests: XCTestCase {
         waitForHome(app, as: "Sam")
 
         tap("home.runSetup", in: app)
-        waitFor(element(app, "home.setupPIN"))
-        enterPIN(adminPerchPIN, in: app)
-        expectPINError("Ask a parent to change setup", in: app)
+        let refusal = element(app, "home.setupRefused")
+        waitFor(refusal)
+        XCTAssertEqual(text(refusal), "Ask a parent to change setup")
+        XCTAssertFalse(element(app, "pinPad.1").exists, "a kid is not offered a keypad")
         XCTAssertFalse(element(app, "root.rerun").exists, "setup did not open")
         shot("28-kid-refused-setup")
+        tap("home.setupRefused.ok", in: app)
+        waitForHome(app, as: "Sam")
     }
 
     /// A parent can re-run setup with the Admin PIN (the other half of the gate).
@@ -166,6 +170,7 @@ final class ProfilePickerUITests: XCTestCase {
         let offline = element(app, "picker.offline")
         waitFor(offline, timeout: 15)
         XCTAssertEqual(text(offline), "Can't switch profiles right now")
+        XCTAssertTrue(app.buttons["Try again"].exists, "offline offers Try again")
         shot("30-picker-offline")
 
         tap("profile.1003", in: app)

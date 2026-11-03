@@ -23,12 +23,9 @@ private struct SetupConnectChoice: View {
             title: "Connect Plex",
             helper: "Perch plays your library from your Plex server.",
             step: model.stepNumber, of: model.stepCount,
-            primaryTitle: "Sign in with a code", primaryAction: { Task { await model.showCode() } }
-        ) {
-            Button("Enter a server address") { Task { await model.showAddress() } }
-                .buttonStyle(.perchSecondary)
-                .accessibilityIdentifier("setup.connect.address")
-        }
+            primaryTitle: "Sign in with a code", primaryAction: { Task { await model.showCode() } },
+            skipTitle: "Enter a server address", skipAction: { Task { await model.showAddress() } }
+        ) {}
     }
 }
 

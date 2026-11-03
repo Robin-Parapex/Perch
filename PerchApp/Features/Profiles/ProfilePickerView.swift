@@ -27,6 +27,7 @@ struct ProfilePickerView: View {
     @State private var failures = 0
     @State private var isChecking = false
     @State private var errorMessage: String?
+    @State private var lockedUntil: Date?
     @State private var isSwitching = false
     @State private var notice: String?
 
@@ -70,8 +71,7 @@ struct ProfilePickerView: View {
                     .perchStagedEntrance(stage: 1)
                     .disabled(isSwitching)
                 }
-                noticeLine
-                    .frame(height: 40)
+                footer
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             if isSwitching { ProgressView().scaleEffect(1.6) }
@@ -84,8 +84,10 @@ struct ProfilePickerView: View {
         PINEntryScreen(
             name: target.displayName,
             image: avatars[target.id].map { Image(uiImage: $0).resizable() },
+            backdrop: backdrop.map { Image(uiImage: $0).resizable() },
             prompt: pinKind == .adminPIN ? "Enter the Admin PIN" : "Enter \(target.displayName)'s PIN",
             pin: $pin, failures: failures, isChecking: isChecking, errorMessage: errorMessage,
+            lockedUntil: lockedUntil, onBack: { closePIN() },
             onComplete: { entered in Task { await attempt(target, pin: entered) } }
         )
         .onChange(of: pin) { _, value in if !value.isEmpty { errorMessage = nil } }
@@ -108,6 +110,24 @@ struct ProfilePickerView: View {
                 .accessibilityIdentifier("picker.retry")
         }
     }
+
+    /// Fixed height, so a notice or the retry button appearing never moves the avatars.
+    private var footer: some View {
+        VStack(spacing: 16) {
+            noticeLine
+                .frame(height: 40)
+            Button("Try again") { Task { await retry() } }
+                .buttonStyle(.perchSecondary)
+                .accessibilityIdentifier("picker.retry")
+                .opacity(showsRetry ? 1 : 0)
+                .disabled(!showsRetry)
+                .accessibilityHidden(!showsRetry)
+        }
+        .frame(height: 150, alignment: .top)
+    }
+
+    /// The empty state has its own button.
+    private var showsRetry: Bool { offline && !users.isEmpty }
 
     @ViewBuilder
     private var noticeLine: some View {
@@ -132,7 +152,7 @@ struct ProfilePickerView: View {
             ProfilePickerItem(
                 id: user.id, name: user.displayName,
                 image: avatars[user.id].map { Image(uiImage: $0).resizable() },
-                isLocked: user.protected, isCurrent: user.id == currentID)
+                isCurrent: user.id == currentID, isProtected: user.protected)
         }
     }
 
@@ -187,15 +207,13 @@ struct ProfilePickerView: View {
     }
 
     private func loadBackdrop() async {
-        let key = "picker-backdrop"
-        if let data = ImageDiskCache.shared.data(for: key), let image = UIImage(data: data) {
-            backdrop = image
-        }
-        guard let path = try? await session.libraryArt(limit: 6).randomElement(),
-            let data = try? await session.imageData(for: path), let image = UIImage(data: data)
-        else { return }
-        ImageDiskCache.shared.store(data, for: key)
-        backdrop = image
+        if let image = LibraryBackdrop.cached() { backdrop = image }
+        if let image = await LibraryBackdrop.fetch(session: session) { backdrop = image }
+    }
+
+    private func retry() async {
+        notice = nil
+        await load()
     }
 
     // MARK: Actions
@@ -239,11 +257,17 @@ struct ProfilePickerView: View {
             pin = ""
             failures = 0
             errorMessage = nil
+            lockedUntil = nil
             pinTarget = user
         case .rejected(let message):
             pin = ""
             failures += 1
             errorMessage = message
+        case .locked(let until):
+            pin = ""
+            errorMessage = nil
+            lockedUntil = until
+            if !fromPINScreen { notice = ProfileSwitcher.lockedMessage(until) }
         case .failed(let message):
             if fromPINScreen {
                 pin = ""
@@ -254,12 +278,17 @@ struct ProfilePickerView: View {
         }
     }
 
+    private func closePIN() {
+        pinTarget = nil
+        pin = ""
+        errorMessage = nil
+        lockedUntil = nil
+    }
+
     private func handleBack() {
         if pinTarget != nil {
             guard !isChecking else { return }
-            pinTarget = nil
-            pin = ""
-            errorMessage = nil
+            closePIN()
         } else {
             onBack?()
         }

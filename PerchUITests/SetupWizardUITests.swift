@@ -14,7 +14,10 @@ final class SetupWizardUITests: XCTestCase {
         try walkToAdminPIN(app)
 
         // Admin PIN intro: the Plex PIN route.
-        XCTAssertTrue(app.buttons["Use your Plex PIN"].waitForExistence(timeout: 5))
+        let plexRoute = app.buttons["Use your Plex PIN"]
+        XCTAssertTrue(plexRoute.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["Set a Perch PIN instead"].exists, "the Perch PIN route is the secondary button")
+        XCTAssertTrue(waitUntil(5) { plexRoute.hasFocus }, "focus starts on the primary route")
         shot("05-admin-pin-intro")
         tap("setup.primary", in: app)
 
@@ -25,9 +28,9 @@ final class SetupWizardUITests: XCTestCase {
 
         // Accepted: moves on to Profiles by itself.
         waitFor(app.staticTexts["Profiles and roles"], timeout: 15)
-        XCTAssertTrue(element(app, "setup.profile.1001.role").exists)
-        XCTAssertTrue(element(app, "setup.profile.1002.role").exists)
-        XCTAssertTrue(element(app, "setup.profile.1003.role").exists)
+        // One role pill per household member (the grid has no per-row identifiers, so they are found by title).
+        let rolePills = app.buttons.matching(NSPredicate(format: "label IN {'Parent','Teen','Kid','Top Shelf'}"))
+        XCTAssertTrue(waitUntil(10) { rolePills.count == 3 }, "three role pills, got \(rolePills.count)")
         shot("07-profiles")
         tap("setup.primary", in: app)
 
@@ -39,6 +42,7 @@ final class SetupWizardUITests: XCTestCase {
             XCTAssertTrue(row.exists, "add-later entry \(id)")
             XCTAssertTrue(row.label.contains("Coming soon"), "\(id) says Coming soon, got '\(row.label)'")
         }
+        XCTAssertFalse(element(app, "setup.skip").exists, "add later has Continue only")
         shot("08-add-later")
         tap("setup.primary", in: app)
 

@@ -81,6 +81,11 @@ final class SetupFlowModel {
     private(set) var pinError: String?
     private(set) var adminMessage: String?
     private(set) var adminChecking = false
+    /// The Plex owner, shown on the PIN screens. Nil name until the Home list has been read.
+    private(set) var adminName = "Admin"
+    private(set) var adminAvatar: UIImage?
+    /// While in the future the PIN keypad is dimmed and a countdown shows.
+    private(set) var pinLockedUntil: Date?
 
     // Profiles
     private(set) var profileRows: [SetupProfileRow] = []
@@ -317,11 +322,36 @@ final class SetupFlowModel {
             source = await core.adminPIN.source
         }
         progress.adminPINSource = source
+        await loadOwner()
         let lockout = await core.adminPIN.lockoutState()
         if lockout.isLocked(at: Date()), let until = lockout.lockedUntil {
             adminMessage = lockedMessage(until)
         } else if adminMessage?.hasPrefix("Too many") == true {
             adminMessage = nil
+        }
+    }
+
+    /// The owner's name and picture for the Admin PIN screens (cached bytes first, then a fresh fetch).
+    private func loadOwner() async {
+        var users = await plex.session.cachedHomeUsers()
+        if !users.contains(where: { $0.admin }), await sessionReady() {
+            users = (try? await plex.session.homeUsers()) ?? users
+        }
+        guard let owner = users.first(where: { $0.admin }) else { return }
+        adminName = owner.displayName
+        let cache = ImageDiskCache.shared
+        let key = "avatar-\(owner.id)"
+        if adminAvatar == nil, let data = cache.data(for: key), let image = UIImage(data: data) { adminAvatar = image }
+        guard let thumb = owner.thumb, !thumb.isEmpty else { return }
+        var data: Data?
+        if thumb.hasPrefix("/") {
+            data = try? await plex.session.imageData(for: thumb)
+        } else if let url = URL(string: thumb), url.scheme == "https" {
+            data = try? await URLSession.shared.data(from: url).0
+        }
+        if let data, let image = UIImage(data: data) {
+            cache.store(data, for: key)
+            adminAvatar = image
         }
     }
 
@@ -338,6 +368,8 @@ final class SetupFlowModel {
         pin = ""
         pinError = nil
         pinFailures = 0
+        let lockout = await core.adminPIN.lockoutState()
+        pinLockedUntil = lockout.isLocked(at: Date()) ? lockout.lockedUntil : nil
         await go(.forward) { self.pinMode = mode }
     }
 
@@ -345,8 +377,10 @@ final class SetupFlowModel {
         direction = .backward
         pendingEdit = nil
         pin = ""
+        pinLockedUntil = nil
         withAnimation(PerchMotion.spring) { pinMode = nil }
     }
+
 
     func submitPIN(_ entered: String) async {
         guard let mode = pinMode, !pinChecking else { return }
@@ -455,6 +489,7 @@ final class SetupFlowModel {
     // MARK: Profiles and roles
 
     func loadProfiles() async {
+        await loadOwner()
         let cached = await plex.session.cachedHomeUsers()
         let users = (try? await plex.session.homeUsers()) ?? cached
         let document = await core.settings.document

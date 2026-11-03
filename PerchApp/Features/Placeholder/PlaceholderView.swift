@@ -2,6 +2,7 @@ import PerchCore
 import PerchDesign
 import PerchPlex
 import SwiftUI
+import UIKit
 
 /// The temporary home until the real Home screen (WP-08): who is signed in, Switch profile, and the
 /// Admin-PIN-gated way back into setup (until Settings exists, WP-18).
@@ -13,6 +14,9 @@ struct PlaceholderView: View {
     @State private var profile: PlexActiveProfile?
 
     @State private var askingForPIN = false
+    @State private var refused = false
+    @State private var lockedUntil: Date?
+    @State private var backdrop: UIImage? = LibraryBackdrop.cached()
     @State private var pin = ""
     @State private var failures = 0
     @State private var isChecking = false
@@ -38,15 +42,17 @@ struct PlaceholderView: View {
     var body: some View {
         NavigationStack(path: $path) {
             ZStack {
-                if askingForPIN {
+                if refused {
+                    refusedScreen.transition(.opacity)
+                } else if askingForPIN {
                     pinScreen.transition(.opacity)
                 } else {
                     content.transition(.opacity)
                 }
             }
-            .animation(.easeInOut(duration: PerchMotion.crossfadeDuration), value: askingForPIN)
+            .animation(.easeInOut(duration: PerchMotion.crossfadeDuration), value: askingForPIN || refused)
             .onExitCommand {
-                if askingForPIN, !isChecking { closePIN() }
+                if refused { refused = false } else if askingForPIN, !isChecking { closePIN() }
             }
             .navigationDestination(for: Route.self) { route in
                 switch route {
@@ -60,7 +66,10 @@ struct PlaceholderView: View {
                 }
             }
         }
-        .task(id: snapshot.state) { profile = await core.plexSignIn.session.currentProfile() }
+        .task(id: snapshot.state) {
+            profile = await core.plexSignIn.session.currentProfile()
+            if backdrop == nil { backdrop = await LibraryBackdrop.fetch(session: core.plexSignIn.session) }
+        }
     }
 
     private func popPicker() {
@@ -90,7 +99,7 @@ struct PlaceholderView: View {
                 Button("Switch profile") { path.append(Route.picker) }
                     .buttonStyle(.perchPrimary)
                     .accessibilityIdentifier("home.switchProfile")
-                Button("Run setup again") { askingForPIN = true }
+                Button("Run setup again") { Task { await openRunSetup() } }
                     .buttonStyle(.perchSecondary)
                     .accessibilityIdentifier("home.runSetup")
                 if snapshot.state == .serverUnreachable {
@@ -115,8 +124,10 @@ struct PlaceholderView: View {
     private var pinScreen: some View {
         PINEntryScreen(
             name: profile?.displayName ?? "Admin",
+            backdrop: backdrop.map { Image(uiImage: $0).resizable() },
             prompt: "Enter the Admin PIN to change setup",
             pin: $pin, failures: failures, isChecking: isChecking, errorMessage: errorMessage,
+            lockedUntil: lockedUntil, onBack: { closePIN() },
             onComplete: { entered in Task { await runSetupAgain(with: entered) } }
         )
         .onChange(of: pin) { _, value in if !value.isEmpty { errorMessage = nil } }
@@ -128,6 +139,39 @@ struct PlaceholderView: View {
         askingForPIN = false
         pin = ""
         errorMessage = nil
+        lockedUntil = nil
+    }
+
+    /// A kid is told straight away: no keypad for something the PIN cannot change.
+    private var refusedScreen: some View {
+        ZStack {
+            SetupBackdrop(art: backdrop.map { AnyView(Image(uiImage: $0).resizable()) })
+            VStack(spacing: 40) {
+                Text("Ask a parent to change setup")
+                    .font(PerchFont.stepTitle(.standard))
+                    .foregroundStyle(PerchColor.textPrimary)
+                    .multilineTextAlignment(.center)
+                    .accessibilityIdentifier("home.setupRefused")
+                Button("OK") { refused = false }
+                    .buttonStyle(.perchPrimary)
+                    .accessibilityIdentifier("home.setupRefused.ok")
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.bottom, 90)
+        }
+        .ignoresSafeArea()
+        .focusSection()
+    }
+
+    private func openRunSetup() async {
+        let context = await permissionContext()
+        if case .denied = await core.authoriser.authorise(.editSetup, context: context, entity: "setup.rerun") {
+            refused = true
+        } else {
+            let lockout = await core.adminPIN.lockoutState()
+            lockedUntil = lockout.isLocked(at: Date()) ? lockout.lockedUntil : nil
+            askingForPIN = true
+        }
     }
 
     /// The Authoriser decides (PerchCore matrix: parent only, fresh Admin PIN). It is asked first so a
@@ -152,7 +196,9 @@ struct PlaceholderView: View {
         case .rejected:
             reject(ProfileSwitcher.wrongPIN)
         case .lockedOut(let until):
-            reject(ProfileSwitcher.lockedMessage(until))
+            pin = ""
+            errorMessage = nil
+            lockedUntil = until
         case .setupRequired, .plexUnreachable, .unavailable:
             pin = ""
             errorMessage = "Can't check the Admin PIN right now"
