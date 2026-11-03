@@ -196,6 +196,79 @@ Append-only log of decisions and why. Newest at the bottom. Format: date, decisi
 - Known limits, to revisit with the WP-07 overlay window: the corner pill blocks the host (and a player's transport controls) while it shows, and only one such overlay can be up at a time.
 - Alternatives rejected: disabling the host and pulling focus into the overlay (it lost the focused element, so focus could not be restored, and Menu popped the screen). Decided by the WP-03 lead (Claude) in the WP-03 plan Robin approved.
 
+## 2026-11-02 Plex link flow is a short code
+- Sign-in links with a short code at plex.tv/link (non-strong `POST /api/v2/pins`), as ROADMAP says. The app polls `GET /api/v2/pins/{id}` every 2 s and shows a new code automatically on expiry. No QR code in WP-04.
+- Decided by the WP-04 lead (Claude) in the WP-04 plan Robin approved.
+
+## 2026-11-02 Plex endpoints
+- Endpoints (Dusk `marvinvr/dusk-player`, MIT, confirmed against python-plexapi): `GET /api/v2/user` (validate token), `GET /api/v2/home/users`, legacy `POST /api/home/users/{id}/switch?pin=` with the owner token, `GET clients.plex.tv/api/v2/resources?includeHttps=1&includeRelay=1&includeIPv6=1`, server `/identity` and `/library/sections`. JSON everywhere (`Accept: application/json`); the switch response accepts `authToken` or `authenticationToken`.
+- Decided by the WP-04 lead (Claude) in the WP-04 plan Robin approved.
+
+## 2026-11-02 Wrong PIN versus unreachable
+- A wrong profile PIN is a 401 or 403 on a protected user. Transport errors and timeouts mean unreachable and never count as a failed attempt.
+- Decided by the WP-04 lead (Claude) in the WP-04 plan Robin approved.
+
+## 2026-11-02 Profile PIN lockout reuses PINLockout
+- Profile switching reuses `PINLockout` (5 tries, 60 s doubling to 1 h), as one lockout for all profile switching, stored under `plex.profilePINLockout` in the App Group defaults. The owner PIN for Admin keeps AdminPIN's own lockout.
+- Decided by the WP-04 lead (Claude) in the WP-04 plan Robin approved.
+
+## 2026-11-02 Plex token storage
+- The owner account token is in `SecretKey.plexOwnerToken`; each switched profile's account token in `plexUserToken(id)`; each profile's server access token in `SecretKey.module("plex", "server.<userID>")`, so relaunch works when plex.tv is down. The client identifier (not secret) is in App Group defaults `plex.clientIdentifier`; the last profile ID in `plex.lastProfileID`.
+- Decided by the WP-04 lead (Claude) in the WP-04 plan Robin approved.
+
+## 2026-11-02 Server choice kept in module config
+- Server choice (machine ID, name, last good URI, manual URL) is stored in `settings.modules["plex"].config`, non-secret keys only, so it passes `validate()`.
+- Decided by the WP-04 lead (Claude) in the WP-04 plan Robin approved.
+
+## 2026-11-02 Connection choice by probing
+- The app probes `/identity` concurrently on every connection. Local beats remote beats relay, with a 1.5 s grace for a better tier; timeouts are 5 s local and 8 s remote (idea from Dusk ServerProbe). The last good URI is tried first. Manual servers are checked by `machineIdentifier` (Dusk does not; we do).
+- Decided by the WP-04 lead (Claude) in the WP-04 plan Robin approved.
+
+## 2026-11-02 Manual route: address and token
+- The manual route takes an address (IP or host, optional scheme, default port 32400, IPv6 in brackets) plus a token. The token is stored as the owner token. Home users and switching then work if it is an account token; otherwise the app runs as one profile and says profile switching is unavailable (refined by the "Manual route fallback" decision below).
+- Decided by the WP-04 lead (Claude) in the WP-04 plan Robin approved.
+
+## 2026-11-02 Plex profiles sync into the settings document
+- New Home users get `ProfileSettings.defaults` (owner is an unrestricted parent, a restricted user is a kid). Existing entries keep roles and overrides, but `plexRestriction` is refreshed from Plex, which is the source of truth. An unknown `restrictionProfile` with `restricted == true` becomes `.custom([])`, which maps to U (fail closed). `household.ownerPlexUserID` is set from `/api/v2/user`, and `AdminPIN.setOwnerHasPlexPIN` from the owner's Home user `protected` flag.
+- Decided by the WP-04 lead (Claude) in the WP-04 plan Robin approved.
+
+## 2026-11-02 Owner PIN verifier built before AdminPIN
+- The owner PIN verifier is built before `AdminPIN` in `CoreServices`. It reads the token at call time, so PerchCore needs no change.
+- Decided by the WP-04 lead (Claude) in the WP-04 plan Robin approved.
+
+## 2026-11-02 Unreachable wording
+- Signed-in screens say "Can't reach your library right now" with Try again. When plex.tv is down they say "Profile PINs can't be checked right now"; the current profile stays and PIN-protected switches are locked. "Plex" appears only in the sign-in screens (setup context), per GLOSSARY.
+- Decided by the WP-04 lead (Claude) in the WP-04 plan Robin approved.
+
+## 2026-11-02 Sign-in screens live in the app target
+- The screens live in the app target, reachable in debug from the placeholder ("Plex sign-in" button) and with the launch argument `-PerchPlexSignIn`. PerchPlex stays UI-free apart from its `Module` conformance.
+- Decided by the WP-04 lead (Claude) in the WP-04 plan Robin approved.
+
+## 2026-11-02 Debug fault switches
+- The launch arguments `-PerchFakePlexTVDown` and `-PerchFakeServerDown` wrap the transport in the app so plex.tv calls, or server calls, fail as unreachable. They exist only in DEBUG builds and let the unreachable states be shown in the simulator.
+- Decided by the WP-04 lead (Claude) in the WP-04 plan Robin approved.
+
+## 2026-11-02 The household owner is the Plex Home admin
+- Only the Plex Home admin can sign in. Any other Plex account is refused with "Sign in with the account that manages your Plex Home".
+- Alternatives rejected: treating whoever links as the owner (a restricted teen with their own account would become an unrestricted parent). Decided by the WP-04 lead (Claude) after review.
+
+## 2026-11-02 Restrictions fail closed
+- Any Home user with a restriction profile is treated as restricted even if Plex's `restricted` flag is missing or false. Unknown profiles map to the U ceiling.
+- Decided by the WP-04 lead (Claude) after review.
+
+## 2026-11-02 Manual route fallback
+- The manual route falls back to a single "Me" profile only when plex.tv rejects the token as an account token. Any other failure fails sign-in. In that mode the Perch Admin PIN is set in the app.
+- Decided by the WP-04 lead (Claude) after review.
+
+## 2026-11-02 Profile PIN lockout scope
+- The profile PIN lockout applies only when switching to a PIN-protected profile, and switches are serialised.
+- Decided by the WP-04 lead (Claude) after review.
+
+## 2026-11-02 WP-04 PIN screen stays simple
+- WP-04 ships a centred phone-keypad PIN screen (dots, 3x3 keys with 0 below, outcome line) in the debug sign-in flow. The two-column layout from Dusk's tvOS Home PIN screen (avatar and text left, keypad right) is left for the real profile picker in WP-05. Dusk's behaviour is used now: the fourth digit submits, input pauses while checking, a spinner shows.
+- Home users are cached in memory only, so after a relaunch with plex.tv down the profile list is empty; WP-05 should keep the last list so locked profiles still show.
+- Alternatives rejected: restyling to Dusk's layout in WP-04 (first-run design belongs to WP-05). Decided by the WP-04 lead (Claude); Robin confirmed the remote path works.
+
 ## Open decisions (resolve in the named work package)
 - Recovery when the stored Perch PIN cannot be read (Admin is locked out by design): confirm the owner through Plex, audited, then allow a new Perch PIN (WP-05).
 - Assistant name (placeholder Pip) (WP-19).

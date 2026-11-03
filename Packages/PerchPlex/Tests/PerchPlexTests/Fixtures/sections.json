@@ -1,0 +1,5 @@
+{"MediaContainer": {"size": 3, "allowSync": false, "title1": "Plex Library", "Directory": [
+  {"key": "1", "type": "movie", "title": "Films", "uuid": "fake-sec-1"},
+  {"key": "2", "type": "show", "title": "TV", "uuid": "fake-sec-2"},
+  {"key": "3", "type": "artist", "title": "Music", "uuid": "fake-sec-3"}
+]}}

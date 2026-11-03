@@ -8,7 +8,11 @@ let package = Package(
     dependencies: [.package(path: "../PerchCore")],
     targets: [
         .target(name: "PerchPlex", dependencies: [.product(name: "PerchCore", package: "PerchCore")]),
-        .testTarget(name: "PerchPlexTests", dependencies: ["PerchPlex"]),
+        .testTarget(
+            name: "PerchPlexTests",
+            dependencies: ["PerchPlex"],
+            resources: [.process("Fixtures")]
+        ),
     ],
     swiftLanguageModes: [.v6]
 )

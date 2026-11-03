@@ -1,0 +1,6 @@
+{"id": 5000, "name": "Brown Home", "guestUserID": null, "guestEnabled": false, "subscription": true, "users": [
+  {"id": 1001, "uuid": "uuid-owner-0001", "title": "Owner", "username": "owner", "thumb": "https://plex.tv/users/aaa/avatar", "admin": true, "guest": false, "restricted": false, "protected": false, "home": true, "restrictionProfile": null},
+  {"id": 1002, "uuid": "uuid-adult-0002", "title": "Partner", "username": "partner", "thumb": "https://plex.tv/users/bbb/avatar", "admin": false, "guest": false, "restricted": false, "protected": true, "home": true, "restrictionProfile": null},
+  {"id": "1003", "uuid": "uuid-kid-0003", "title": "Little One", "username": "", "thumb": "https://plex.tv/users/ccc/avatar", "admin": false, "guest": false, "restricted": true, "protected": false, "home": true, "restrictionProfile": "little_kid"},
+  {"id": 1004, "uuid": "uuid-teen-0004", "title": "Teen", "username": "teen", "thumb": "https://plex.tv/users/ddd/avatar", "admin": false, "guest": false, "restricted": true, "protected": true, "home": true, "restrictionProfile": "teen"}
+]}
