@@ -40,6 +40,12 @@ All notable changes to Perch. Format follows Keep a Changelog; versions follow `
 - WP-05 PerchCore: SetupProgress, ProfileSwitchPolicy and CoreAction.editSetup. PerchPlex: a single policy-checked profile switch, cached Home users, library art, and image fetch with the token in a header.
 - WP-05 App: DEBUG fake households (`-PerchFakeHousehold withPINs|noPINs`), `-PerchFakeSignedOut` and `-PerchResetSetup`.
 - WP-05 Gate: UI tests build signed on a pinned test simulator and fail if any test is skipped.
+- WP-06 PerchCore: neutral media types (MediaSummary, MediaRow, MediaDetail with markers, chapters, extras, versions and streams), RowContext with one ceiling filter applied by the registry to every row, the PlaybackReporting protocol, and the RowProvider shape (cached and refreshed rows).
+- WP-06 PerchCore: US TV ratings (TV-Y to TV-MA) on the household scale; TV-14 rounds up to 15 for titles and down to 12A in allowed-rating lists.
+- WP-06 PerchPlex: library sections and paging, Home rows (Continue watching, Up next in your series, Recently added), hubs, metadata with markers, chapters, extras and stream details, children and next episode.
+- WP-06 PerchPlex: timeline reporting every 10 s and on state change, mark watched and unwatched with optimistic updates, scrobble at 90% on stop.
+- WP-06 PerchPlex: per-profile Home snapshot in the App Group caches so Home can render without waiting; stale results are dropped after a profile switch.
+- WP-06 App: Home row providers wired through PlexModule; DEBUG fake household library data; DEBUG Library check screen with opt-in write check (`-PerchLibraryWriteCheck`) and response dump (`-PerchLibraryDump`).
 - Project document pack (README, CLAUDE.md, spec, roadmap with numbered work packages, modules, architecture, design, integrations, permissions, references, decisions, glossary).
 - Decisions through 1 November 2026: name Perch; build from scratch referencing Dusk and Swiftfin; app only with no proxy or hub; Plex PINs for profiles and an Admin PIN; provider-agnostic bring-your-own-key AI with permission levels and no free chat; setup wizard, welcome guide and feedback; Seerr-only polling and user-controlled Plex library refresh.
 
