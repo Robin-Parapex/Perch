@@ -171,7 +171,7 @@ struct FakeHouseholdTransport: PlexTransport {
                     ]
                 ], url)
         case "/library/recentlyAdded":
-            let items = (1...5).map { ["art": "/library/metadata/\($0)/art/1"] }
+            let items = (1...5).map { ["art": "/library/metadata/\($0)/art/1", "contentRating": "U"] }
             return try json(["MediaContainer": ["size": items.count, "Metadata": items]], url)
         default:
             if path.hasPrefix("/library/metadata/") {

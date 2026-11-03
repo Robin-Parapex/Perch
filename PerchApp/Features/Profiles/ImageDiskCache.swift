@@ -32,14 +32,16 @@ struct ImageDiskCache: Sendable {
 
 /// The library art behind the picker and the PIN screens: cached bytes first, so a screen never flashes flat black.
 enum LibraryBackdrop {
-    static let cacheKey = "picker-backdrop"
+    static let cacheKey = "picker-backdrop-rated"
 
     static func cached() -> UIImage? {
         ImageDiskCache.shared.data(for: cacheKey).flatMap { UIImage(data: $0) }
     }
 
     static func fetch(session: PlexSession) async -> UIImage? {
-        guard let path = try? await session.libraryArt(limit: 6).randomElement(),
+        // Kid screens show this art too, so only titles the strictest profile may see (U without settings).
+        let ceiling = await session.householdArtCeiling()
+        guard let path = try? await session.libraryArt(limit: 6, ceiling: ceiling).randomElement(),
             let data = try? await session.imageData(for: path), let image = UIImage(data: data)
         else { return nil }
         ImageDiskCache.shared.store(data, for: cacheKey)

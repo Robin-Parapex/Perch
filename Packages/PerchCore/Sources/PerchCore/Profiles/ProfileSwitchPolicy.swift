@@ -39,4 +39,14 @@ public enum ProfileSwitchPolicy {
             fromRole: current?.role ?? fallbackRole, toRole: target.role,
             targetIsProtected: targetIsProtected, targetHasPlexPIN: targetHasPlexPIN)
     }
+
+    /// The role a switch starts from: the current profile, else the stored last profile (so a kid
+    /// last on the TV cannot pick an adult freely after a failed resume). A profile with no stored
+    /// settings counts as a kid, the strictest rule. `nil` only when there is no history at all.
+    public static func startingRole(
+        currentID: PlexUserID?, lastID: PlexUserID?, profiles: [PlexUserID: ProfileSettings]
+    ) -> Role? {
+        guard let id = currentID ?? lastID else { return nil }
+        return profiles[id]?.role ?? .kid
+    }
 }

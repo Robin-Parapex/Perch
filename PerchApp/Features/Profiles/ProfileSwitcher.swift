@@ -4,8 +4,8 @@ import PerchCore
 import PerchPlex
 
 /// The only place in the app that switches Plex profile (WP-05 change C3). It asks PerchCore's
-/// `ProfileSwitchPolicy` what the move needs (rule from Apple TV profile pickers, after Dusk's picker),
-/// checks the Admin PIN itself when that is the answer, and only then calls `PlexSession.switchProfile`.
+/// session what the move needs (PlexSession applies PerchCore's `ProfileSwitchPolicy` and checks the
+/// Admin PIN itself), then calls `PlexSession.switchProfile`.
 /// It stores nothing: PlexSession records the new profile; PINs are passed on and never kept or logged.
 @MainActor @Observable
 final class ProfileSwitcher {
@@ -36,59 +36,22 @@ final class ProfileSwitcher {
         self.defaults = defaults
     }
 
-    /// What switching to `user` needs from the person holding the remote.
+    /// What switching to `user` needs from the person holding the remote. PlexSession decides.
     func requirement(for user: PlexHomeUser) async -> SwitchRequirement {
-        let document = await settings.document
-        let targetID = PlexUserID(user.id)
-        let targetRole =
-            document.profiles[targetID]?.role
-            ?? ProfileSettings.defaults(
-                plexUserID: targetID, displayName: user.displayName, isOwner: user.admin,
-                restriction: user.restriction
-            ).role
-        return ProfileSwitchPolicy.requirement(
-            fromRole: await currentRole(document), toRole: targetRole,
-            targetIsProtected: user.protected, targetHasPlexPIN: user.protected)
-    }
-
-    /// The role the move starts from: the current profile, or the stored last profile when nothing
-    /// resumed (so a kid last on the TV cannot pick an adult freely after a failed resume, C4).
-    private func currentRole(_ document: SettingsDocument) async -> Role? {
-        if let current = await session.currentProfile() {
-            return document.profiles[current.id]?.role ?? .kid  // unknown means the strictest rule
-        }
-        guard let last = defaults.string(forKey: PlexSession.DefaultsKey.lastProfileID) else { return nil }
-        return document.profiles[PlexUserID(last)]?.role ?? .kid
+        await session.switchRequirement(for: user)
     }
 
     /// Switches to `user`. `pin` is the target's Plex PIN or the Admin PIN, as `requirement(for:)` says.
+    /// PlexSession re-applies the policy from fresh data and checks the Admin PIN itself; if the
+    /// requirement moved since the screen was chosen, the answer is `.needsPIN` with the new one.
     func switchTo(_ user: PlexHomeUser, pin: String?) async -> Result {
         let requirement = await requirement(for: user)
-        var verification: PINResult?
-        var plexPIN: String?
-        switch requirement {
-        case .none:
-            break
-        case .targetPlexPIN:
-            guard let pin, !pin.isEmpty else { return .needsPIN(requirement) }
-            plexPIN = pin
-        case .adminPIN:
-            guard let pin, !pin.isEmpty else { return .needsPIN(requirement) }
-            let result = await adminPIN.verify(pin)
-            switch result {
-            case .accepted: verification = result
-            case .rejected: return .rejected(Self.wrongPIN)
-            case .lockedOut(let until): return .locked(until)
-            case .setupRequired, .plexUnreachable, .unavailable: return .failed(Self.cannotSwitch)
-            }
-        }
+        if requirement != .none, pin?.isEmpty ?? true { return .needsPIN(requirement) }
         do {
-            try await session.switchProfile(
-                to: PlexUserID(user.id), pin: plexPIN, requirement: requirement,
-                adminVerification: verification)
+            try await session.switchProfile(to: PlexUserID(user.id), pin: pin, expecting: requirement)
             return .switched
         } catch let error as PlexError {
-            return Self.map(error, hadPIN: plexPIN != nil)
+            return Self.map(error, hadPIN: !(pin?.isEmpty ?? true))
         } catch {
             return .failed(Self.cannotSwitch)
         }
@@ -99,6 +62,7 @@ final class ProfileSwitcher {
         case .pinIncorrect: .rejected(wrongPIN)
         case .unauthorized: hadPIN ? .rejected(wrongPIN) : .failed(cannotSwitch)
         case .lockedOut(let until): .locked(until)
+        case .requirementChanged(let now): .needsPIN(now)
         case .pinRequired: .failed("Enter the PIN for this profile")
         default: .failed(cannotSwitch)  // plex.tv unreachable, server trouble: the current profile stays
         }

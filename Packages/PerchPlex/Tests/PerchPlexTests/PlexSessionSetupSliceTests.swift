@@ -54,68 +54,155 @@ struct PlexHomeUserCacheTests {
 
 @Suite("Policy-checked profile switching", .timeLimit(.minutes(1)))
 struct PlexPolicySwitchTests {
-    @Test func adminPINRequirementWithoutAcceptedVerificationIsRefused() async throws {
-        let (rig, session) = try await signedIn()
-        defer { rig.cleanup() }
-        await rig.transport.scriptSwitch(userID: "1003", switchOK)
-        let before = await rig.transport.requests.count
+    private let adminPINValue = "2580"
 
-        for verification in [nil, PINResult.rejected(attemptsLeft: 2), .lockedOut(until: fixedNow), .setupRequired] {
-            await #expect(throws: PlexError.adminVerificationRequired) {
-                try await session.switchProfile(
-                    to: kid, pin: nil, requirement: .adminPIN, adminVerification: verification)
-            }
-        }
-        #expect(await rig.transport.requests.count == before)
-        #expect(await session.currentProfile()?.id == owner)
+    private func makeAdmin(_ rig: SessionRig) async throws -> AdminPIN {
+        let admin = AdminPIN(
+            secrets: rig.secrets, keyValues: InMemoryKeyValueStore(), plexVerifier: nil, ownerHasPlexPIN: false)
+        try await admin.setPerchPIN(adminPINValue)
+        return admin
     }
 
-    @Test func adminPINRequirementWithAcceptedVerificationSwitches() async throws {
-        let (rig, session) = try await signedIn()
+    /// Signed in as the owner with an Admin PIN set.
+    private func rigWithAdmin() async throws -> (SessionRig, PlexSession, AdminPIN) {
+        let rig = SessionRig()
+        await rig.transport.scriptHealthyAccount()
+        let admin = try await makeAdmin(rig)
+        let session = rig.makeSession(adminPIN: admin)
+        try await session.signIn(accountToken: "TOKEN-OWNER")
+        return (rig, session, admin)
+    }
+
+    @Test func aStalePickerCannotSkipTheAdminPINForAnUnprotectedAdult() async throws {
+        // Replies for /api/v2/home/users: sign-in, the switch to the kid, then the stale-switch refresh
+        // in which the partner's Plex PIN has been removed.
+        let original = Fixture.data("home_users")
+        let unprotected = Data(
+            String(decoding: original, as: UTF8.self)
+                .replacingOccurrences(
+                    of: "\"protected\": true, \"home\": true, \"restrictionProfile\": null",
+                    with: "\"protected\": false, \"home\": true, \"restrictionProfile\": null"
+                ).utf8)
+        #expect(unprotected != original)
+        let rig = SessionRig()
+        await rig.transport.script(
+            path: "/api/v2/home/users",
+            .response(status: 200, body: original), .response(status: 200, body: original),
+            .response(status: 200, body: unprotected))
+        await rig.transport.scriptHealthyAccount()
+        let admin = try await makeAdmin(rig)
+        let session = rig.makeSession(adminPIN: admin)
         defer { rig.cleanup() }
+        try await session.signIn(accountToken: "TOKEN-OWNER")
         await rig.transport.scriptSwitch(userID: "1003", switchOK)
+        await rig.transport.scriptSwitch(userID: "1002", switchOK)
+        try await session.switchProfile(to: kid, pin: nil)
+        #expect(await session.currentProfile()?.id == kid)
 
-        try await session.switchProfile(
-            to: kid, pin: nil, requirement: .adminPIN, adminVerification: .accepted)
+        // The picker still thinks the partner is protected.
+        let stale = try #require(await session.cachedHomeUsers().first { $0.id == "1002" })
+        #expect(stale.protected)
+        let asked = await session.switchRequirement(for: stale)
+        #expect(asked == .targetPlexPIN)
 
+        await #expect(throws: PlexError.requirementChanged(.adminPIN)) {
+            try await session.switchProfile(to: partner, pin: "1234", expecting: asked)
+        }
+        // Not even without the UI's expectation can any 4 digits do: they are checked as the Admin PIN.
+        await #expect(throws: PlexError.pinIncorrect) {
+            try await session.switchProfile(to: partner, pin: "1234")
+        }
+        #expect(await rig.transport.requests(forPath: switchPath).isEmpty)
         #expect(await session.currentProfile()?.id == kid)
     }
 
-    @Test func targetPINRequirementWithoutAPINIsRefused() async throws {
-        let (rig, session) = try await signedIn()
+    @Test func aKidToAnUnprotectedAdultNeedsTheAdminPIN() async throws {
+        let (rig, session, _) = try await rigWithAdmin()
         defer { rig.cleanup() }
-        await rig.transport.scriptSwitch(userID: "1002", switchOK)
-        let before = await rig.transport.requests.count
+        await rig.transport.scriptSwitch(userID: "1003", switchOK)
+        try await session.switchProfile(to: kid, pin: nil)
 
-        for pin in [nil, ""] as [String?] {
-            await #expect(throws: PlexError.pinRequired) {
-                try await session.switchProfile(to: partner, pin: pin, requirement: .targetPlexPIN)
-            }
-        }
-        #expect(await rig.transport.requests.count == before)
-        #expect(await rig.transport.requests(forPath: switchPath).isEmpty)
+        let ownerUser = try #require(await session.cachedHomeUsers().first { $0.id == "1001" })
+        #expect(await session.switchRequirement(for: ownerUser) == .adminPIN)
+        await #expect(throws: PlexError.pinRequired) { try await session.switchProfile(to: owner, pin: nil) }
+        #expect(await session.currentProfile()?.id == kid)
+
+        try await session.switchProfile(to: owner, pin: adminPINValue, expecting: .adminPIN)
         #expect(await session.currentProfile()?.id == owner)
     }
 
-    @Test func targetPINRequirementWithThePINSwitches() async throws {
-        let (rig, session) = try await signedIn()
+    @Test func aWrongAdminPINDoesNotSwitchAndCountsTowardTheLockout() async throws {
+        let (rig, session, admin) = try await rigWithAdmin()
         defer { rig.cleanup() }
-        await rig.transport.scriptSwitch(userID: "1002", switchOK)
+        await rig.transport.scriptSwitch(userID: "1003", switchOK)
+        try await session.switchProfile(to: kid, pin: nil)
 
-        try await session.switchProfile(to: partner, pin: "1234", requirement: .targetPlexPIN)
+        await #expect(throws: PlexError.pinIncorrect) { try await session.switchProfile(to: owner, pin: "0000") }
+        #expect(await session.currentProfile()?.id == kid)
+        #expect(await admin.lockoutState().failedAttempts == 1)
 
-        #expect(await session.currentProfile()?.id == partner)
+        var locked = false
+        for _ in 0..<PINLockout.maxAttempts {
+            do { try await session.switchProfile(to: owner, pin: "0000") } catch PlexError.lockedOut {
+                locked = true
+            } catch PlexError.pinIncorrect {}
+        }
+        #expect(locked)
+        #expect(await session.currentProfile()?.id == kid)
     }
 
-    @Test func aNoneDecisionStillCannotOpenAProtectedUserWithoutItsPIN() async throws {
-        let (rig, session) = try await signedIn()
+    @Test func withoutAnAdminPINHolderAKidCannotLeave() async throws {
+        let rig = SessionRig()
+        await rig.transport.scriptHealthyAccount()
+        let session = rig.makeSession()
+        defer { rig.cleanup() }
+        try await session.signIn(accountToken: "TOKEN-OWNER")
+        await rig.transport.scriptSwitch(userID: "1003", switchOK)
+        try await session.switchProfile(to: kid, pin: nil)
+
+        await #expect(throws: PlexError.adminVerificationRequired) {
+            try await session.switchProfile(to: owner, pin: adminPINValue)
+        }
+        #expect(await session.currentProfile()?.id == kid)
+    }
+
+    @Test func anUnknownStartingRoleCountsAsAKid() async throws {
+        let (rig, first, admin) = try await rigWithAdmin()
+        defer { rig.cleanup() }
+        _ = first
+        // A relaunch that has not resumed, whose last profile has no stored settings.
+        let session = rig.makeSession(adminPIN: admin)
+        rig.defaults.set("9999", forKey: PlexSession.DefaultsKey.lastProfileID)
+        #expect(await session.currentProfile() == nil)
+
+        let ownerUser = try #require(await session.cachedHomeUsers().first { $0.id == "1001" })
+        #expect(await session.switchRequirement(for: ownerUser) == .adminPIN)
+        await #expect(throws: PlexError.pinRequired) { try await session.switchProfile(to: owner, pin: nil) }
+        #expect(await rig.transport.requests(forPath: switchPath).isEmpty)
+    }
+
+    @Test func adultToUnprotectedAdultNeedsNothing() async throws {
+        let (rig, session, _) = try await rigWithAdmin()
         defer { rig.cleanup() }
         await rig.transport.scriptSwitch(userID: "1002", switchOK)
+        try await session.switchProfile(to: partner, pin: "1234", expecting: .targetPlexPIN)
+        #expect(await session.currentProfile()?.id == partner)
 
-        await #expect(throws: PlexError.pinRequired) {
-            try await session.switchProfile(to: partner, pin: nil, requirement: .none)
+        let ownerUser = try #require(await session.cachedHomeUsers().first { $0.id == "1001" })
+        #expect(await session.switchRequirement(for: ownerUser) == .none)
+        try await session.switchProfile(to: owner, pin: nil, expecting: SwitchRequirement.none)
+        #expect(await session.currentProfile()?.id == owner)
+    }
+
+    @Test func aProtectedTargetStillNeedsItsPIN() async throws {
+        let (rig, session, _) = try await rigWithAdmin()
+        defer { rig.cleanup() }
+        await rig.transport.scriptSwitch(userID: "1002", switchOK)
+        for pin in [nil, ""] as [String?] {
+            await #expect(throws: PlexError.pinRequired) { try await session.switchProfile(to: partner, pin: pin) }
         }
         #expect(await rig.transport.requests(forPath: switchPath).isEmpty)
+        #expect(await session.currentProfile()?.id == owner)
     }
 
     @Test func offlineSwitchThrowsUnreachableAndKeepsTheProfile() async throws {
@@ -135,7 +222,7 @@ struct PlexPolicySwitchTests {
         #expect(await session.currentProfile()?.id == owner)
 
         await #expect(throws: PlexError.plexTVUnreachable) {
-            try await session.switchProfile(to: kid, pin: nil, requirement: .none)
+            try await session.switchProfile(to: kid, pin: nil)
         }
 
         #expect(await session.currentProfile()?.id == owner)
@@ -152,11 +239,14 @@ struct PlexPolicySwitchTests {
 @Suite("Server images", .timeLimit(.minutes(1)))
 struct PlexServerImageTests {
     private let listJSON = """
-        {"MediaContainer":{"size":3,"Metadata":[
-        {"title":"A","art":"/library/metadata/1/art/10"},
+        {"MediaContainer":{"size":7,"Metadata":[
+        {"title":"A","art":"/library/metadata/1/art/10","contentRating":"U"},
         {"title":"B"},
-        {"title":"C","art":"/library/metadata/1/art/10"},
-        {"title":"D","art":"/library/metadata/4/art/40"}]}}
+        {"title":"C","art":"/library/metadata/1/art/10","contentRating":"G"},
+        {"title":"D","art":"/library/metadata/4/art/40","contentRating":"gb/PG"},
+        {"title":"E","art":"/library/metadata/5/art/50","contentRating":"R"},
+        {"title":"F","art":"/library/metadata/6/art/60"},
+        {"title":"G","art":"/library/metadata/7/art/70","contentRating":"TV-MA-ish"}]}}
         """
 
     @Test func theTokenTravelsOnlyInTheHeader() async throws {
@@ -167,7 +257,7 @@ struct PlexServerImageTests {
         await rig.transport.script(
             path: "/library/metadata/1/art/10", .response(status: 200, body: Data([1, 2, 3])))
 
-        let paths = try await session.libraryArt(limit: 5)
+        let paths = try await session.libraryArt(limit: 5, ceiling: .pg)
         #expect(paths == ["/library/metadata/1/art/10", "/library/metadata/4/art/40"])
         #expect(paths.allSatisfy { !$0.contains("TOKEN") && !$0.contains("?") })
 
@@ -180,6 +270,21 @@ struct PlexServerImageTests {
             let url = request.url?.absoluteString ?? ""
             #expect(!url.contains("FAKE-SERVER-TOKEN-1") && !url.localizedCaseInsensitiveContains("token"))
         }
+    }
+
+    @Test func artIsFilteredByRatingAndUnratedOrUnknownIsDropped() async throws {
+        let (rig, session) = try await signedIn()
+        defer { rig.cleanup() }
+        await rig.transport.script(
+            path: "/library/recentlyAdded", .response(status: 200, body: Data(listJSON.utf8)))
+
+        // Default is the strictest: only U.
+        #expect(try await session.libraryArt(limit: 9) == ["/library/metadata/1/art/10"])
+        #expect(
+            try await session.libraryArt(limit: 9, ceiling: .fifteen)
+                == ["/library/metadata/1/art/10", "/library/metadata/4/art/40", "/library/metadata/5/art/50"])
+        // The household ceiling comes from the stored profiles (the little one is U).
+        #expect(await session.householdArtCeiling() == .u)
     }
 
     @Test func aPathThatIsNotAPlainServerPathIsRefusedWithoutARequest() async throws {

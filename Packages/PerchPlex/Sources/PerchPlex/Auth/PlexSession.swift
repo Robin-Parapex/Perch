@@ -327,29 +327,39 @@ public actor PlexSession {
         return try await refreshHomeUsers(ownerToken: token)
     }
 
-    /// The only public way to switch profile. `requirement` is the PerchCore `ProfileSwitchPolicy`
-    /// decision; the app's `ProfileSwitcher` is the only intended caller. Refuses (changing nothing,
-    /// making no request) when the decision is `.adminPIN` and `adminVerification` is not `.accepted`,
-    /// or when it is `.targetPlexPIN` and no PIN is given. A protected target also needs its PIN
-    /// whatever the decision says. Offline, throws `plexTVUnreachable` and the current profile stays.
-    public func switchProfile(
-        to id: PlexUserID, pin: String?, requirement: SwitchRequirement, adminVerification: PINResult? = nil
-    ) async throws {
-        switch requirement {
-        case .none:
-            break
-        case .adminPIN:
-            guard adminVerification == .accepted else { throw PlexError.adminVerificationRequired }
-        case .targetPlexPIN:
-            guard let pin, !pin.isEmpty else { throw PlexError.pinRequired }
-        }
-        try await switchProfile(to: id, pin: pin)
+    /// What switching to `user` needs, by `ProfileSwitchPolicy`, from the session's own record of the
+    /// current (or last) profile. Read-only, makes no request; the picker uses it to choose the PIN
+    /// screen. `switchProfile` recomputes it from fresh plex.tv data and refuses on a difference.
+    public func switchRequirement(for user: PlexHomeUser) async -> SwitchRequirement {
+        let doc = await settings.document
+        let targetID = PlexUserID(user.id)
+        let targetRole =
+            doc.profiles[targetID]?.role
+            ?? ProfileSettings.defaults(
+                plexUserID: targetID, displayName: user.displayName, isOwner: user.admin,
+                restriction: user.restriction
+            ).role
+        let fromRole = ProfileSwitchPolicy.startingRole(
+            currentID: profile?.id,
+            lastID: defaults.string(forKey: DefaultsKey.lastProfileID).map { PlexUserID($0) },
+            profiles: doc.profiles)
+        return ProfileSwitchPolicy.requirement(
+            fromRole: fromRole, toRole: targetRole,
+            targetIsProtected: user.protected, targetHasPlexPIN: user.protected)
     }
 
-    /// Switches profile. A wrong PIN on a protected user throws `pinIncorrect` and counts against the
-    /// lockout; transport failures throw `plexTVUnreachable` and do not. Nothing is committed unless
-    /// plex.tv accepted the switch. Internal on purpose: callers go through the policy-checked entry.
-    func switchProfile(to id: PlexUserID, pin: String?) async throws {
+    /// The only way to switch profile. The session applies `ProfileSwitchPolicy` itself, after
+    /// refreshing the Home users, so a caller cannot weaken it. `pin` is the target's Plex PIN
+    /// (`.targetPlexPIN`) or the Admin PIN (`.adminPIN`, checked here through the session's AdminPIN).
+    /// If `expecting` is given and the fresh requirement differs, throws `requirementChanged` before
+    /// any PIN is checked or sent, so the UI re-asks. Offline, throws `plexTVUnreachable` and the
+    /// current profile stays.
+    ///
+    /// A wrong target PIN throws `pinIncorrect` and counts against the lockout; transport failures
+    /// throw `plexTVUnreachable` and do not. Nothing is committed unless the checks and plex.tv pass.
+    public func switchProfile(
+        to id: PlexUserID, pin: String?, expecting: SwitchRequirement? = nil
+    ) async throws {
         guard snapshotValue.profileSwitchingAvailable,
             let ownerToken = try secrets.string(for: .plexOwnerToken)
         else { throw PlexError.notSignedIn }
@@ -375,6 +385,25 @@ public actor PlexSession {
         let isOwner = id == ownerID
         let enteredPIN = pin ?? ""
         if user.protected && enteredPIN.isEmpty { throw PlexError.pinRequired }
+
+        // The policy, from fresh data. Never a weaker check than the UI asked for.
+        let required = await switchRequirement(for: user)
+        if let expecting, expecting != required { throw PlexError.requirementChanged(required) }
+        switch required {
+        case .none:
+            break
+        case .targetPlexPIN:
+            if enteredPIN.isEmpty { throw PlexError.pinRequired }
+        case .adminPIN:
+            guard let adminPIN else { throw PlexError.adminVerificationRequired }
+            if enteredPIN.isEmpty { throw PlexError.pinRequired }
+            switch await adminPIN.verify(enteredPIN) {
+            case .accepted: break
+            case .rejected: throw PlexError.pinIncorrect
+            case .lockedOut(let until): throw PlexError.lockedOut(until: until)
+            case .setupRequired, .plexUnreachable, .unavailable: throw PlexError.adminVerificationRequired
+            }
+        }
 
         let accountToken: String
         if isOwner && !user.protected {
@@ -490,11 +519,18 @@ public actor PlexSession {
 
     /// Backdrop art paths (for example `/library/metadata/1/art/2`) from the connected server's newest
     /// items. Paths carry no token; fetch the bytes with `imageData(for:)`.
-    public func libraryArt(limit: Int = 12) async throws -> [String] {
+    /// The strictest ceiling in the household (U when no profile is known), for art shown on kid screens.
+    public func householdArtCeiling() async -> RatingCeiling {
+        await settings.document.householdLowestCeiling
+    }
+
+    /// Only items whose rating is at or below `ceiling` are kept; unrated or unknown ratings are
+    /// dropped. The default is the strictest (U), so a caller that forgets stays safe.
+    public func libraryArt(limit: Int = 12, ceiling: RatingCeiling = .u) async throws -> [String] {
         let (base, token) = try serverContext()
         let data = try await transport.perform(
             endpoints.recentlyAdded(base: base, token: token, limit: limit), host: .server)
-        return try PlexArtList.decode(from: data, limit: limit)
+        return try PlexArtList.decode(from: data, limit: limit, ceiling: ceiling)
     }
 
     /// Image bytes for a server path. The token travels only in the `X-Plex-Token` header, and only
