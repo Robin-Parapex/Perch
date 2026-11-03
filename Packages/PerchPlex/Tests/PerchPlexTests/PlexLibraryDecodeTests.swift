@@ -85,17 +85,45 @@ struct PlexLibraryRowDecodeTests {
 
     @Test func hubsKeepIdentifierTypeAndKey() throws {
         let hubs = try container("lib-hubs").hubs
-        #expect(hubs.count == 5)
+        #expect(hubs.count == 9)
         #expect(hubs.map(\.hubIdentifier) == [
-            "movie.recentlyadded.1", "tv.recentlyadded.2", "music.recent.added.3",
-            "playlists.recent", "home.continue",
+            "home.continue", "home.ondeck", "home.movies.recent", "home.television.recent",
+            "home.music.recent", "home.photos.recent", "home.videos.recent", "movie.curated.1.1",
+            "home.playlists",
         ])
-        #expect(hubs.map(\.type) == ["movie", "episode", "album", "playlist", "mixed"])
-        #expect(hubs[0].key == "/hubs/sections/1/recentlyAdded?type=1")
-        #expect(hubs[0].more == true)
-        #expect(hubs[0].size == 2)
-        let music = PlexLibraryMapping.summaries(hubs[2].metadata ?? [])
-        #expect(music.first?.kind == .other)
+        #expect(hubs.map(\.type) == [
+            "mixed", "episode", "movie", "mixed", "album", "photo", "clip", "movie", "playlist",
+        ])
+        #expect(hubs[2].key == "/hubs/sections/1/recentlyAdded?type=1")
+        #expect(hubs[2].more == true)
+        #expect(hubs[2].size == 2)
+        // Empty hubs arrive with a size of 0 and no Metadata.
+        #expect(hubs[4].size == 0 && hubs[4].metadata == nil && hubs[4].more == false)
+        let album = try container(
+            json: #"{"MediaContainer":{"Metadata":[{"ratingKey":"9","type":"album","title":"A"}]}}"#)
+        #expect(PlexLibraryMapping.summaries(album.items).first?.kind == .other)
+    }
+
+    @Test func mixedTelevisionHubHoldsShowSeasonAndEpisode() throws {
+        let hub = try #require(try container("lib-hubs").hubs.first { $0.hubIdentifier == "home.television.recent" })
+        let rows = PlexLibraryMapping.summaries(hub.metadata ?? [])
+        #expect(rows.map(\.kind) == [.episode, .season, .series])
+        #expect(rows[1].seriesTitle == "Cold Harbour Files")
+        #expect(rows[1].seriesID == "3000")
+        #expect(rows[1].seasonNumber == 2)
+        #expect(rows[1].seriesThumbPath == "/library/metadata/3000/thumb/1")
+    }
+
+    @Test func continueWatchingComesAsAHubWithInlineItems() throws {
+        let c = try container("lib-continue-watching")
+        #expect(c.metadata == nil)
+        let hub = try #require(c.hubs.first)
+        #expect(hub.hubIdentifier == "continueWatching" && hub.type == "mixed")
+        #expect(hub.more == true && hub.key == "/hubs/continueWatching/items")
+        #expect(hub.metadata?.count == 4)
+        // Real servers send librarySectionID as an int and leave viewCount out for unseen items.
+        #expect(hub.metadata?.first?.librarySectionID == "1")
+        #expect(PlexLibraryMapping.summaries(c.items)[2].viewCount == 0)
     }
 
     @Test func recentlyAddedMapsFilmEpisodeAndSeason() throws {
@@ -249,6 +277,17 @@ struct PlexLibraryMetadataDecodeTests {
         #expect(detail.extras[0].durationMs == 125_000)
         #expect(detail.tagline == "Some lights never go out.")
         #expect(detail.versions.first?.parts.first?.isAccessible == nil)
+    }
+
+    @Test func filmChaptersWithoutATagKeepTimesAndThumbs() throws {
+        let item = try #require(try container("lib-metadata-film-extras").metadata?.first)
+        let detail = try #require(PlexLibraryMapping.detail(item))
+        #expect(detail.chapters.map(\.index) == [1, 2])
+        #expect(detail.chapters.allSatisfy { $0.title == nil })
+        #expect(detail.chapters[1].startMs == 900_000 && detail.chapters[1].endMs == 1_800_000)
+        #expect(detail.chapters[0].thumbPath == "/library/metadata/1001/thumb/1700000001")
+        #expect(detail.externalIDs == ["imdb://tt0000001", "tmdb://1", "tvdb://10"])
+        #expect(detail.summary.durationMs == 7_199_000)
     }
 
     @Test func extrasEndpointKinds() throws {

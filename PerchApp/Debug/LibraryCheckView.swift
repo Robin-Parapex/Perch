@@ -185,6 +185,18 @@ final class LibraryCheckModel {
         }
     }
 
+    /// Shows the picked item's detail (markers, chapters, extras, versions) in the detail section.
+    /// Does nothing when that item is already shown, so the default stays until something is picked.
+    func showDetail(for itemID: String?) async {
+        guard let itemID, itemID != detailSource, !running else { return }
+        do {
+            detail = try await core.library.detail(ratingKey: itemID)
+            detailSource = itemID
+        } catch {
+            record("Detail failed for \(itemID): \(error)")
+        }
+    }
+
     private func rowContext(for profile: PlexActiveProfile) async -> RowContext {
         let override = await core.settings.document.profiles[profile.id]?.ceilingOverride
         return RowContext(
@@ -266,6 +278,9 @@ private struct WriteCheckBlock: View {
             }
             .pickerStyle(.menu)
             .accessibilityIdentifier("libraryCheck.write.item")
+            .onChange(of: model.selectedItemID) { _, id in
+                Task { await model.showDetail(for: id) }
+            }
             HStack(spacing: 24) {
                 Button("Simulate 30 s of playback") { Task { await model.simulatePlayback() } }
                 Button("Mark watched") { Task { await model.markWatched() } }

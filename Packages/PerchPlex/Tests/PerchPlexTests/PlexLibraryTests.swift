@@ -101,9 +101,37 @@ struct PlexLibraryHomeTests {
 
         let rows = try await rig.library.homeRows()
 
-        // Music, playlist and the mixed continue hub are dropped; the rest merge by addedAt.
-        #expect(ids(rows.recentlyAdded) == ["1003", "2104", "1002"])
+        // Music, photo, video, playlist, continue, on deck and curated hubs are dropped; the films hub
+        // and the "mixed" television hub (episode, season, show) merge by addedAt.
+        #expect(ids(rows.recentlyAdded) == ["1003", "2104", "3100", "1002", "3000"])
+        #expect(rows.recentlyAdded.items.map(\.kind) == [.film, .episode, .season, .film, .series])
+        // A season carries its series title and poster for display.
+        let season = rows.recentlyAdded.items[2]
+        #expect(season.seriesTitle == "Cold Harbour Files")
+        #expect(season.seriesThumbPath == "/library/metadata/3000/thumb/1")
         #expect(await rig.transport.requests(forPath: "/library/recentlyAdded").isEmpty)
+    }
+
+    @Test func aMixedRecentHubCountsAndItsItemsAreFilteredByKind() async throws {
+        let rig = try await LibraryRig.make()
+        defer { rig.cleanup() }
+        let hubs = #"""
+            {"MediaContainer":{"size":2,"Hub":[
+             {"hubIdentifier":"home.television.recent","type":"mixed","Metadata":[
+               {"ratingKey":"10","type":"season","title":"Season 3","parentRatingKey":"9","parentTitle":"Some Show","index":3,"addedAt":5},
+               {"ratingKey":"11","type":"clip","title":"A clip","addedAt":9},
+               {"ratingKey":"12","type":"album","title":"An album","addedAt":8}]},
+             {"hubIdentifier":"home.music.recent","type":"album","Metadata":[
+               {"ratingKey":"13","type":"movie","title":"Odd","addedAt":7}]}]}}
+            """#
+        await rig.transport.script(path: "/hubs/continueWatching", json: hub(movieInProgress))
+        await rig.transport.script(path: "/hubs", json: hubs)
+        await rig.transport.script(path: "/library/onDeck", json: #"{"MediaContainer":{"size":0}}"#)
+
+        let rows = try await rig.library.homeRows()
+
+        #expect(ids(rows.recentlyAdded) == ["10"])
+        #expect(rows.recentlyAdded.items.first?.seriesTitle == "Some Show")
     }
 
     @Test func recentlyAddedFallsBackToTheRecentlyAddedListWhenNoHubQualifies() async throws {
@@ -296,10 +324,12 @@ struct PlexLibraryMetadataTests {
 
         let hubs = try await rig.library.hubs()
 
-        #expect(hubs.count == 5)
-        #expect(hubs.first?.id == "movie.recentlyadded.1")
-        #expect(hubs.first?.type == "movie")
-        #expect(hubs.first?.items.map(\.id) == ["1003", "1002"])
+        #expect(hubs.count == 9)
+        #expect(hubs[2].id == "home.movies.recent")
+        #expect(hubs[2].type == "movie")
+        #expect(hubs[2].items.map(\.id) == ["1003", "1002"])
+        #expect(hubs[3].type == "mixed")
+        #expect(hubs[4].items.isEmpty)
     }
 
     @Test func extrasComeFromTheExtrasEndpointWhenNotInline() async throws {

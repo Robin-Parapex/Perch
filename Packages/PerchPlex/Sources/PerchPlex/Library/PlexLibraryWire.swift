@@ -220,6 +220,7 @@ struct PlexWireMetadata: Decodable {
     var grandparentArt: String?
     var parentTitle: String?
     var parentRatingKey: String?
+    var parentThumb: String?
     var parentIndex: Int?
     var index: Int?
     var year: Int?
@@ -253,7 +254,7 @@ struct PlexWireMetadata: Decodable {
     enum CodingKeys: String, CodingKey {
         case ratingKey, key, type, subtype, title
         case grandparentTitle, grandparentRatingKey, grandparentThumb, grandparentArt
-        case parentTitle, parentRatingKey, parentIndex, index
+        case parentTitle, parentRatingKey, parentThumb, parentIndex, index
         case year, contentRating, summary, tagline, studio, thumb, art
         case duration, viewOffset, viewCount, leafCount, viewedLeafCount, childCount
         case addedAt, lastViewedAt, originallyAvailableAt, librarySectionID, extraType
@@ -278,6 +279,7 @@ struct PlexWireMetadata: Decodable {
         grandparentArt = c.lenientString(.grandparentArt)
         parentTitle = c.lenientString(.parentTitle)
         parentRatingKey = c.lenientString(.parentRatingKey)
+        parentThumb = c.lenientString(.parentThumb)
         parentIndex = c.lenientInt(.parentIndex)
         index = c.lenientInt(.index)
         year = c.lenientInt(.year)

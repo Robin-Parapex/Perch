@@ -299,15 +299,19 @@ public actor PlexLibrary: PlexWatchStateSink {
 
     private func recentlyAdded(_ context: PlexServerContext) async throws -> [MediaSummary] {
         let hubs = try await loadHubs(context)
-        let wanted: Set<String> = ["movie", "show", "season", "episode"]
+        // Hubs are picked by identifier, not type: the live server types its television hub "mixed"
+        // (shows, seasons and episodes). The items are then filtered by kind.
+        let wantedKinds: Set<MediaKind> = [.film, .series, .season, .episode]
+        let excluded = ["music", "photo", "playlist", "album", "artist", "track", "clip", "video"]
         var seen = Set<String>()
         let merged = hubs
             .filter { hub in
-                guard let type = hub.type, wanted.contains(type) else { return false }
-                return hub.id.localizedCaseInsensitiveContains("recent")
+                guard hub.id.localizedCaseInsensitiveContains("recent") else { return false }
+                let label = "\(hub.id) \(hub.type ?? "")"
+                return !excluded.contains { label.localizedCaseInsensitiveContains($0) }
             }
             .flatMap(\.items)
-            .filter { seen.insert($0.id).inserted }
+            .filter { wantedKinds.contains($0.kind) && seen.insert($0.id).inserted }
         if merged.isEmpty {
             let container = try await fetch(
                 context,

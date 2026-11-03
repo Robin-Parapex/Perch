@@ -94,6 +94,8 @@ enum PlexLibraryMapping {
             summary.seriesID = item.parentRatingKey
             summary.seriesTitle = item.parentTitle
             summary.seasonNumber = item.index
+            // On a season, the parent's thumb is the series poster.
+            summary.seriesThumbPath = item.parentThumb
         default:
             break
         }
