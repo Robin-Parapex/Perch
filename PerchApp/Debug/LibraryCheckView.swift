@@ -171,12 +171,16 @@ final class LibraryCheckModel {
             }
             rows = fetched
             hubs = try await core.library.hubs()
+            // `-PerchLibraryCheckItem <rating key>` shows that title's detail (read-only live check).
+            let arguments = ProcessInfo.processInfo.arguments
+            let requested = arguments.firstIndex(of: "-PerchLibraryCheckItem")
+                .flatMap { arguments.indices.contains($0 + 1) ? arguments[$0 + 1] : nil }
             let first =
                 rows.first { $0.id == PlexHomeRows.continueWatchingID }?.items.first
                 ?? rows.first { $0.id == PlexHomeRows.recentlyAddedID }?.items.first
-            if let first {
-                detail = try await core.library.detail(ratingKey: first.id)
-                detailSource = first.id
+            if let id = requested ?? first?.id {
+                detail = try await core.library.detail(ratingKey: id)
+                detailSource = id
             }
             if selectedItemID == nil { selectedItemID = items.first?.id }
             captureOffsets()
