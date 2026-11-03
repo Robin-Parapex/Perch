@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		05EE20E1CEDCBCB567CC7E61 /* ProfilePickerUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08393C8DD9CE37ACF64C1E97 /* ProfilePickerUITests.swift */; };
 		0E90752923D2A8DD20600D4A /* FaultInjectingTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4C5D477818723FF0622A0A1 /* FaultInjectingTransport.swift */; };
 		0EE7FF85102FEB9B6642D818 /* PerchCore in Frameworks */ = {isa = PBXBuildFile; productRef = 3A0D94F6E929D5A8D64ECE87 /* PerchCore */; };
 		13C2D6C32B8E74412EFFD95F /* ProfilePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8C9CDA7267F3A0FCDF12036 /* ProfilePickerView.swift */; };
@@ -17,6 +18,7 @@
 		34E73F508EA639C0CB7DFB51 /* PerchMain.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB144107DD23A8D0BAD69C69 /* PerchMain.swift */; };
 		37996216A7C85B009A559C32 /* SetupFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4E088AAD12B918F3014DDE1 /* SetupFlowView.swift */; };
 		39C4BCB6D82B9258F5DA1FF4 /* PerchPlex in Frameworks */ = {isa = PBXBuildFile; productRef = 6BF6030B83AFC8D38A73E397 /* PerchPlex */; };
+		3DF3EEA72F6F90D6F28662F0 /* SetupWizardUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24058FD508AF202F5629849E /* SetupWizardUITests.swift */; };
 		487B2E112C27D4631E1E3BA0 /* PerchUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DCA53A26933A2B3B0B4F245 /* PerchUITests.swift */; };
 		49FC74040CE062EA08425469 /* SetupFlowModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFCF9214DE208DF357C09CFF /* SetupFlowModel.swift */; };
 		4B921CDDAC347E69092ABAA5 /* ImageDiskCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B02FF9E38171AE52DBB210 /* ImageDiskCache.swift */; };
@@ -24,6 +26,7 @@
 		53BE2DF0F4E4331D38A3670D /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 65B77FBA7B90AF35072DBB7E /* PrivacyInfo.xcprivacy */; };
 		642A4DBDFED68899100CA244 /* CoreServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3FD1A399EE728F4D38CCD2C /* CoreServices.swift */; };
 		69C7FBB43B8946F4217CBA80 /* ModuleManifest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72EBCD50A28455935FE5B81E /* ModuleManifest.swift */; };
+		70DB6C9458CCE2CA58217FB4 /* WP05Support.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B74E85BFB25EAF18EAAFBAA /* WP05Support.swift */; };
 		737BC63B499B2034F488A938 /* SetupProfilesStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C0B3C5FC5D8A5ED71FF74CB /* SetupProfilesStep.swift */; };
 		7D0F980230F0EED73C737127 /* ContentProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEC73F03519F0ABA8E1A202F /* ContentProvider.swift */; };
 		93FFCFF78D87B171B9178117 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 243A1FBF501983A4028E086D /* Assets.xcassets */; };
@@ -76,7 +79,9 @@
 
 /* Begin PBXFileReference section */
 		0274461E25099FBB92325409 /* AppRoot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRoot.swift; sourceTree = "<group>"; };
+		08393C8DD9CE37ACF64C1E97 /* ProfilePickerUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfilePickerUITests.swift; sourceTree = "<group>"; };
 		1FDF7616159B5794150C0A0B /* PerchApp.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = PerchApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		24058FD508AF202F5629849E /* SetupWizardUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupWizardUITests.swift; sourceTree = "<group>"; };
 		243A1FBF501983A4028E086D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		26359D6962867AF8FC484B0D /* PerchPlex */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PerchPlex; path = Packages/PerchPlex; sourceTree = SOURCE_ROOT; };
 		3B6A2EAF62F625006D78BD53 /* SetupAdminPINStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupAdminPINStep.swift; sourceTree = "<group>"; };
@@ -86,6 +91,7 @@
 		6C0B3C5FC5D8A5ED71FF74CB /* SetupProfilesStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupProfilesStep.swift; sourceTree = "<group>"; };
 		72EBCD50A28455935FE5B81E /* ModuleManifest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModuleManifest.swift; sourceTree = "<group>"; };
 		733569FCF6FF7AC55BDD33F9 /* FakeHouseholdTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FakeHouseholdTransport.swift; sourceTree = "<group>"; };
+		7B74E85BFB25EAF18EAAFBAA /* WP05Support.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WP05Support.swift; sourceTree = "<group>"; };
 		7DCA53A26933A2B3B0B4F245 /* PerchUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerchUITests.swift; sourceTree = "<group>"; };
 		81DCAA7AC3B9EB27244CB654 /* PerchSeerr */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PerchSeerr; path = Packages/PerchSeerr; sourceTree = SOURCE_ROOT; };
 		84A9F221D541396CE0789A4C /* PlexSignInModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlexSignInModel.swift; sourceTree = "<group>"; };
@@ -210,6 +216,9 @@
 			children = (
 				FF483B6C94B4DC73D18C4462 /* DesignGalleryUITests.swift */,
 				7DCA53A26933A2B3B0B4F245 /* PerchUITests.swift */,
+				08393C8DD9CE37ACF64C1E97 /* ProfilePickerUITests.swift */,
+				24058FD508AF202F5629849E /* SetupWizardUITests.swift */,
+				7B74E85BFB25EAF18EAAFBAA /* WP05Support.swift */,
 			);
 			path = PerchUITests;
 			sourceTree = "<group>";
@@ -434,6 +443,9 @@
 			files = (
 				B43D5DC91E95AC408194BEF3 /* DesignGalleryUITests.swift in Sources */,
 				487B2E112C27D4631E1E3BA0 /* PerchUITests.swift in Sources */,
+				05EE20E1CEDCBCB567CC7E61 /* ProfilePickerUITests.swift in Sources */,
+				3DF3EEA72F6F90D6F28662F0 /* SetupWizardUITests.swift in Sources */,
+				70DB6C9458CCE2CA58217FB4 /* WP05Support.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
