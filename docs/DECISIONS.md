@@ -363,7 +363,7 @@ Append-only log of decisions and why. Newest at the bottom. Format: date, decisi
 ## 2026-11-03 Rating ceiling in rows and TV ratings
 - Plex already filters managed users' libraries. WP-06 carries each item's certificate, and `admit` drops an item only when the profile's Perch ceiling is below the Plex restriction. Ceilings across all rows and search stay in WP-18.
 - `RatingCeiling(certificate:)` learns US TV ratings: TV-Y, TV-Y7 and TV-G become U; TV-PG becomes PG; TV-MA becomes 18; NR and unknown stay 15. TV-14 rounds up to 15 for titles (fail closed) and down to 12A in allowed-rating lists.
-- Decided by the WP-06 lead (Claude); Robin to confirm.
+- Decided by the WP-06 lead (Claude). Robin confirmed that US TV-14 counts as UK 15, 3 Nov 2026.
 
 ## 2026-11-03 Durations the server gets wrong
 - Remaining time and progress use the part duration, then the item duration. If either is missing or shorter than the offset (the debrid quirk), remaining is nil and Home shows no "min left".
@@ -378,7 +378,7 @@ Append-only log of decisions and why. Newest at the bottom. Format: date, decisi
 - Decided by the WP-06 lead (Claude); plan approved by Robin, 3 Nov 2026.
 
 ## 2026-11-03 Live checks against the household server
-- A read-only library check from a signed debug build on Robin's live simulator, and timeline, scrobble and progress calls on one test title he names, with watch state restored afterwards.
+- A read-only library check (V4) from a signed debug build on Robin's live simulator, and timeline, scrobble and progress calls (V5) on one test title, with watch state restored afterwards. Robin approved both, 3 Nov 2026.
 - Decided by Robin, 3 Nov 2026.
 
 ## 2026-11-03 Separate WP-06 test simulator
