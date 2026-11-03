@@ -120,6 +120,7 @@ struct PlaceholderView: View {
             onComplete: { entered in Task { await runSetupAgain(with: entered) } }
         )
         .onChange(of: pin) { _, value in if !value.isEmpty { errorMessage = nil } }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("home.setupPIN")
     }
 

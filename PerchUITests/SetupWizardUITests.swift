@@ -46,18 +46,8 @@ final class SetupWizardUITests: XCTestCase {
         shot("09-done")
         tap("setup.primary", in: app)
 
-        // Setup is complete. Plan: "Choose who's watching" lands on the picker.
-        // KNOWN DEFECT (AppRoot.swift:37-40): the session is already ready as the owner, so the app lands on home
-        // ("Watching as Robin"), not the picker. Expected failure until fixed; remove the wrapper then.
-        XCTAssertTrue(element(app, "root.home").waitForExistence(timeout: 15) || element(app, "root.picker").exists)
-        XCTExpectFailure("Finishing setup lands on home, not the picker (app defect)") {
-            XCTAssertTrue(element(app, "root.picker").exists)
-        }
-        shot("10-after-done")
-        // The picker is one press away and shows the whole household.
-        if element(app, "home.switchProfile").exists {
-            tap("home.switchProfile", in: app)
-        }
+        // Setup is complete: "Choose who's watching" lands on the picker, which shows the whole household.
+        waitFor(element(app, "root.picker"), timeout: 20)
         waitFor(element(app, "picker.title"))
         for id in ["profile.1001", "profile.1002", "profile.1003"] {
             XCTAssertTrue(element(app, id).waitForExistence(timeout: 10), "\(id) on the picker")
@@ -86,14 +76,10 @@ final class SetupWizardUITests: XCTestCase {
         waitFor(app.staticTexts["Enter it again to confirm"])
         shot("13-perch-pin-confirm")
         enterPIN("2222", in: app)
-        // KNOWN DEFECT (SetupFlowModel.swift:360-365): after a mismatch the "Choose a 4-digit PIN" screen comes back
-        // but "Those PINs don't match" is never shown. Expected failure until fixed; remove the wrapper then.
         let error = element(app, "pinEntry.error")
-        XCTExpectFailure("Mismatch message is not shown (app defect)") {
-            XCTAssertTrue(error.waitForExistence(timeout: 3))
-            XCTAssertEqual(text(error), "Those PINs don't match")
-        }
-        XCTAssertTrue(app.staticTexts["Choose a 4-digit PIN"].exists, "a mismatch returns to choosing a PIN")
+        XCTAssertTrue(error.waitForExistence(timeout: 5))
+        XCTAssertEqual(text(error), "Those PINs don't match")
+        XCTAssertFalse(app.staticTexts["Enter it again to confirm"].exists, "a mismatch returns to choosing a PIN")
         XCTAssertFalse(app.staticTexts["Profiles and roles"].exists, "a mismatch does not move on")
         shot("14-perch-pin-mismatch")
 
@@ -110,6 +96,24 @@ final class SetupWizardUITests: XCTestCase {
         tap("setup.primary", in: app)
         reachPicker(app)
         waitFor(element(app, "profile.1003"))
+    }
+
+    /// Setup complete but the Plex sign-in gone: the wizard runs again from Connect Plex (setup stays complete).
+    @MainActor
+    func testSignedOutAfterSetupReopensWizardAtConnectPlex() throws {
+        let app = launchApp(.noPINs)
+        try completeWizard(app, .noPINs)
+        app.terminate()
+        app.launchArguments = ["-PerchFakeHousehold", Household.noPINs.rawValue, "-PerchFakeSignedOut"]
+        app.launch()
+
+        waitFor(element(app, "root.reconnect"), timeout: 20)
+        waitFor(app.staticTexts["Connect Plex"])
+        XCTAssertFalse(app.staticTexts["Welcome to Perch"].exists, "setup is complete: no Welcome")
+        tap("setup.primary", in: app)  // Sign in with a code
+        waitFor(element(app, "setup.code.value"))
+        XCTAssertTrue(waitUntil(10) { self.text(self.element(app, "setup.code.value")) == "PRCH" })
+        shot("18-reconnect-link-code")
     }
 
     /// Five wrong Admin PINs in the wizard lock the step.

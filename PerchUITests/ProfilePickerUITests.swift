@@ -28,13 +28,13 @@ final class ProfilePickerUITests: XCTestCase {
         shot("20-picker")
 
         tap("profile.1002", in: app)  // Jo, protected
-        waitFor(element(app, "picker.pin"))
+        waitFor(element(app, "pinPad.1"))
         XCTAssertTrue(app.staticTexts["Enter Jo's PIN"].exists)
         shot("21-picker-pin")
 
         enterPIN("1111", in: app)
         expectPINError("That PIN isn't right", in: app)
-        XCTAssertTrue(element(app, "picker.pin").exists, "a wrong PIN stays on the PIN screen")
+        XCTAssertTrue(element(app, "pinPad.1").exists, "a wrong PIN stays on the PIN screen")
         shot("22-picker-pin-wrong")
 
         enterPIN(fakePlexPIN, in: app)
@@ -49,10 +49,13 @@ final class ProfilePickerUITests: XCTestCase {
         try completeWizard(app, .withPINs)
         openPicker(app)
         tap("profile.1002", in: app)
-        waitFor(app.buttons["1"].firstMatch)
+        let key = element(app, "pinPad.1")
+        waitFor(key)
+        // Back before the pad has focus would leave the app: wait for focus first.
+        XCTAssertTrue(waitUntil(5) { key.hasFocus }, "the PIN pad takes focus")
         back()
         waitFor(element(app, "picker.title"))
-        XCTAssertFalse(app.buttons["1"].exists)
+        XCTAssertFalse(key.exists)
         XCTAssertTrue(element(app, "profile.1002").exists)
     }
 
@@ -95,13 +98,13 @@ final class ProfilePickerUITests: XCTestCase {
         // Staying as Sam needs nothing and returns home.
         tap("profile.1003", in: app)
         waitForHome(app, as: "Sam")
-        XCTAssertFalse(element(app, "picker.pin").exists)
+        XCTAssertFalse(element(app, "pinPad.1").exists)
 
         // Robin has no Plex PIN, but leaving a kid asks for the Admin PIN.
         tap("home.switchProfile", in: app)
         waitFor(element(app, "picker.title"))
         tap("profile.1001", in: app)
-        waitFor(element(app, "picker.pin"))
+        waitFor(element(app, "pinPad.1"))
         XCTAssertTrue(app.staticTexts["Enter the Admin PIN"].exists)
         shot("27-admin-pin-to-leave-kid")
 
@@ -134,8 +137,10 @@ final class ProfilePickerUITests: XCTestCase {
     func testParentRunsSetupAgainWithTheAdminPIN() throws {
         let app = launchApp(.noPINs)
         try completeWizard(app, .noPINs)
-        if !element(app, "home.runSetup").exists { openPicker(app) }
-        // Robin is the signed-in owner after setup.
+        // The wizard ends on the picker; choosing the current profile (Robin) goes home with no PIN.
+        openPicker(app)
+        tap("profile.1001", in: app)
+        XCTAssertFalse(element(app, "pinPad.1").exists)
         waitForHome(app, as: "Robin")
         tap("home.runSetup", in: app)
         waitFor(element(app, "home.setupPIN"))

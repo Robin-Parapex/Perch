@@ -25,6 +25,7 @@ final class CoreServices {
         secrets = KeychainStore()
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-PerchResetSetup") { Self.debugReset(secrets: secrets) }
+        if ProcessInfo.processInfo.arguments.contains("-PerchFakeSignedOut") { Self.debugSignOut(secrets: secrets) }
         #endif
         let keyValues = UserDefaultsStore()
         self.keyValues = keyValues
@@ -81,6 +82,18 @@ final class CoreServices {
             try? secrets.remove(.module(ModuleID("plex"), "server.\(id)"))
         }
         ImageDiskCache.shared.removeAll()
+    }
+
+    /// `-PerchFakeSignedOut`: forgets only the stored Plex sign-in (the owner and profile tokens, the server
+    /// tokens and the last profile). The PINs, the setup flag and the other settings stay.
+    private static func debugSignOut(secrets: any SecretStore) {
+        plexDefaults().removeObject(forKey: PlexSession.DefaultsKey.lastProfileID)
+        plexDefaults().removeObject(forKey: PlexSession.DefaultsKey.singleProfile)
+        try? secrets.remove(.plexOwnerToken)
+        for id in ["1001", "1002", "1003", "manual"] {
+            try? secrets.remove(.plexUserToken(PlexUserID(id)))
+            try? secrets.remove(.module(ModuleID("plex"), "server.\(id)"))
+        }
     }
 
     /// Proves on hardware that the Keychain and the App Group defaults are reachable.

@@ -94,11 +94,12 @@ final class SetupFlowModel {
     private(set) var backdrop: UIImage?
     @ObservationIgnored private var backdropLoading = false
 
-    init(core: CoreServices, isRerun: Bool, onFinish: @escaping () -> Void) {
+    /// `startAtConnect`: a re-run that begins at Connect Plex (setup is complete but the Plex sign-in is gone).
+    init(core: CoreServices, isRerun: Bool, startAtConnect: Bool = false, onFinish: @escaping () -> Void) {
         self.core = core
         self.onFinish = onFinish
         plex = core.plexSignIn
-        progress = SetupProgress(isRerun: isRerun)
+        progress = SetupProgress(isRerun: isRerun, current: startAtConnect ? .connectPlex : .welcome)
         registerAddLaterEntries()
     }
 
@@ -360,8 +361,11 @@ final class SetupFlowModel {
             guard entered == first else {
                 pin = ""
                 pinFailures += 1
-                await go(.backward) { self.pinMode = .newPIN }
-                pinError = "Those PINs don't match"
+                // The message is set in the same change as the screen, so the new screen never shows without it.
+                await go(.backward) {
+                    self.pinMode = .newPIN
+                    self.pinError = "Those PINs don't match"
+                }
                 return
             }
             await savePerchPIN(entered)

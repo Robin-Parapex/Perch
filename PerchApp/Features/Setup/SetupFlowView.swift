@@ -6,8 +6,10 @@ import SwiftUI
 struct SetupFlowView: View {
     @State private var model: SetupFlowModel
 
-    init(core: CoreServices, isRerun: Bool, onFinish: @escaping () -> Void) {
-        _model = State(initialValue: SetupFlowModel(core: core, isRerun: isRerun, onFinish: onFinish))
+    init(core: CoreServices, isRerun: Bool, startAtConnect: Bool = false, onFinish: @escaping () -> Void) {
+        _model = State(
+            initialValue: SetupFlowModel(
+                core: core, isRerun: isRerun, startAtConnect: startAtConnect, onFinish: onFinish))
     }
 
     var body: some View {

@@ -89,6 +89,7 @@ struct ProfilePickerView: View {
             onComplete: { entered in Task { await attempt(target, pin: entered) } }
         )
         .onChange(of: pin) { _, value in if !value.isEmpty { errorMessage = nil } }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("picker.pin")
     }
 

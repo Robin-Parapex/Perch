@@ -137,24 +137,21 @@ extension XCTestCase {
     @MainActor
     func enterPIN(_ digits: String, in app: XCUIApplication, file: StaticString = #filePath, line: UInt = #line) {
         for digit in digits {
-            // The picker and home PIN screens carry their own identifier on the whole screen, which hides
-            // the keys' "pinPad.<digit>" ids, so fall back to the key's label.
-            let byID = element(app, "pinPad.\(digit)")
-            let key = byID.waitForExistence(timeout: 3) ? byID : app.buttons[String(digit)].firstMatch
+            let key = element(app, "pinPad.\(digit)")
             if focus(key, in: app, file: file, line: line) { XCUIRemote.shared.press(.select) }
             RunLoop.current.run(until: Date().addingTimeInterval(0.3))
         }
     }
 
-    /// Waits for a PIN screen error with exactly this text (by id, or by text where the id is hidden) and returns it.
+    /// Waits for a PIN screen error with exactly this text (or starting with it) and returns it.
     @MainActor
     @discardableResult
     func expectPINError(_ expected: String, in app: XCUIApplication, prefixOnly: Bool = false, timeout: TimeInterval = 10, file: StaticString = #filePath, line: UInt = #line) -> Bool {
         let ok = waitUntil(timeout) {
-            let byID = self.element(app, "pinEntry.error")
-            if byID.exists { let t = self.text(byID); return prefixOnly ? t.hasPrefix(expected) : t == expected }
-            if prefixOnly { return app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", expected)).count > 0 }
-            return app.staticTexts[expected].exists
+            let error = self.element(app, "pinEntry.error")
+            guard error.exists else { return false }
+            let shown = self.text(error)
+            return prefixOnly ? shown.hasPrefix(expected) : shown == expected
         }
         XCTAssertTrue(ok, "PIN error '\(expected)' not shown", file: file, line: line)
         return ok
