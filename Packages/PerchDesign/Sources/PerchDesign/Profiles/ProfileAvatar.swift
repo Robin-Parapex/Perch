@@ -58,8 +58,13 @@ public struct ProfileAvatarImage: View {
         }
         .frame(width: size, height: size)
         .clipShape(Circle())
-        .overlay(alignment: .bottomTrailing) {
-            if isLocked { badge("lock.fill") }
+        .overlay {
+            // Sits just inside the circle at its 45 degree bottom-trailing point, clear of the focus ring.
+            if isLocked {
+                let diameter = size * 0.3
+                let centre = (size / 2 - diameter / 2 - size * 0.02) / 2.0.squareRoot()
+                badge("lock.fill").offset(x: centre, y: centre)
+            }
         }
         .accessibilityHidden(true)
     }

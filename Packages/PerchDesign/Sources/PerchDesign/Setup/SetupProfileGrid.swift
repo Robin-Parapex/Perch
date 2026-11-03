@@ -5,7 +5,9 @@ import SwiftUI
 /// Generic over the caller's row data; the pills are buttons that call the closures.
 public struct SetupProfileGrid<Row: Identifiable>: View {
     public static var avatarSize: CGFloat { 96 }
-    public static var pillWidth: CGFloat { 230 }
+    public static var pillWidth: CGFloat { 250 }
+    /// Compact centred block: avatar, name (flexible, capped by this width), then two pills.
+    public static var gridWidth: CGFloat { 1000 }
 
     private let rows: [Row]
     private let name: (Row) -> String
@@ -37,26 +39,30 @@ public struct SetupProfileGrid<Row: Identifiable>: View {
     public var body: some View {
         VStack(spacing: 20) {
             ForEach(rows) { row in
-                HStack(spacing: 28) {
+                HStack(spacing: PerchSpacing.itemGap) {
                     ProfileAvatarImage(name: name(row), size: Self.avatarSize, image: image(row))
+                        .padding(.trailing, 4)
                     Text(name(row))
                         .font(PerchFont.section(style).weight(.semibold))
                         .foregroundStyle(PerchColor.textPrimary)
                         .lineLimit(1)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    pill(roleTitle(row)) { onRole(row) }
-                    pill(ratingTitle(row)) { onRating(row) }
+                    pill(roleTitle(row), id: "setup.profile.\(String(describing: row.id)).role") { onRole(row) }
+                    pill(ratingTitle(row), id: "setup.profile.\(String(describing: row.id)).limit") { onRating(row) }
                 }
             }
         }
+        .frame(maxWidth: Self.gridWidth)
+        .frame(maxWidth: .infinity)
         .focusSection()
     }
 
-    private func pill(_ title: String, action: @escaping () -> Void) -> some View {
+    private func pill(_ title: String, id: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Text(title).lineLimit(1).frame(width: Self.pillWidth - 40)
+            Text(title).lineLimit(1).frame(width: Self.pillWidth - 80) // the button style adds 40 pt either side
         }
         .buttonStyle(.perchSecondary)
         .frame(width: Self.pillWidth)
+        .accessibilityIdentifier(id)
     }
 }

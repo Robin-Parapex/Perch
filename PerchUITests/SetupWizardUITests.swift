@@ -28,8 +28,8 @@ final class SetupWizardUITests: XCTestCase {
 
         // Accepted: moves on to Profiles by itself.
         waitFor(app.staticTexts["Profiles and roles"], timeout: 15)
-        // One role pill per household member (the grid has no per-row identifiers, so they are found by title).
-        let rolePills = app.buttons.matching(NSPredicate(format: "label IN {'Parent','Teen','Kid','Top Shelf'}"))
+        // One role pill per household member, found by its per-row identifier.
+        let rolePills = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'setup.profile.' AND identifier ENDSWITH '.role'"))
         XCTAssertTrue(waitUntil(10) { rolePills.count == 3 }, "three role pills, got \(rolePills.count)")
         shot("07-profiles")
         tap("setup.primary", in: app)
