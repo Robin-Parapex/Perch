@@ -26,6 +26,22 @@ public final class ModuleRegistry {
     public var rowProviders: [any RowProvider] {
         contributions().compactMap { if case .row(let v) = $0 { v } else { nil } }
     }
+
+    /// A provider's cached row with the profile's ceiling applied. Every row goes through here
+    /// so no module filters on its own.
+    public nonisolated static func cachedRow(
+        _ provider: any RowProvider, in context: RowContext
+    ) -> MediaRow? {
+        provider.cachedRow(in: context).map(context.admit)
+    }
+
+    /// A provider's fresh row with the profile's ceiling applied.
+    public nonisolated static func refreshRow(
+        _ provider: any RowProvider, in context: RowContext
+    ) async throws -> MediaRow {
+        context.admit(try await provider.refreshRow(in: context))
+    }
+
     public var tabs: [any TabProvider] {
         contributions().compactMap { if case .tab(let v) = $0 { v } else { nil } }
             .sorted { ($0.order, $0.title) < ($1.order, $1.title) }

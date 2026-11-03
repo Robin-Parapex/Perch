@@ -18,24 +18,37 @@ public enum RatingCeiling: Int, Comparable, Codable, Sendable, CaseIterable {
         }
     }
 
-    /// Parses a Plex content rating such as "PG-13", "gb/12A" or "R". Unknown values give nil.
+    /// Parses a Plex content rating such as "PG-13", "gb/12A", "R" or "TV-PG" as a title's
+    /// rating. TV-14 sits between 12A and 15 and rounds up to 15, so a title fails closed
+    /// (DECISIONS.md, WP-06). Unknown values give nil.
     public init?(certificate: String) {
+        self.init(certificate: certificate, tv14: .fifteen)
+    }
+
+    /// Same scale, but TV-14 rounds down to 12A: used for a list of ratings a profile is
+    /// allowed, where rounding down is the closed side.
+    init?(allowedRating: String) {
+        self.init(certificate: allowedRating, tv14: .twelveA)
+    }
+
+    private init?(certificate: String, tv14: RatingCeiling) {
         var text = certificate.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
         if let slash = text.firstIndex(of: "/") {
             text = String(text[text.index(after: slash)...])
                 .trimmingCharacters(in: .whitespacesAndNewlines)
         }
         switch text {
-        case "G", "U": self = .u
-        case "PG": self = .pg
+        case "G", "U", "TV-Y", "TV-Y7", "TV-Y7-FV", "TV-G": self = .u
+        case "PG", "TV-PG": self = .pg
         case "PG-13", "12", "12A": self = .twelveA
+        case "TV-14": self = tv14
         case "R", "15": self = .fifteen
-        case "NC-17", "18": self = .eighteen
+        case "NC-17", "18", "TV-MA": self = .eighteen
         default: return nil
         }
     }
 
-    /// A title with no usable certificate is treated as 15 (ARCHITECTURE.md).
+    /// A title with no usable certificate, "NR" included, is treated as 15 (ARCHITECTURE.md).
     public static func forTitle(certificate: String?) -> RatingCeiling {
         certificate.flatMap { RatingCeiling(certificate: $0) } ?? .fifteen
     }
@@ -74,7 +87,7 @@ extension RatingCeiling {
         case .unrestricted: self = .eighteen
         case .custom(let allowed):
             // Nothing recognised fails closed to U (DECISIONS.md, WP-02).
-            self = allowed.compactMap { RatingCeiling(certificate: $0) }.max() ?? .u
+            self = allowed.compactMap { RatingCeiling(allowedRating: $0) }.max() ?? .u
         }
     }
 
