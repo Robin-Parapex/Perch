@@ -1,0 +1,4 @@
+{"MediaContainer": {"size": 2, "totalSize": 2, "offset": 0, "Metadata": [
+  {"ratingKey": "2102", "key": "/library/metadata/2102", "type": "episode", "title": "Low Tide", "grandparentRatingKey": "2000", "grandparentTitle": "The Lantern Keepers", "grandparentThumb": "/library/metadata/2000/thumb/1700000000", "parentRatingKey": "2100", "parentIndex": 1, "index": 4, "duration": 2640000, "viewCount": 0, "thumb": "/library/metadata/2102/thumb/1700000000", "addedAt": 1700000200},
+  {"ratingKey": "3102", "key": "/library/metadata/3102", "type": "episode", "title": "The Second Folder", "grandparentRatingKey": "3000", "grandparentTitle": "Cold Harbour Files", "grandparentThumb": "/library/metadata/3000/thumb/1700000000", "parentRatingKey": "3100", "parentIndex": 2, "index": 2, "duration": 3000000, "viewCount": 0, "thumb": "/library/metadata/3102/thumb/1700000000", "addedAt": 1700000300}
+]}}

@@ -7,6 +7,10 @@ private struct FakeRow: RowProvider {
     let id = "fake.row"
     let title = "Fake"
     let placement = RowPlacement.home(order: 1)
+    func cachedRow(in context: RowContext) -> MediaRow? { nil }
+    func refreshRow(in context: RowContext) async throws -> MediaRow {
+        MediaRow(id: id, title: title, items: [])
+    }
 }
 
 private struct FakeTab: TabProvider {

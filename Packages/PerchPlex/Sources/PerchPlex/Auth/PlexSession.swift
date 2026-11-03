@@ -134,7 +134,17 @@ public actor PlexSession {
 
     private func removeContinuation(_ id: UUID) { continuations[id] = nil }
 
+    /// Bumped whenever the ready profile, machine or base URL changes, or the session leaves ready.
+    /// Library results fetched under an older value are stale and must be dropped.
+    private var generation: UInt64 = 0
+
+    private static func readyKey(_ state: PlexSessionState) -> String? {
+        guard case .ready(let profile, let server) = state else { return nil }
+        return [profile.id.rawValue, server.machineID, server.baseURL.absoluteString].joined(separator: "\n")
+    }
+
     private func setState(_ state: PlexSessionState) {
+        if Self.readyKey(snapshotValue.state) != Self.readyKey(state) { generation &+= 1 }
         snapshotValue.state = state
         publish()
     }
@@ -517,13 +527,13 @@ public actor PlexSession {
         return try PlexLibrarySummary.decode(from: data)
     }
 
-    /// Backdrop art paths (for example `/library/metadata/1/art/2`) from the connected server's newest
-    /// items. Paths carry no token; fetch the bytes with `imageData(for:)`.
     /// The strictest ceiling in the household (U when no profile is known), for art shown on kid screens.
     public func householdArtCeiling() async -> RatingCeiling {
         await settings.document.householdLowestCeiling
     }
 
+    /// Backdrop art paths (for example `/library/metadata/1/art/2`) from the connected server's newest
+    /// items. Paths carry no token; fetch the bytes with `imageData(for:)`.
     /// Only items whose rating is at or below `ceiling` are kept; unrated or unknown ratings are
     /// dropped. The default is the strictest (U), so a caller that forgets stays safe.
     public func libraryArt(limit: Int = 12, ceiling: RatingCeiling = .u) async throws -> [String] {
@@ -544,11 +554,22 @@ public actor PlexSession {
     }
 
     private func serverContext() throws -> (URL, String) {
+        let context = try libraryContext()
+        return (context.baseURL, context.token)
+    }
+
+    /// The ready profile's context. The server token is read from the Keychain here and goes no further
+    /// than PerchPlex.
+    func libraryContext() throws -> PlexServerContext {
         guard case .ready(let active, let server) = snapshotValue.state,
             let token = try secrets.string(for: Self.serverTokenKey(active.id))
         else { throw PlexError.notSignedIn }
-        return (server.baseURL, token)
+        return PlexServerContext(
+            baseURL: server.baseURL, token: token, profileID: active.id.rawValue,
+            machineID: server.machineID, generation: generation)
     }
+
+    func currentGeneration() -> UInt64 { generation }
 
     /// The last Home user list as stored (non-secret fields only). Empty before the first sync.
     public func cachedHomeUsers() -> [PlexHomeUser] { homeUsersCache }
@@ -830,3 +851,5 @@ public actor PlexSession {
         defaults.set(try? JSONEncoder().encode(lockout), forKey: DefaultsKey.profilePINLockout)
     }
 }
+
+extension PlexSession: PlexServerContextProviding {}

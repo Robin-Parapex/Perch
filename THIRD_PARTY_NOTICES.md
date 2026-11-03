@@ -3,6 +3,8 @@
 No third-party code ships yet.
 
 - **Dusk (MIT, github.com/marvinvr/dusk-player):** WP-04 (PerchPlex) took ideas only: the Plex endpoint set, connection tiers, and commit-on-success profile switching. No code was copied.
+- **Dusk (MIT):** WP-06 (PerchPlex) took ideas only, no code copied: lenient int-or-string decoding, hub filtering and the continueWatching/onDeck approach, section paging (50 then 100), timeline cadence and buffering behaviour, scrobble at 90%, and next-episode order skipping season 0.
+- **Swiftfin (MPL-2.0):** WP-06 (PerchPlex) took ideas only, no code copied: one progress report in flight with the newest pending replacing older ones, and a revision per item so a late read cannot undo a newer watched toggle.
 
 Rules for when it does:
 

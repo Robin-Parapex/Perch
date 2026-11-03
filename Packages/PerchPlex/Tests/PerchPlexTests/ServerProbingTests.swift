@@ -25,6 +25,16 @@ private func prober(_ transport: RoutedTransport) -> ConnectionProber {
     ConnectionProber(transport: transport, endpoints: testEndpoints, timing: fastTiming)
 }
 
+/// For the grace tests: per-address timeouts that never fire during a test, so the outcome depends on
+/// the order of answers and the grace period alone, not on how fast a loaded machine schedules tasks.
+/// (A whole-suite run starved the prober for ~375 ms, which broke 150 ms vs 320 ms wall-clock margins.)
+private func prober(_ transport: RoutedTransport, grace: Duration) -> ConnectionProber {
+    ConnectionProber(
+        transport: transport, endpoints: testEndpoints,
+        timing: ConnectionProber.Timing(
+            localTimeout: .seconds(3600), remoteTimeout: .seconds(3600), grace: grace))
+}
+
 private func identity(_ machineID: String = "FAKE-MACHINE-LOUNGE") -> RoutedTransport.Reply {
     .ok(Data("{\"MediaContainer\": {\"machineIdentifier\": \"\(machineID)\"}}".utf8))
 }
@@ -84,7 +94,8 @@ struct ConnectionProberTests {
         await transport.route(host: remoteHost, identity())
         await transport.route(host: localHost, delay: .milliseconds(30), identity())
 
-        let result = try await prober(transport).probe(connections: [local, remote])
+        // A grace period that cannot run out, so local always answers within it however loaded the machine.
+        let result = try await prober(transport, grace: .seconds(3600)).probe(connections: [local, remote])
 
         #expect(result.tier == .local)
     }
@@ -92,10 +103,13 @@ struct ConnectionProberTests {
     @Test func remoteIsUsedWhenLocalMissesTheGracePeriod() async throws {
         let transport = RoutedTransport()
         await transport.route(host: remoteHost, identity())
-        await transport.route(host: localHost, delay: .milliseconds(320), identity())
+        // Local would answer, but only long after the grace period (the prober cancels it first).
+        await transport.route(host: localHost, delay: .seconds(3000), identity())
 
-        let result = try await prober(transport).probe(connections: [local, remote])
+        let result = try await prober(transport, grace: .milliseconds(150)).probe(connections: [local, remote])
 
+        // Timeouts never fire, so only the grace period can end the wait with remote; a prober that kept
+        // waiting for local would hit the suite time limit instead.
         #expect(result.tier == .remote)
     }
 
@@ -104,7 +118,8 @@ struct ConnectionProberTests {
         await transport.route(host: relayHost, identity())
         await transport.route(host: remoteHost, delay: .milliseconds(30), identity())
 
-        let result = try await prober(transport).probe(connections: [relay, remote])
+        // A 2 s grace keeps the 30 ms remote answer inside it however loaded the machine is.
+        let result = try await prober(transport, grace: .seconds(2)).probe(connections: [relay, remote])
 
         #expect(result.tier == .remote)
     }

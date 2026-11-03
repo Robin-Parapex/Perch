@@ -21,11 +21,15 @@ public enum PlayerEvent: Sendable, Equatable {
 
 // Extension points are thin for now; each later WP that first uses one fixes its shape.
 
-/// A row on a page. Shape to be fixed by the first WP that uses it.
+/// A row on a page (shape fixed in WP-06). `cachedRow` answers at once from what the provider
+/// last saw, so Home never waits (SPEC.md, never a spinner on Home); `refreshRow` fetches anew.
+/// Read rows through `ModuleRegistry.cachedRow` and `refreshRow`, which apply the ceiling.
 public protocol RowProvider: Sendable {
     var id: String { get }
     var title: String { get }
     var placement: RowPlacement { get }
+    func cachedRow(in context: RowContext) -> MediaRow?
+    func refreshRow(in context: RowContext) async throws -> MediaRow
 }
 
 /// An action on the title page. Shape to be fixed by the first WP that uses it.

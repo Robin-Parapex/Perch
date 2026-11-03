@@ -1,0 +1,6 @@
+{"MediaContainer": {"size": 3, "totalSize": 137, "offset": 0, "allowSync": true, "title1": "Films", "librarySectionID": 1, "Metadata": [
+  {"ratingKey": 1001, "key": "/library/metadata/1001", "type": "movie", "title": "Harbour Lights", "year": 2019, "contentRating": "PG-13", "duration": 7200000, "viewCount": 1, "thumb": "/library/metadata/1001/thumb/1700000000", "art": "/library/metadata/1001/art/1700000000", "addedAt": 1700000000, "originallyAvailableAt": "2019-06-14",
+    "Genre": [{"tag": "Drama"}], "Guid": [{"id": "imdb://tt0000101"}, {"id": "tmdb://101"}]},
+  {"ratingKey": "1002", "key": "/library/metadata/1002", "type": "movie", "title": "The Quiet Orchard", "year": 2023, "contentRating": "12A", "duration": 6300000, "thumb": "/library/metadata/1002/thumb/1", "addedAt": "1790000100"},
+  {"ratingKey": "1003", "key": "/library/metadata/1003", "type": "movie", "title": "Paper Boats", "year": 2024, "contentRating": "PG", "duration": 5400000, "thumb": "/library/metadata/1003/thumb/1", "addedAt": 1790000300}
+]}}

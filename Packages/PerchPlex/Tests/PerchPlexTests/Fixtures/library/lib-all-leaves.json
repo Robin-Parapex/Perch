@@ -1,0 +1,7 @@
+{"MediaContainer": {"size": 5, "Metadata": [
+  {"ratingKey": "2091", "type": "episode", "title": "Behind the Lamp", "grandparentRatingKey": "2000", "grandparentTitle": "The Lantern Keepers", "parentRatingKey": "2090", "parentIndex": 0, "index": 1, "duration": 900000, "viewCount": 1},
+  {"ratingKey": "2101", "type": "episode", "title": "Salt and Signal", "grandparentRatingKey": "2000", "grandparentTitle": "The Lantern Keepers", "parentRatingKey": "2100", "parentIndex": 1, "index": 3, "duration": 2700000, "viewOffset": 600000, "viewCount": 0},
+  {"ratingKey": "2102", "type": "episode", "title": "Low Tide", "grandparentRatingKey": "2000", "grandparentTitle": "The Lantern Keepers", "parentRatingKey": "2100", "parentIndex": 1, "index": 4, "duration": 2640000, "viewCount": 0},
+  {"ratingKey": "2103", "type": "episode", "title": "The Long Night", "grandparentRatingKey": "2000", "grandparentTitle": "The Lantern Keepers", "parentRatingKey": "2100", "parentIndex": 1, "index": 5, "duration": 2700000, "viewCount": 0},
+  {"ratingKey": "2201", "type": "episode", "title": "New Keepers", "grandparentRatingKey": "2000", "grandparentTitle": "The Lantern Keepers", "parentRatingKey": "2200", "parentIndex": 2, "index": 1, "duration": 2700000, "viewCount": 0}
+]}}

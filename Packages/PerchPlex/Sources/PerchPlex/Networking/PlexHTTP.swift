@@ -49,6 +49,8 @@ public enum PlexError: Error, Equatable, Sendable {
     case adminVerificationRequired
     /// The Home users changed since the PIN screen was chosen: the switch needs this instead. Nothing was sent.
     case requirementChanged(SwitchRequirement)
+    /// The profile may not do this (or has no settings). Nothing was sent.
+    case notAllowed
 }
 
 /// Which side of the network a request was talking to, so a transport failure maps to the right case.

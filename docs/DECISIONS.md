@@ -328,6 +328,63 @@ Append-only log of decisions and why. Newest at the bottom. Format: date, decisi
 - `-PerchDesignGallery` opens the gallery whatever the setup state.
 - Decided by the WP-05 lead (Claude).
 
+## 2026-11-03 Library actor and profile generation
+- A `PlexLibrary` actor in `PerchPlex/Library/` sits next to `PlexSession`. It gets the base URL, server token, profile ID, machine ID and generation from an internal `PlexSession.libraryContext()`, so the token never leaves PerchPlex. `PlexSession` bumps the generation in `setState` whenever the profile, machine ID or base URL changes or the state leaves `.ready` (activate, switch, `resume()`, sign-out). `PlexLibrary` drops any response with a stale generation by throwing `CancellationError`, so a switch mid-request never shows one profile's rows to another. Switching still goes only through `PlexSession.switchProfile`.
+- Decided by the WP-06 lead (Claude); plan approved by Robin, 3 Nov 2026.
+
+## 2026-11-03 Neutral media types in PerchCore
+- Plex JSON decodes into internal `PlexWire*` envelopes with every field optional; `librarySectionID`, `extraType` and `index` accept an int or a string. A stream, marker or chapter that fails to decode is dropped, not the whole item. Public results are PerchCore types: `MediaSummary`, `MediaRow`, `MediaDetail` (with `MediaMarker`, `MediaChapter`, `MediaExtra` and `MediaVersion`) and `PlaybackProgress`, so Home, the player and later modules need nothing Plex-shaped.
+- Decided by the WP-06 lead (Claude); plan approved by Robin, 3 Nov 2026.
+
+## 2026-11-03 RowProvider and PlaybackReporting shapes
+- `RowProvider` has a synchronous `cachedRow(in:)` and an async `refreshRow(in:)`. `RowContext` carries the profile ID, the effective ceiling and an optional subject (rating key). One `RowContext.admit(_:)` filter is applied by the registry to every provider's row, so modules never filter separately. `PlexModule` contributes three Home rows: Continue watching, Up next in your series, Recently added. `PlaybackReporting` (`sessionID`, `report(state:positionMs:)`, `stop(positionMs:)`) lets PerchPlayer report through PerchCore only. The playable source and `PlayerHook` are left for WP-07.
+- Decided by the WP-06 lead (Claude); plan approved by Robin, 3 Nov 2026.
+
+## 2026-11-03 Plex library endpoints
+- JSON only, token in a header, paging by `X-Plex-Container-Start/Size`. Video sections only, from `/library/sections`; items from `/library/sections/{id}/all`, 50 then 100 per page, stopping on an empty page. Continue watching and Up next come from `/hubs/continueWatching` (items with an offset go to Continue watching, episodes without go to Up next, `/library/onDeck` as fallback, a series in one row only). Recently added comes from `/hubs` (movie, show, season and episode hubs whose identifier contains `recent`, merged by `addedAt`), falling back to `/library/recentlyAdded`. Metadata is `/library/metadata/{rk}` with markers, chapters, extras and guids; `checkFiles=1` only in a separate `metadataForPlayback`. The next episode is found by index and never steps back into season 0. Every path is checked against the live server before merge.
+- Decided by the WP-06 lead (Claude); plan approved by Robin, 3 Nov 2026.
+
+## 2026-11-03 Timeline reporting
+- `PlexLibrary.startPlayback(item:sessionID:)` returns a `PlexPlaybackReporter` actor that sends `/:/timeline` every 10 s and on every state change. One request is in flight at a time, the newest pending report replaces older ones, and sends go out in order. Seeking back is reported as is; buffering repeats the last known time. `stop()` sends `stopped`. After a generation change the reporter goes inert. The clock is injected for tests.
+- Decided by the WP-06 lead (Claude); plan approved by Robin, 3 Nov 2026.
+
+## 2026-11-03 Watched state
+- `markWatched` and `markUnwatched` call `/:/scrobble` and `/:/unscrobble`. At `stop()`, a position of at least 90% of a sane duration also scrobbles. Updates are optimistic in memory and reconciled by a refresh; each item carries a revision so a late read cannot undo a newer toggle. Reporter progress updates Continue watching in memory.
+- Decided by the WP-06 lead (Claude); plan approved by Robin, 3 Nov 2026.
+
+## 2026-11-03 Watched state under the play permission
+- All profiles, kids included, may mark their own titles watched or unwatched, under the existing play permission (`CoreAction.play`: parent, teen and kid yes, Top Shelf no). Watch state is per Plex user. No new matrix row.
+- Decided by Robin, 3 Nov 2026.
+
+## 2026-11-03 Home snapshot cache
+- The last good rows are kept in memory by profile and server; a failed refresh keeps them and marks the module degraded. On disk, one small JSON snapshot file per profile, with the server's machine id inside it (not one file per profile and server), holds the three Home rows with light fields only, capped at 40 items per row, in the App Group Caches directory (purgeable, outside the 500 KB persistent budget). It is read synchronously at launch, passed through `RowContext.admit` on every read, and rewritten after each good refresh. Sign-out deletes all snapshots. Top Shelf never reads them.
+- Decided by the WP-06 lead (Claude); plan approved by Robin, 3 Nov 2026.
+
+## 2026-11-03 Rating ceiling in rows and TV ratings
+- Plex already filters managed users' libraries. WP-06 carries each item's certificate, and `admit` drops an item only when the profile's Perch ceiling is below the Plex restriction. Ceilings across all rows and search stay in WP-18.
+- `RatingCeiling(certificate:)` learns US TV ratings: TV-Y, TV-Y7 and TV-G become U; TV-PG becomes PG; TV-MA becomes 18; NR and unknown stay 15. TV-14 rounds up to 15 for titles (fail closed) and down to 12A in allowed-rating lists.
+- Decided by the WP-06 lead (Claude). Robin confirmed that US TV-14 counts as UK 15, 3 Nov 2026.
+
+## 2026-11-03 Durations the server gets wrong
+- Remaining time and progress use the part duration, then the item duration. If either is missing or shorter than the offset (the debrid quirk), remaining is nil and Home shows no "min left".
+- Decided by the WP-06 lead (Claude); plan approved by Robin, 3 Nov 2026.
+
+## 2026-11-03 Fake household library
+- The DEBUG `-PerchFakeHousehold` canned transport gains library fixtures: sections, continueWatching, hubs, an episode with intro and credits markers, chapters and a trailer, so later work packages can build and UI-test without Plex.
+- Decided by the WP-06 lead (Claude); plan approved by Robin, 3 Nov 2026.
+
+## 2026-11-03 Library check (debug only)
+- A DEBUG "Library check" button on the placeholder screen lists sections, the three rows' counts and first titles, and, for the first Continue watching item, its markers, chapter count, extras and media summary. It is read-only by default; an opt-in write check (`-PerchLibraryWriteCheck`) and a response dump (`-PerchLibraryDump`) exist. It is removed when WP-09 lands.
+- Decided by the WP-06 lead (Claude); plan approved by Robin, 3 Nov 2026.
+
+## 2026-11-03 Live checks against the household server
+- A read-only library check (V4) from a signed debug build on Robin's live simulator, and timeline, scrobble and progress calls (V5) on one test title, with watch state restored afterwards. Robin approved both, 3 Nov 2026.
+- Decided by Robin, 3 Nov 2026.
+
+## 2026-11-03 Separate WP-06 test simulator
+- Package and UI tests during WP-06 development ran on a separate simulator, "Perch WP-06 unit tests" (5341203D, Apple TV 4K 3rd generation, tvOS 27.2), so the shared test simulator 11ACEAE4 stayed free for the other session. The gate still runs on 11ACEAE4.
+- Decided by the WP-06 lead (Claude).
+
 ## Open decisions (resolve in the named work package)
 - Recovery when the stored Perch PIN cannot be read (Admin is locked out by design): confirm the owner through Plex, audited, then allow a new Perch PIN (WP-05).
 - Assistant name (placeholder Pip) (WP-19).

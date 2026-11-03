@@ -1,0 +1,8 @@
+{"MediaContainer": {"size": 6, "Metadata": [
+  {"ratingKey": "5001", "type": "clip", "subtype": "trailer", "extraType": 1, "title": "Official Trailer", "duration": 125000},
+  {"ratingKey": "5004", "type": "clip", "subtype": "deletedScene", "extraType": 2, "title": "The Storm Cut", "duration": 90000},
+  {"ratingKey": "5005", "type": "clip", "extraType": "3", "title": "A Word with the Keeper", "duration": 600000},
+  {"ratingKey": "5006", "type": "clip", "extraType": 10, "title": "Making of Harbour Lights", "duration": 1500000},
+  {"ratingKey": "5007", "type": "clip", "extraType": 11, "title": "Lamp Test", "duration": 45000},
+  {"ratingKey": "5008", "type": "clip", "extraType": 99, "title": "Something Else", "duration": 10000}
+]}}

@@ -1,0 +1,5 @@
+{"MediaContainer": {"size": 3, "art": "/library/metadata/2000/art/1700000000", "parentTitle": "The Lantern Keepers", "Metadata": [
+  {"ratingKey": "2090", "key": "/library/metadata/2090/children", "type": "season", "title": "Specials", "parentRatingKey": "2000", "parentTitle": "The Lantern Keepers", "index": 0, "leafCount": 1, "viewedLeafCount": 0, "thumb": "/library/metadata/2090/thumb/1"},
+  {"ratingKey": "2100", "key": "/library/metadata/2100/children", "type": "season", "title": "Season 1", "parentRatingKey": "2000", "parentTitle": "The Lantern Keepers", "index": 1, "leafCount": 10, "viewedLeafCount": 4, "thumb": "/library/metadata/2100/thumb/1"},
+  {"ratingKey": "2200", "key": "/library/metadata/2200/children", "type": "season", "title": "Season 2", "parentRatingKey": "2000", "parentTitle": "The Lantern Keepers", "index": 2, "leafCount": 8, "viewedLeafCount": 0, "thumb": "/library/metadata/2200/thumb/1"}
+]}}

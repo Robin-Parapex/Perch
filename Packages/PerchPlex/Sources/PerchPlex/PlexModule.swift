@@ -1,17 +1,19 @@
 import PerchCore
 import SwiftUI
 
-/// Plex as a PerchCore module. No contributions yet; later WPs add rows, tabs and the player.
+/// Plex as a PerchCore module. Contributes the three Home rows; later WPs add tabs and the player.
 @MainActor
 public final class PlexModule: Module {
     public static let id = ModuleID("plex")
 
     private let session: PlexSession
+    private let library: PlexLibrary?
     private var snapshot = PlexSessionSnapshot(
         state: .signedOut, plexTVReachable: true, profileSwitchingAvailable: true)
 
-    public init(session: PlexSession) {
+    public init(session: PlexSession, library: PlexLibrary? = nil) {
         self.session = session
+        self.library = library
         Task { [weak self] in
             for await update in await session.updates() {
                 guard let self else { return }
@@ -33,7 +35,16 @@ public final class PlexModule: Module {
 
     public func testConnection() async -> TestResult { await session.testServerConnection() }
 
-    public func contributions() -> [Contribution] { [] }
+    public func contributions() -> [Contribution] {
+        guard let library else { return [] }
+        return [
+            (PlexHomeRows.continueWatchingID, "Continue watching", 0),
+            (PlexHomeRows.upNextID, "Up next in your series", 1),
+            (PlexHomeRows.recentlyAddedID, "Recently added", 2),
+        ].map { id, title, order in
+            .row(PlexHomeRowProvider(id: id, title: title, placement: .home(order: order), library: library))
+        }
+    }
 
     public func policy(for action: ActionID) -> ActionPolicy? { nil }
 }
