@@ -1,4 +1,5 @@
 import Foundation
+import PerchCore
 
 /// `GET {server}/identity`. Server calls wrap their payload in `MediaContainer`.
 public struct PlexServerIdentity: Sendable, Equatable {
@@ -37,5 +38,30 @@ public struct PlexLibrarySummary: Sendable, Equatable {
         struct Root: Decodable { let MediaContainer: Container }
         let container = try PlexJSON.decode(Root.self, from: data).MediaContainer
         return PlexLibrarySummary(sectionCount: container.Directory?.count ?? container.size ?? 0)
+    }
+}
+
+/// `GET {server}/library/recentlyAdded`, reduced to the unique `art` paths (backdrops).
+public enum PlexArtList {
+    /// Keeps only items rated at or below `ceiling`; no rating, or an unknown one, is dropped.
+    public static func decode(from data: Data, limit: Int, ceiling: RatingCeiling) throws -> [String] {
+        struct Item: Decodable {
+            let art: String?
+            let contentRating: String?
+        }
+        struct Container: Decodable { let Metadata: [Item]? }
+        struct Root: Decodable { let MediaContainer: Container }
+        let all = try PlexJSON.decode(Root.self, from: data).MediaContainer.Metadata ?? []
+        let items = all.filter { item in
+            guard let rating = item.contentRating.flatMap({ RatingCeiling(certificate: $0) }) else { return false }
+            return ceiling.allows(rating)
+        }
+        var seen = Set<String>()
+        var paths: [String] = []
+        for case let art? in items.map(\.art) where !art.isEmpty && seen.insert(art).inserted {
+            paths.append(art)
+            if paths.count >= limit { break }
+        }
+        return paths
     }
 }

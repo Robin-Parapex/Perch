@@ -1,4 +1,5 @@
 import Foundation
+import PerchCore
 import os
 
 let plexLog = Logger(subsystem: "com.robrolabs.perch", category: "plex")
@@ -44,6 +45,10 @@ public enum PlexError: Error, Equatable, Sendable {
     case notHomeOwner
     /// A profile switch is already running.
     case switchInProgress
+    /// The switch needs an accepted Admin PIN check that the caller did not supply.
+    case adminVerificationRequired
+    /// The Home users changed since the PIN screen was chosen: the switch needs this instead. Nothing was sent.
+    case requirementChanged(SwitchRequirement)
 }
 
 /// Which side of the network a request was talking to, so a transport failure maps to the right case.

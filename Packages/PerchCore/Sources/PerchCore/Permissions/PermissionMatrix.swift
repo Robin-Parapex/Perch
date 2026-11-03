@@ -62,7 +62,7 @@ public enum PermissionMatrix {
             ActionPolicy(parent: .allow, teen: .allow, kid: .needsPIN)
         case .openSettings:
             ActionPolicy(parent: .allow, teen: .limited, kid: .needsPIN)
-        case .openAdmin, .unlockDoor, .alarm:
+        case .openAdmin, .editSetup, .unlockDoor, .alarm:
             ActionPolicy(parent: .needsFreshPIN, teen: .deny, kid: .deny)
         case .requestTitle:
             ActionPolicy(parent: .allow, teen: .queued, kid: .queued)

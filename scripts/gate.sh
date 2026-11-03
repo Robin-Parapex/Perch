@@ -18,18 +18,15 @@ FAILED=0
 pass() { echo "PASS  $1"; }
 fail() { echo "FAIL  $1  (log: ${2:-n/a})"; [ -n "${2:-}" ] && tail -n 15 "$2" | sed 's/^/      /'; FAILED=1; }
 
-# Simulator: prefer the 3rd generation by name, else the first available Apple TV 4K.
-DEVICES="$(xcrun simctl list devices available)"
-SIM_NAME="Apple TV 4K (3rd generation)"
-if ! grep -q "^ *$SIM_NAME (" <<<"$DEVICES"; then
-  SIM_NAME="$(grep -E '^ *Apple TV 4K' <<<"$DEVICES" | head -n 1 | sed -E 's/^ *//; s/ \([0-9A-F-]{36}\).*$//' || true)"
-fi
-if [ -z "$SIM_NAME" ]; then
-  echo "FAIL  no Apple TV 4K simulator available"
+# Simulator: the 3rd-generation test simulator, by id. Never the other Apple TV simulator: it holds the
+# live Plex sign-in, and UI tests wipe it.
+SIM_ID="11ACEAE4-F474-4F94-842C-E8A000C4D417"
+if ! xcrun simctl list devices available | grep -q "$SIM_ID"; then
+  echo "FAIL  test simulator $SIM_ID is not available"
   exit 1
 fi
-DEST="platform=tvOS Simulator,name=$SIM_NAME"
-echo "Simulator: $SIM_NAME"
+DEST="platform=tvOS Simulator,id=$SIM_ID"
+echo "Simulator: $SIM_ID"
 
 # Step 1: generated project must match what is on disk.
 BEFORE="$(mktemp -d)"
@@ -61,10 +58,16 @@ for pkg in "${PACKAGES[@]}"; do
   fi
 done
 
-# Step 3: app scheme (UI test).
+# Step 3: app scheme (UI tests). Built signed (team 3TWLQK4535, as project.yml): an unsigned build has no
+# Keychain access group (-34018), so the WP-05 UI tests could not sign in and would skip.
 log="$LOGS/PerchApp.log"
-if xcodebuild test -project Perch.xcodeproj -scheme PerchApp -destination "$DEST" CODE_SIGNING_ALLOWED=NO >"$log" 2>&1; then
-  pass "app UI tests: PerchApp"
+if xcodebuild test -project Perch.xcodeproj -scheme PerchApp -destination "$DEST" \
+  -allowProvisioningUpdates DEVELOPMENT_TEAM=3TWLQK4535 >"$log" 2>&1; then
+  if grep -qiE "Test case .* skipped" "$log"; then
+    fail "app UI tests: PerchApp ran but skipped tests (signing?)" "$log"
+  else
+    pass "app UI tests: PerchApp"
+  fi
 else
   fail "app UI tests: PerchApp" "$log"
 fi

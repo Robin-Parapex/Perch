@@ -47,6 +47,7 @@ struct PermissionMatrixTests {
         ("Switch profile", .switchProfile, .allowed, .allowed, .needsPIN),
         ("Open Settings", .openSettings, .allowed, .limited, .needsPIN),
         ("Open Admin", .openAdmin, .needsFreshPIN, denyRole, denyRole),
+        ("Edit setup", .editSetup, .needsFreshPIN, denyRole, denyRole),
         ("Request a title", .requestTitle, .allowed, .queued, .queued),
         ("Approve requests", .approveRequests, .allowed, denyRole, denyRole),
         ("Doorbell overlay", .seeDoorbellOverlay, .allowed, .allowed, .allowed),
@@ -71,7 +72,7 @@ struct PermissionMatrixTests {
             out.append(Cell(name: name, action: action, role: .kid, fresh: false, expected: kid))
         }
         // PIN-fresh variants.
-        for (name, action) in [("Open Admin", CoreAction.openAdmin), ("Unlock door", .unlockDoor), ("Alarm", .alarm)] {
+        for (name, action) in [("Open Admin", CoreAction.openAdmin), ("Edit setup", .editSetup), ("Unlock door", .unlockDoor), ("Alarm", .alarm)] {
             out.append(Cell(name: name, action: action, role: .parent, fresh: true, expected: .allowed))
             out.append(Cell(name: name, action: action, role: .teen, fresh: true, expected: denyRole))
             out.append(Cell(name: name, action: action, role: .kid, fresh: true, expected: denyRole))

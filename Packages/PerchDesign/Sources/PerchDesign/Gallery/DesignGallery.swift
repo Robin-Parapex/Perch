@@ -17,6 +17,7 @@ public struct DesignGallery: View {
     private var style: PerchStyle { kids ? .kids : .standard }
 
     public var body: some View {
+        ScrollViewReader { proxy in
         ScrollView(.vertical) {
             VStack(alignment: .leading, spacing: PerchSpacing.rowGap) {
                 Text("Design gallery")
@@ -29,9 +30,12 @@ public struct DesignGallery: View {
                 pillsSection
                 heroSection
                 rowsSection
+                setupSection.id("setup")
                 kidsSection
             }
             .padding(.vertical, PerchSpacing.topMargin)
+        }
+        .onAppear { scrollToRequestedSection(proxy) }
         }
         .ignoresSafeArea()
         .accessibilityIdentifier("designGallery")
@@ -177,6 +181,121 @@ public struct DesignGallery: View {
                 }
             }
             .frame(height: 1500)
+        }
+    }
+
+    // MARK: Setup and profiles
+
+    @State private var cover: Cover? = Self.requestedCover()
+
+    private static let sampleProfiles: [ProfilePickerItem] = [
+        ProfilePickerItem(id: "sam", name: "Sam", image: sampleArt(.indigo, "person.fill"), isCurrent: true),
+        ProfilePickerItem(id: "alex", name: "Alex Brown", isProtected: true),
+        ProfilePickerItem(id: "kit", name: "Kit", image: sampleArt(.teal, "star.fill")),
+        ProfilePickerItem(id: "guest", name: "Guest", image: sampleArt(.orange, "figure.wave")),
+    ]
+
+    private struct GridRow: Identifiable {
+        let id: String, name: String, role: String, rating: String
+    }
+
+    private static let gridRows: [GridRow] = [
+        GridRow(id: "sam", name: "Sam", role: "Parent", rating: "All ratings"),
+        GridRow(id: "alex", name: "Alex Brown", role: "Parent", rating: "Up to 15"),
+        GridRow(id: "kit", name: "Kit", role: "Kid", rating: "Up to PG"),
+    ]
+
+    private var setupSection: some View {
+        section("Setup and profiles") {
+            VStack(alignment: .leading, spacing: 36) {
+                HStack(spacing: 24) {
+                    ProgressDots(current: 2, total: 6)
+                    ProgressDots(current: 6, total: 6)
+                }
+                ProfilePickerRow(items: Self.sampleProfiles, defaultFocusID: "sam") { _ in }
+                    .frame(width: 1760)
+                    .accessibilityIdentifier("gallery.profilePicker")
+                SetupProfileGrid(
+                    rows: Self.gridRows, name: \.name, roleTitle: \.role, ratingTitle: \.rating,
+                    onRole: { _ in }, onRating: { _ in }
+                )
+                .frame(width: 1400)
+                HStack(spacing: 24) {
+                    Button("Open step screen") { cover = .step }
+                        .accessibilityIdentifier("gallery.openStep")
+                    Button("Open PIN screen") { cover = .pin }
+                        .accessibilityIdentifier("gallery.openPIN")
+                    Button("PIN wrong") { cover = .pinWrong }
+                    Button("PIN locked") { cover = .pinLocked }
+                    Button("Profiles") { cover = .profiles }
+                }
+                .buttonStyle(.perchSecondary)
+            }
+        }
+        .fullScreenCover(item: $cover) { screen in
+            switch screen {
+            case .step:
+                SetupStepContainer(
+                    title: "Connect Plex", helper: "Sign in once and Perch finds your libraries.",
+                    step: 2, of: 6, primaryTitle: "Continue", primaryAction: {}, skipAction: {},
+                    backdrop: Self.sampleArt(.indigo, "film.stack")
+                ) {
+                    TextField("Server address", text: .constant("")).perchSetupField()
+                }
+                .perchPageBackground()
+            case .pin:
+                PINEntryScreen(
+                    name: "Alex Brown", backdrop: Self.sampleArt(.indigo, "film.stack"), prompt: "Enter your PIN",
+                    pin: .constant("12")
+                ) { _ in }
+            case .pinWrong:
+                PINEntryScreen(
+                    name: "Alex Brown", backdrop: Self.sampleArt(.indigo, "film.stack"),
+                    pin: .constant(""), failures: 1, errorMessage: "That PIN is not right. Try again."
+                ) { _ in }
+            case .pinLocked:
+                PINEntryScreen(
+                    name: "Alex Brown", backdrop: Self.sampleArt(.indigo, "film.stack"),
+                    pin: .constant(""), lockedUntil: Date().addingTimeInterval(45), onBack: { cover = nil }
+                ) { _ in }
+            case .profiles:
+                ZStack {
+                    SetupBackdrop(arts: [AnyView(Self.sampleArt(.indigo, "film.stack")), AnyView(Self.sampleArt(.teal, "tv"))])
+                    VStack(spacing: 56) {
+                        Text("Who's watching?").font(PerchFont.stepTitle(style)).foregroundStyle(PerchColor.textPrimary)
+                        ProfilePickerRow(items: Self.sampleProfiles, defaultFocusID: "kit") { _ in }
+                    }
+                    .padding(.bottom, 60)
+                }
+                .ignoresSafeArea()
+            }
+        }
+    }
+
+    private enum Cover: String, Identifiable {
+        case step, pin, pinWrong, pinLocked, profiles
+        var id: String { rawValue }
+    }
+
+    private static func requestedCover() -> Cover? {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let flag = arguments.firstIndex(of: "-PerchDesignGalleryCover"),
+              arguments.indices.contains(flag + 1) else { return nil }
+        return Cover(rawValue: arguments[flag + 1])
+    }
+
+    private func scrollToRequestedSection(_ proxy: ScrollViewProxy) {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let flag = arguments.firstIndex(of: "-PerchDesignGallerySection"),
+              arguments.indices.contains(flag + 1) else { return }
+        let target = arguments[flag + 1]
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { proxy.scrollTo(target, anchor: .top) }
+    }
+
+    private static func sampleArt(_ colour: Color, _ symbol: String) -> some View {
+        ZStack {
+            colour.opacity(0.55)
+            Image(systemName: symbol).font(.system(size: 80)).foregroundStyle(.white.opacity(0.85))
         }
     }
 
