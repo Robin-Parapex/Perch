@@ -44,7 +44,8 @@ struct ProfilePickerView: View {
             }
         }
         .animation(.easeInOut(duration: PerchMotion.crossfadeDuration), value: pinTarget?.id)
-        .onExitCommand { handleBack() }
+        // Nil on the root picker (nothing to go back to), so Back leaves the app.
+        .onExitCommand(perform: (pinTarget != nil || onBack != nil) ? { handleBack() } : nil)
         .task { await load() }
     }
 
@@ -234,7 +235,7 @@ struct ProfilePickerView: View {
             isSwitching = true
             let result = await core.profileSwitcher.switchTo(user, pin: nil)
             isSwitching = false
-            handle(result, for: user, fromPINScreen: false)
+            await handle(result, for: user, fromPINScreen: false)
         }
     }
 
@@ -242,10 +243,36 @@ struct ProfilePickerView: View {
         isChecking = true
         let result = await core.profileSwitcher.switchTo(user, pin: entered)
         isChecking = false
-        handle(result, for: user, fromPINScreen: true)
+        await handle(result, for: user, fromPINScreen: true)
     }
 
-    private func handle(_ result: ProfileSwitcher.Result, for user: PlexHomeUser, fromPINScreen: Bool) {
+    /// What the lockout is right now for this kind of PIN, so a PIN screen never looks live while locked.
+    private func currentLockout(for kind: SwitchRequirement) async -> Date? {
+        let lockout: PINLockout
+        switch kind {
+        case .adminPIN:
+            lockout = await core.adminPIN.lockoutState()
+        default:
+            let defaults = UserDefaults(suiteName: PerchConstants.appGroupID)
+            guard let data = defaults?.data(forKey: PlexSession.DefaultsKey.profilePINLockout),
+                let decoded = try? JSONDecoder().decode(PINLockout.self, from: data)
+            else { return nil }
+            lockout = decoded
+        }
+        return lockout.isLocked(at: Date()) ? lockout.lockedUntil : nil
+    }
+
+    private func openPIN(_ user: PlexHomeUser, kind: SwitchRequirement) async {
+        let until = await currentLockout(for: kind)
+        pinKind = kind
+        pin = ""
+        failures = 0
+        errorMessage = nil
+        lockedUntil = until
+        pinTarget = user
+    }
+
+    private func handle(_ result: ProfileSwitcher.Result, for user: PlexHomeUser, fromPINScreen: Bool) async {
         switch result {
         case .switched:
             pinTarget = nil
@@ -253,12 +280,7 @@ struct ProfilePickerView: View {
             currentID = user.id
             onDone?()
         case .needsPIN(let kind):
-            pinKind = kind
-            pin = ""
-            failures = 0
-            errorMessage = nil
-            lockedUntil = nil
-            pinTarget = user
+            await openPIN(user, kind: kind)
         case .rejected(let message):
             pin = ""
             failures += 1
@@ -270,6 +292,11 @@ struct ProfilePickerView: View {
             if !fromPINScreen { notice = ProfileSwitcher.lockedMessage(until) }
         case .failed(let message):
             if fromPINScreen {
+                // The Admin PIN was accepted but the target became protected meanwhile: ask for its PIN.
+                if pinKind == .adminPIN, case .targetPlexPIN = await core.profileSwitcher.requirement(for: user) {
+                    await openPIN(user, kind: .targetPlexPIN)
+                    return
+                }
                 pin = ""
                 errorMessage = message
             } else {

@@ -51,9 +51,10 @@ struct PlaceholderView: View {
                 }
             }
             .animation(.easeInOut(duration: PerchMotion.crossfadeDuration), value: askingForPIN || refused)
-            .onExitCommand {
-                if refused { refused = false } else if askingForPIN, !isChecking { closePIN() }
-            }
+            // Nil on home itself, so Back leaves the app (top level) instead of being swallowed.
+            .onExitCommand(
+                perform: (refused || askingForPIN)
+                    ? { if refused { refused = false } else if !isChecking { closePIN() } } : nil)
             .navigationDestination(for: Route.self) { route in
                 switch route {
                 case .picker:

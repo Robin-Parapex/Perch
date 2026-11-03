@@ -81,6 +81,54 @@ final class ProfilePickerUITests: XCTestCase {
         shot("24-picker-pin-locked")
     }
 
+    /// Back on the picker opened from home returns home (never drops the user elsewhere).
+    @MainActor
+    func testBackOnPickerOpenedFromHomeReturnsHome() throws {
+        let app = launchApp(.noPINs)
+        try completeWizard(app, .noPINs)
+        openPicker(app)
+        tap("profile.1001", in: app)
+        waitForHome(app, as: "Robin")
+        tap("home.switchProfile", in: app)
+        let title = element(app, "picker.title")
+        waitFor(title)
+        let first = element(app, "profile.1001")
+        waitFor(first)
+        XCTAssertTrue(waitUntil(5) { first.hasFocus }, "the picker takes focus")
+        back()
+        waitForHome(app, as: "Robin")
+        XCTAssertFalse(title.exists, "the picker is closed")
+    }
+
+    /// After five wrong PINs, leaving and reopening the PIN screen shows the locked state at once.
+    @MainActor
+    func testLockoutShowsAtOnceWhenPINScreenReopens() throws {
+        let app = launchApp(.withPINs)
+        try completeWizard(app, .withPINs)
+        openPicker(app)
+        tap("profile.1002", in: app)
+        waitFor(app.buttons["1"].firstMatch)
+
+        var locked = false
+        for _ in 0..<6 {
+            enterPIN("1111", in: app)
+            if waitUntil(4, { self.element(app, "pinEntry.locked").exists }) {
+                locked = true
+                break
+            }
+        }
+        XCTAssertTrue(locked, "five wrong PINs lock the profile")
+
+        back()
+        waitFor(element(app, "picker.title"))
+        tap("profile.1002", in: app)
+        // No further try: the locked state is there as soon as the screen is.
+        let lockedAgain = element(app, "pinEntry.locked")
+        waitFor(lockedAgain, timeout: 3)
+        XCTAssertTrue(text(lockedAgain).hasPrefix("Try again in"), "a countdown shows on reopening")
+        shot("24b-picker-pin-locked-reopened")
+    }
+
     /// Leaving a kid profile asks for the Admin PIN even when the adult has no Plex PIN.
     @MainActor
     func testLeavingAKidProfileAsksForTheAdminPIN() throws {

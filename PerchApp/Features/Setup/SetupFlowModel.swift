@@ -51,6 +51,10 @@ final class SetupFlowModel {
     private let core: CoreServices
     private let onFinish: () -> Void
     private let plex: PlexSignInModel
+    /// A re-run that begins at Connect Plex: its Welcome is top level, so Back there leaves the app.
+    private let startsAtConnect: Bool
+    /// The link sign-in, kept so dismissing the wizard can cancel it.
+    @ObservationIgnored private var signInTask: Task<Void, Never>?
 
     // Flow
     private(set) var progress: SetupProgress
@@ -104,6 +108,7 @@ final class SetupFlowModel {
         self.core = core
         self.onFinish = onFinish
         plex = core.plexSignIn
+        startsAtConnect = startAtConnect
         progress = SetupProgress(isRerun: isRerun, current: startAtConnect ? .connectPlex : .welcome)
         registerAddLaterEntries()
     }
@@ -121,9 +126,15 @@ final class SetupFlowModel {
         return "step.\(progress.current.rawValue)"
     }
 
-    /// Back is left to the system only at Welcome on a first run (top level: it leaves the app).
+    /// Back is left to the system at Welcome on a first run and in the reconnect flow (top level: it leaves the app).
     var interceptsBack: Bool {
-        pinMode != nil || progress.current != .welcome || isRerun
+        pinMode != nil || progress.current != .welcome || (isRerun && !startsAtConnect)
+    }
+
+    /// The wizard is going away: a link sign-in still in flight must not apply its result.
+    func cancelPending() {
+        signInTask?.cancel()
+        signInTask = nil
     }
 
     var showsBackdrop: Bool {
@@ -168,7 +179,10 @@ final class SetupFlowModel {
             return
         }
         if progress.current == .welcome {
-            if progress.backAtStart == .returnHome { onFinish() }
+            if progress.backAtStart == .returnHome, !startsAtConnect {
+                cancelPending()
+                onFinish()
+            }
             return
         }
         await go(.backward) { self.progress.goBack() }
@@ -192,6 +206,8 @@ final class SetupFlowModel {
     }
 
     func finish() {
+        guard progress.canFinish else { return }
+        cancelPending()
         SetupCompletion(store: core.keyValues).setComplete(true)
         onFinish()
     }
@@ -225,7 +241,8 @@ final class SetupFlowModel {
                 return
             case .linked(let accountToken):
                 // Unstructured: the code screen goes away once connected, which cancels its own task.
-                Task { await self.signIn(accountToken: accountToken) }
+                signInTask?.cancel()
+                signInTask = Task { await self.signIn(accountToken: accountToken) }
                 return
             }
         }
@@ -234,6 +251,7 @@ final class SetupFlowModel {
     private func signIn(accountToken: String) async {
         do {
             let found = try await plex.session.signIn(accountToken: accountToken)
+            guard !Task.isCancelled else { return }
             servers = found
             progress.serverCount = found.count
             if found.isEmpty {
@@ -247,6 +265,7 @@ final class SetupFlowModel {
                 await showConnected()
             }
         } catch {
+            guard !Task.isCancelled else { return }
             linkError = PlexSignInModel.message(for: error)
         }
     }
@@ -533,7 +552,14 @@ final class SetupFlowModel {
     private func authorisedEdit(_ edit: @escaping @Sendable (inout SettingsDocument) -> Void) async {
         profileMessage = nil
         let document = await core.settings.document
-        let context = PermissionContext(role: .parent, plexUserID: document.household.ownerPlexUserID)
+        // The profile in use; on a first run, before one is chosen, the owner acts as parent.
+        let context: PermissionContext
+        if let current = await plex.session.currentProfile() {
+            let role = document.profiles[current.id]?.role ?? .kid  // unknown means the strictest rule
+            context = PermissionContext(role: role, plexUserID: current.id)
+        } else {
+            context = PermissionContext(role: .parent, plexUserID: document.household.ownerPlexUserID)
+        }
         let decision = await core.authoriser.authorise(.editSetup, context: context, entity: "profiles")
         switch decision {
         case .allowed, .limited, .queued:

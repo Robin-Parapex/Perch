@@ -21,6 +21,7 @@ struct SetupFlowView: View {
         }
         // Nil at Welcome on a first run, so Back leaves the app instead of being swallowed.
         .onExitCommand(perform: model.interceptsBack ? { Task { await model.back() } } : nil)
+        .onDisappear { model.cancelPending() }
         .task(id: model.showsBackdrop) { await model.loadBackdropIfNeeded() }
     }
 
