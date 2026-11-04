@@ -534,11 +534,15 @@ public actor PlexSession {
     private func upgradeConnection(token: String, cached: [PlexConnection]) async {
         guard case .ready(let startProfile, let start) = snapshotValue.state else { return }
         guard let found = try? await discovery.servers(token: token),
-            let server = found.first(where: { $0.machineID == start.machineID }),
+            let server = found.first(where: { $0.machineID == start.machineID })
+        else { return }
+        // plex.tv knows which addresses are relays; a remembered address looks like a direct one.
+        let startTier = server.connections.first(where: { $0.url == start.baseURL })?.tier ?? start.tier
+        guard
             let fresh = try? await prober.probe(
                 connections: server.connections + cached, lastGood: start.baseURL,
                 expectedMachineID: start.machineID),
-            fresh.tier < start.tier
+            fresh.url != start.baseURL, fresh.tier < startTier
         else { return }
         // Re-check after the awaits: a profile switch, server change or sign-out wins over this.
         guard case .ready(let profile, let current) = snapshotValue.state, profile.id == startProfile.id,

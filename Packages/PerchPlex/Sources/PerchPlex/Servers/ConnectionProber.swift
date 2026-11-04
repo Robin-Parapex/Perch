@@ -24,13 +24,21 @@ extension PlexConnection {
     private static func isPrivateHost(_ host: String) -> Bool {
         let lower = host.lowercased()
         if lower == "localhost" || lower.hasSuffix(".local") || lower.hasSuffix(".lan") { return true }
-        if lower.hasPrefix("fc") || lower.hasPrefix("fd") || lower.hasPrefix("fe80") { return lower.contains(":") }
-        // `192-168-1-20.<hash>.plex.direct` names a private address too (Plex's LAN certificate names).
+        if lower.contains(":") {
+            return lower == "::1" || lower.hasPrefix("fc") || lower.hasPrefix("fd") || lower.hasPrefix("fe80")
+        }
+        // Plex's certificate names carry the address in the first label: `192-168-1-20.<hash>.plex.direct`,
+        // or for IPv6 the groups with dashes for colons (`fd12-3456--1`, `--` for `::`).
         if lower.hasSuffix(".plex.direct"), let label = lower.split(separator: ".").first {
+            let groups = label.split(separator: "-", omittingEmptySubsequences: false)
+            if label.contains("--") || groups.count > 4 {
+                return isPrivateHost(label.replacingOccurrences(of: "-", with: ":"))
+            }
             return isPrivateHost(label.replacingOccurrences(of: "-", with: "."))
         }
-        let parts = lower.split(separator: ".").compactMap { Int($0) }
-        guard parts.count == 4 else { return false }
+        let raw = lower.split(separator: ".", omittingEmptySubsequences: false)
+        let parts = raw.compactMap { Int($0) }.filter { (0...255).contains($0) }
+        guard raw.count == 4, parts.count == 4 else { return false }
         switch (parts[0], parts[1]) {
         case (10, _), (127, _), (192, 168), (169, 254): return true
         case (172, 16...31): return true
@@ -92,14 +100,17 @@ public struct ConnectionProber: Sendable {
     ) async throws -> ProbeResult {
         var sawMismatch = false
 
-        var ordered: [(url: URL, tier: PlexConnectionTier)] = []
+        // De-duplicate in the order given, then sort by tier: when an address is listed twice, the
+        // first copy's tier counts (callers put plex.tv's connections, which know relays, before cached ones).
+        var unique: [(offset: Int, url: URL, tier: PlexConnectionTier)] = []
         var seen = Set<String>()
-        for connection in connections.enumerated().sorted(by: {
-            ($0.element.tier, $0.offset) < ($1.element.tier, $1.offset)
-        }).map(\.element) {
+        for (offset, connection) in connections.enumerated() {
             guard let url = connection.url, seen.insert(url.absoluteString).inserted else { continue }
-            ordered.append((url, connection.tier))
+            unique.append((offset, url, connection.tier))
         }
+        var ordered: [(url: URL, tier: PlexConnectionTier)] = unique
+            .sorted { ($0.tier, $0.offset) < ($1.tier, $1.offset) }
+            .map { ($0.url, $0.tier) }
 
         if let lastGood {
             let tier = ordered.first { $0.url == lastGood }?.tier ?? PlexConnection.manual(url: lastGood).tier

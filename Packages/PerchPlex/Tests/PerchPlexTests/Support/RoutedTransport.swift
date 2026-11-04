@@ -27,6 +27,29 @@ actor RoutedTransport: PlexTransport {
         routes.append(Route(host: host, path: path, delay: delay, reply: reply))
     }
 
+    /// Replaces the route for `host` and `path` (later requests get the new reply).
+    func reroute(host: String, path: String = "/identity", _ reply: Reply) {
+        routes.removeAll { $0.host == host && $0.path == path }
+        route(host: host, path: path, reply)
+    }
+
+    private var holdKey: String?
+    private var heldRequest: CheckedContinuation<Void, Never>?
+    private var holdArrived = false
+
+    /// The next request to `host` and `path` waits until `releaseHold()`; later ones pass straight through.
+    func holdNext(host: String, path: String) { holdKey = host + path }
+
+    /// Waits until the held request has arrived.
+    func waitForHeldRequest() async {
+        while !holdArrived { try? await Task.sleep(for: .milliseconds(5)) }
+    }
+
+    func releaseHold() {
+        heldRequest?.resume()
+        heldRequest = nil
+    }
+
     func requests(forHost host: String) -> [URLRequest] {
         requests.filter { $0.url?.host(percentEncoded: false) == host }
     }
@@ -35,6 +58,13 @@ actor RoutedTransport: PlexTransport {
         requests.append(request)
         let host = request.url?.host(percentEncoded: false) ?? ""
         let path = request.url?.path ?? ""
+        if let holdKey, holdKey == host + path {
+            self.holdKey = nil
+            await withCheckedContinuation { continuation in
+                heldRequest = continuation
+                holdArrived = true
+            }
+        }
         guard let route = routes.first(where: { $0.host == host && $0.path == path }) else {
             return (Data(), Self.http(request, 404))
         }
