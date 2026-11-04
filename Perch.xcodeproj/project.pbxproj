@@ -20,6 +20,7 @@
 		39C4BCB6D82B9258F5DA1FF4 /* PerchPlex in Frameworks */ = {isa = PBXBuildFile; productRef = 6BF6030B83AFC8D38A73E397 /* PerchPlex */; };
 		3AED5929C41FE85286198AC7 /* PlaybackCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF2C688EE58E4849D6CBD6FC /* PlaybackCoordinator.swift */; };
 		3DF3EEA72F6F90D6F28662F0 /* SetupWizardUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24058FD508AF202F5629849E /* SetupWizardUITests.swift */; };
+		41252ABD4AB177935FD5305F /* PlayerUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0515B7DA325FB2439471BC2 /* PlayerUITests.swift */; };
 		42B8A5B6784DC88C684A5826 /* LibraryDumpTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47420A664FAA3977282845F2 /* LibraryDumpTransport.swift */; };
 		487B2E112C27D4631E1E3BA0 /* PerchUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DCA53A26933A2B3B0B4F245 /* PerchUITests.swift */; };
 		49FC74040CE062EA08425469 /* SetupFlowModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFCF9214DE208DF357C09CFF /* SetupFlowModel.swift */; };
@@ -119,6 +120,7 @@
 		B4E088AAD12B918F3014DDE1 /* SetupFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupFlowView.swift; sourceTree = "<group>"; };
 		BA3D00610520725A20C7FCA1 /* PlayerOverlayContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerOverlayContent.swift; sourceTree = "<group>"; };
 		BD04E58E88BA9BC35355C563 /* PerchAI */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PerchAI; path = Packages/PerchAI; sourceTree = SOURCE_ROOT; };
+		D0515B7DA325FB2439471BC2 /* PlayerUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerUITests.swift; sourceTree = "<group>"; };
 		D11E7EAAD6441A75FF4CD087 /* PlaceholderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaceholderView.swift; sourceTree = "<group>"; };
 		D9747DA535C64AC2ADD90729 /* PlayerSpikeUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerSpikeUITests.swift; sourceTree = "<group>"; };
 		DAFA42F3295D0579E36B8D6C /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
@@ -248,6 +250,7 @@
 				5D91C2D2667DAAD88A077BC0 /* LibraryCheckUITests.swift */,
 				7DCA53A26933A2B3B0B4F245 /* PerchUITests.swift */,
 				D9747DA535C64AC2ADD90729 /* PlayerSpikeUITests.swift */,
+				D0515B7DA325FB2439471BC2 /* PlayerUITests.swift */,
 				08393C8DD9CE37ACF64C1E97 /* ProfilePickerUITests.swift */,
 				24058FD508AF202F5629849E /* SetupWizardUITests.swift */,
 				7B74E85BFB25EAF18EAAFBAA /* WP05Support.swift */,
@@ -478,6 +481,7 @@
 				9852F3937FE0FA15F011E5AD /* LibraryCheckUITests.swift in Sources */,
 				487B2E112C27D4631E1E3BA0 /* PerchUITests.swift in Sources */,
 				5EA6B7B6C16EAFE9EBEF4E84 /* PlayerSpikeUITests.swift in Sources */,
+				41252ABD4AB177935FD5305F /* PlayerUITests.swift in Sources */,
 				05EE20E1CEDCBCB567CC7E61 /* ProfilePickerUITests.swift in Sources */,
 				3DF3EEA72F6F90D6F28662F0 /* SetupWizardUITests.swift in Sources */,
 				70DB6C9458CCE2CA58217FB4 /* WP05Support.swift in Sources */,

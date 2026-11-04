@@ -179,6 +179,11 @@ struct FakeHouseholdTransport: PlexTransport {
         case "/hubs/continueWatching": return raw(Self.continueWatchingJSON, url)
         case "/hubs": return raw(Self.hubsJSON, url)
         case "/library/onDeck": return raw(Self.onDeckJSON, url)
+        // The next episode for the player (WP-07): the series of the fake episode has E3 and E4.
+        case "/library/metadata/2000/allLeaves": return raw(Self.allLeavesJSON, url)
+        // A transcode decision (the fake file is 4K DV): accepted. The coordinator plays the bundled clip anyway.
+        case "/video/:/transcode/universal/decision":
+            return raw(#"{"MediaContainer": {"generalDecisionCode": 1000, "transcodeDecisionCode": 1000}}"#, url)
         // Watch-state and timeline writes: accepted, nothing kept.
         case "/:/timeline", "/:/scrobble", "/:/unscrobble", "/:/progress":
             return (Data(), response(url, 200))
@@ -209,10 +214,17 @@ struct FakeHouseholdTransport: PlexTransport {
     private static let continueWatchingJSON = """
         {"MediaContainer": {"size": 1, "Hub": [
           {"hubIdentifier": "home.continue", "title": "Continue Watching", "type": "mixed", "key": "/hubs/continueWatching/items", "size": 4, "Metadata": [
-            {"ratingKey": "2101", "key": "/library/metadata/2101", "type": "episode", "title": "Salt and Signal", "grandparentRatingKey": "2000", "grandparentTitle": "The Lantern Keepers", "grandparentThumb": "/library/metadata/2000/thumb/1", "parentRatingKey": "2100", "parentIndex": 1, "index": 3, "contentRating": "TV-14", "duration": 60000, "viewOffset": 600000, "viewCount": 0, "thumb": "/library/metadata/2101/thumb/1", "addedAt": 1700000100, "lastViewedAt": 1790000500},
+            {"ratingKey": "2101", "key": "/library/metadata/2101", "type": "episode", "title": "Salt and Signal", "grandparentRatingKey": "2000", "grandparentTitle": "The Lantern Keepers", "grandparentThumb": "/library/metadata/2000/thumb/1", "parentRatingKey": "2100", "parentIndex": 1, "index": 3, "contentRating": "TV-14", "duration": 60000, "viewOffset": 20000, "viewCount": 0, "thumb": "/library/metadata/2101/thumb/1", "addedAt": 1700000100, "lastViewedAt": 1790000500},
             {"ratingKey": "1001", "key": "/library/metadata/1001", "type": "movie", "title": "Harbour Lights", "year": 2019, "contentRating": "PG", "duration": 7200000, "viewOffset": 2400000, "viewCount": 0, "thumb": "/library/metadata/1001/thumb/1", "art": "/library/metadata/1001/art/1", "addedAt": 1700000000, "lastViewedAt": 1790000000},
             {"ratingKey": "3102", "key": "/library/metadata/3102", "type": "episode", "title": "The Second Folder", "grandparentRatingKey": "3000", "grandparentTitle": "Cold Harbour Files", "grandparentThumb": "/library/metadata/3000/thumb/1", "parentRatingKey": "3100", "parentIndex": 2, "index": 2, "contentRating": "TV-14", "duration": 3000000, "viewCount": 0, "thumb": "/library/metadata/3102/thumb/1", "addedAt": 1700000300}
           ]}
+        ]}}
+        """
+
+    private static let allLeavesJSON = """
+        {"MediaContainer": {"size": 2, "Metadata": [
+          {"ratingKey": "2101", "key": "/library/metadata/2101", "type": "episode", "title": "Salt and Signal", "grandparentRatingKey": "2000", "grandparentTitle": "The Lantern Keepers", "parentRatingKey": "2100", "parentIndex": 1, "index": 3, "duration": 60000, "viewCount": 0, "thumb": "/library/metadata/2101/thumb/1", "addedAt": 1700000100},
+          {"ratingKey": "2102", "key": "/library/metadata/2102", "type": "episode", "title": "The Long Watch", "grandparentRatingKey": "2000", "grandparentTitle": "The Lantern Keepers", "parentRatingKey": "2100", "parentIndex": 1, "index": 4, "duration": 60000, "viewCount": 0, "thumb": "/library/metadata/2102/thumb/1", "addedAt": 1700000200}
         ]}}
         """
 
@@ -242,7 +254,7 @@ struct FakeHouseholdTransport: PlexTransport {
           {"ratingKey": "\(ratingKey)", "key": "/library/metadata/\(ratingKey)", "type": "episode", "title": "Salt and Signal",
             "grandparentRatingKey": "2000", "grandparentTitle": "The Lantern Keepers", "parentRatingKey": "2100", "parentTitle": "Season 1", "parentIndex": 1, "index": 3,
             "contentRating": "TV-14", "summary": "The keepers watch for a light that never comes.", "year": 2024,
-            "thumb": "/library/metadata/\(ratingKey)/thumb/1", "duration": 60000, "viewOffset": 600000, "viewCount": 0, "addedAt": 1700000100,
+            "thumb": "/library/metadata/\(ratingKey)/thumb/1", "duration": 60000, "viewOffset": 20000, "viewCount": 0, "addedAt": 1700000100,
             "Media": [{"id": 7001, "duration": 60000, "width": 3840, "height": 2160, "videoResolution": "4k", "container": "mkv", "videoCodec": "hevc", "audioCodec": "eac3",
               "Part": [{"id": 8001, "key": "/library/parts/8001/1/file.mkv", "duration": 59500, "size": 4123456789, "container": "mkv", "accessible": true,
                 "Stream": [
@@ -251,7 +263,7 @@ struct FakeHouseholdTransport: PlexTransport {
                   {"id": 9003, "streamType": 3, "codec": "srt", "format": "srt", "key": "/library/streams/9003", "languageCode": "eng", "title": "SDH"}
                 ]}]}],
             "Marker": [
-              {"id": 501, "type": "intro", "startTimeOffset": 5000, "endTimeOffset": 65000},
+              {"id": 501, "type": "intro", "startTimeOffset": 5000, "endTimeOffset": 15000},
               {"id": 503, "type": "credits", "startTimeOffset": 45000, "endTimeOffset": 60000, "final": true}
             ],
             "Chapter": [

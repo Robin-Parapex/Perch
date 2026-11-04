@@ -28,7 +28,7 @@ final class LibraryCheckUITests: XCTestCase {
 
         let marker = element(app, "libraryCheck.marker.intro")
         waitFor(marker, timeout: 15)
-        XCTAssertEqual(text(marker), "intro 0:05 to 1:05")
+        XCTAssertEqual(text(marker), "intro 0:05 to 0:15")
         XCTAssertTrue(text(element(app, "libraryCheck.marker.credits")).hasSuffix("final"))
         shot("30-library-check")
     }

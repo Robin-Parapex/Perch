@@ -441,6 +441,11 @@ public final class PlaybackSession {
         return live > 0 ? live : positionMs
     }
 
+    #if DEBUG
+    /// UI tests (`-PerchForceOverlay`): raise an overlay as if the rules or the engine had asked for it.
+    public func debugRaiseOverlay(_ request: PlayerOverlayRequest) { setOverlay(request) }
+    #endif
+
     private func setOverlay(_ request: PlayerOverlayRequest?) {
         guard overlayRequest != request else { return }
         overlayRequest = request

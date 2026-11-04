@@ -13,6 +13,8 @@ final class PlaybackCoordinator {
     private(set) var activeSession: PlaybackSession?
     /// Set when playback could not start (refused, unreachable); cleared by the next `play`.
     var startError: String?
+    /// "Next: S1, E4 · Title" once the session has been offered the next episode, for the still-watching overlay.
+    private(set) var nextEpisodeLine: String?
 
     @ObservationIgnored private let library: PlexLibrary
     @ObservationIgnored private let plexSession: PlexSession
@@ -55,7 +57,10 @@ final class PlaybackCoordinator {
     }
 
     /// The cover closed (Back, or the session finished).
-    func dismissActive() { activeSession = nil }
+    func dismissActive() {
+        activeSession = nil
+        nextEpisodeLine = nil
+    }
 
     // MARK: building
 
@@ -82,6 +87,7 @@ final class PlaybackCoordinator {
             nextItem: { [weak self] in
                 guard let self, let next = try? await library.nextEpisode(after: current.item) else { return nil }
                 current.pending = next
+                self.nextEpisodeLine = Self.nextLine(for: next)
                 return await self.proposal(for: next)
             },
             resolveNext: { [weak self] proposal in
@@ -94,7 +100,10 @@ final class PlaybackCoordinator {
                 return resolved
             },
             onTranscodeStop: { id in await library.stopTranscode(sessionID: id) })
-        session.onFinished = { [weak self] in self?.activeSession = nil }
+        session.onFinished = { [weak self] in self?.dismissActive() }
+        #if DEBUG
+        Self.forceOverlayIfAsked(session)
+        #endif
         return session
     }
 
@@ -118,6 +127,11 @@ final class PlaybackCoordinator {
             title: item.title, subtitle: Self.subtitle(for: item), previewImageData: image, ratingKey: item.id)
     }
 
+    private static func nextLine(for item: MediaSummary) -> String {
+        guard let season = item.seasonNumber, let number = item.episodeNumber else { return "Next: \(item.title)" }
+        return "Next: S\(season), E\(number) · \(item.title)"
+    }
+
     private static func subtitle(for item: MediaSummary) -> String? {
         guard item.kind == .episode else { return nil }
         var code: String?
@@ -127,6 +141,22 @@ final class PlaybackCoordinator {
     }
 
     #if DEBUG
+    /// `-PerchForceOverlay stillWatching|failed`: the session raises that overlay shortly after playback starts.
+    private static func forceOverlayIfAsked(_ session: PlaybackSession) {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let index = arguments.firstIndex(of: "-PerchForceOverlay"), arguments.indices.contains(index + 1)
+        else { return }
+        let request: PlayerOverlayRequest =
+            arguments[index + 1] == "failed"
+            ? .playbackFailed(message: "Something went wrong while playing. Check the connection and try again.")
+            : .stillWatching
+        Task { @MainActor in
+            for _ in 0..<100 where session.phase != .playing { try? await Task.sleep(for: .milliseconds(100)) }
+            try? await Task.sleep(for: .seconds(2))
+            session.debugRaiseOverlay(request)
+        }
+    }
+
     /// `-PerchFakeHousehold`: the fake server has no media, so play the bundled 60 s clip with no headers,
     /// keeping the item's markers and duration, and starting at 0 when the saved offset is past the clip.
     private static func fakeSource(_ source: PlaybackSource) -> PlaybackSource {

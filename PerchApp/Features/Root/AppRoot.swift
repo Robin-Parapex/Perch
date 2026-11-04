@@ -100,9 +100,14 @@ struct AppRoot: View {
             if let session = core.playback.activeSession {
                 PlayerContainerView(
                     session: session, onExit: { core.playback.dismissActive() },
-                    overlay: { request in PlayerOverlayContent(request: request, session: session) }
+                    overlay: { request in
+                        PlayerOverlayContent(request: request, session: session, playback: core.playback)
+                    }
                 )
                 .ignoresSafeArea()
+                #if DEBUG
+                .overlay(alignment: .topLeading) { PlayerStatusProbe(session: session) }
+                #endif
             }
         }
         #if DEBUG
