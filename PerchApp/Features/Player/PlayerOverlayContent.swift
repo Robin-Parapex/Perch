@@ -10,8 +10,8 @@ struct PlayerOverlayContent: View {
     let session: PlaybackSession
     let playback: PlaybackCoordinator
 
-    static let failedTitle = "Couldn't Play This"
-    static let stillWatchingTitle = "Are You Still Watching?"
+    static let failedTitle = "Couldn't play this"
+    static let stillWatchingTitle = "Are you still watching?"
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var shown = false

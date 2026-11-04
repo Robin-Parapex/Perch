@@ -358,6 +358,16 @@ func until(_ condition: @MainActor () -> Bool, timeout: Duration = .seconds(2)) 
         await until { h.session.phase == .finished }
     }
 
+    /// A caller that says nothing about retry gets none: "Try Again" is opt-in (parents only).
+    @Test func retryIsOffByDefault() {
+        let source = makeSource()
+        let session = PlaybackSession(
+            engine: FakeEngine(), source: source, metadata: PlayerItemMetadata(title: source.title),
+            policy: .household, reporter: FakeReporter(), log: { _ in }, nextItem: { nil },
+            resolveNext: { _ in throw CancellationError() }, onTranscodeStop: { _ in }, sleep: { _ in })
+        #expect(session.canRetry == false)
+    }
+
     @Test func userInputResetsTheCount() async {
         let h = Harness()
         await h.start()

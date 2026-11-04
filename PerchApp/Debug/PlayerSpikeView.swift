@@ -71,7 +71,7 @@ struct PlayerSpikeView: View {
                 return PlaybackItem(
                     source: next, metadata: SpikeClip.metadata, reporter: NoopReporter(sessionID: next.sessionID))
             },
-            onTranscodeStop: { _ in })
+            onTranscodeStop: { _ in }, canRetry: true)
         launch = Launch(mode: mode, session: session, engine: engine)
     }
 
@@ -116,7 +116,7 @@ struct PlayerSpikeView: View {
                 onTranscodeStop: { id in
                     await library.stopTranscode(sessionID: id)
                     PlayerSpikeLog.log.notice("transcode stop sent")
-                })
+                }, canRetry: true)
             launch = Launch(mode: .passive, session: session, engine: engine)
         } catch {
             PlayerSpikeLog.log.error("live request failed: \(String(describing: error), privacy: .public)")

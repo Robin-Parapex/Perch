@@ -38,10 +38,16 @@ final class PlaybackCoordinator {
     /// Failure copy (GLOSSARY "Couldn't play this", "Try again" for parents): the line under the title.
     nonisolated static let failureLineParent = "It may be a network hiccup. Try again, or come back later."
     nonisolated static let failureLineChild = "Ask a grown-up to try again."
+    nonisolated static let failureLineOther = "Try again later, or ask a parent."
 
     /// Only parents may retry a failed playback; teens, kids and an unknown profile get Back only.
+    /// Kids get the grown-up line; teens (and any other non-parent role) the "ask a parent" line.
     nonisolated static func failureCopy(for role: Role) -> (message: String, canRetry: Bool) {
-        role == .parent ? (failureLineParent, true) : (failureLineChild, false)
+        switch role {
+        case .parent: (failureLineParent, true)
+        case .kid: (failureLineChild, false)
+        default: (failureLineOther, false)
+        }
     }
 
     /// The playback log in the App Group Caches (the app's Caches when the group is not available).
@@ -130,6 +136,7 @@ final class PlaybackCoordinator {
         let library = library
         let log = log
         let current = CurrentItem(item)
+        let failure = Self.failureCopy(for: role)
         let engine = NativeEngine()
         #if DEBUG
         let policy = Self.debugPolicy(.household)
@@ -166,7 +173,7 @@ final class PlaybackCoordinator {
                 return resolved
             },
             onTranscodeStop: { id in await library.stopTranscode(sessionID: id) },
-            failureMessage: Self.failureCopy(for: role).message, canRetry: Self.failureCopy(for: role).canRetry)
+            failureMessage: failure.message, canRetry: failure.canRetry)
         session.onFinished = { [weak self] in self?.dismissActive() }
         #if DEBUG
         Self.forceOverlayIfAsked(session)

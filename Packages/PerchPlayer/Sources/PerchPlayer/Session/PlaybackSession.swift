@@ -49,7 +49,7 @@ public final class PlaybackSession {
     public var autoChainCount: Int { counter.count }
 
     public let engine: any PlaybackEngine
-    /// The line under "Couldn't Play This", supplied by the app (GLOSSARY: no codes, links or service names).
+    /// The line under "Couldn't play this", supplied by the app (GLOSSARY: no codes, links or service names).
     public let failureMessage: String
     /// Whether "Try Again" is allowed for the active profile (parents only, GLOSSARY). `retry()` refuses
     /// otherwise, whatever the overlay shows.
@@ -93,7 +93,7 @@ public final class PlaybackSession {
         nextItem: @escaping @MainActor () async -> UpNextProposal?,
         resolveNext: @escaping @MainActor (UpNextProposal) async throws -> PlaybackItem,
         onTranscodeStop: @escaping @Sendable (String) async -> Void,
-        failureMessage: String = PlaybackSession.defaultFailureMessage, canRetry: Bool = true,
+        failureMessage: String = PlaybackSession.defaultFailureMessage, canRetry: Bool = false,
         sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
     ) {
         self.engine = engine

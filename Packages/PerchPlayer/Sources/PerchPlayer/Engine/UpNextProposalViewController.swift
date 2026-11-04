@@ -271,7 +271,7 @@ final class UpNextCardModel {
 }
 
 /// The up-next card: the preview, softened, behind a bottom gradient; bottom left "Up Next", the series
-/// line, the episode in bold, "Next episode in N" when timed, then Play Now (focused) and Watch Credits.
+/// line, the episode in bold, "Next episode in N seconds" when timed, then Play Now (focused) and Watch Credits.
 struct UpNextCard: View {
     let proposal: UpNextProposal
     let model: UpNextCardModel
@@ -303,7 +303,7 @@ struct UpNextCard: View {
                 }
             } below: {
                 if model.total != nil {
-                    Text("Next episode in \(model.remaining)")
+                    Text("Next episode in \(model.remaining) \(model.remaining == 1 ? "second" : "seconds")")
                         .font(PlayerChrome.secondaryFont)
                         .monospacedDigit()
                         .foregroundStyle(PlayerChrome.secondaryColor)

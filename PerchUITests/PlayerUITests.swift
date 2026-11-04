@@ -176,7 +176,7 @@ final class PlayerUITests: XCTestCase {
         waitFor(retry, timeout: 40)
         XCTAssertTrue(waitUntil(5) { retry.hasFocus }, "Try Again should have focus")
         // The app's copy, never the engine's error text.
-        XCTAssertEqual(text(element(app, "player.overlay.title")), "Couldn't Play This")
+        XCTAssertEqual(text(element(app, "player.overlay.title")), "Couldn't play this")
         XCTAssertEqual(
             text(element(app, "player.overlay.explanation")), "It may be a network hiccup. Try again, or come back later.")
         XCTAssertFalse(app.staticTexts.containing(NSPredicate(format: "label CONTAINS 'forced failure'")).firstMatch.exists)
