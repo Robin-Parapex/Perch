@@ -213,7 +213,11 @@ enum PlexLibraryMapping {
             colourTransfer: stream.colorTrc, dolbyVisionProfile: stream.doviProfile,
             frameRate: stream.frameRate, width: stream.width, height: stream.height,
             channels: stream.channels, format: stream.format, isForced: stream.forced ?? false,
-            key: stream.key)
+            key: stream.key, profile: stream.profile, audioChannelLayout: stream.audioChannelLayout,
+            dolbyVisionPresent: stream.doviPresent, dolbyVisionLevel: stream.doviLevel,
+            dolbyVisionBLCompatID: stream.doviBLCompatID, colourPrimaries: stream.colorPrimaries,
+            colourSpace: stream.colorSpace, scanType: stream.scanType,
+            displayTitle: stream.displayTitle, extendedDisplayTitle: stream.extendedDisplayTitle)
     }
 
     // MARK: helpers

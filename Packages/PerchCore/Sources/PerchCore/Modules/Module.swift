@@ -19,6 +19,26 @@ public enum PlayerEvent: Sendable, Equatable {
     case play, pause, credits, stop, failure(String)
 }
 
+/// What a player hook is told about the session an event belongs to.
+public struct PlayerEventContext: Sendable {
+    public var ratingKey: String
+    public var profileID: String?
+    public var positionMs: Int
+    public var durationMs: Int?
+    public var sessionID: String
+
+    public init(
+        ratingKey: String, profileID: String? = nil, positionMs: Int, durationMs: Int? = nil,
+        sessionID: String
+    ) {
+        self.ratingKey = ratingKey
+        self.profileID = profileID
+        self.positionMs = positionMs
+        self.durationMs = durationMs
+        self.sessionID = sessionID
+    }
+}
+
 // Extension points are thin for now; each later WP that first uses one fixes its shape.
 
 /// A row on a page (shape fixed in WP-06). `cachedRow` answers at once from what the provider
@@ -58,10 +78,10 @@ public protocol EventSource: Sendable {
     func stop() async
 }
 
-/// Reacts to player events. Shape to be fixed by the first WP that uses it.
+/// Reacts to player events (shape fixed in WP-07).
 public protocol PlayerHook: Sendable {
     var id: String { get }
-    func handle(_ event: PlayerEvent) async
+    func handle(_ event: PlayerEvent, context: PlayerEventContext) async
 }
 
 /// A Settings page. Shape to be fixed by the first WP that uses it.
