@@ -25,6 +25,10 @@ extension PlexConnection {
         let lower = host.lowercased()
         if lower == "localhost" || lower.hasSuffix(".local") || lower.hasSuffix(".lan") { return true }
         if lower.hasPrefix("fc") || lower.hasPrefix("fd") || lower.hasPrefix("fe80") { return lower.contains(":") }
+        // `192-168-1-20.<hash>.plex.direct` names a private address too (Plex's LAN certificate names).
+        if lower.hasSuffix(".plex.direct"), let label = lower.split(separator: ".").first {
+            return isPrivateHost(label.replacingOccurrences(of: "-", with: "."))
+        }
         let parts = lower.split(separator: ".").compactMap { Int($0) }
         guard parts.count == 4 else { return false }
         switch (parts[0], parts[1]) {
@@ -99,13 +103,21 @@ public struct ConnectionProber: Sendable {
 
         if let lastGood {
             let tier = ordered.first { $0.url == lastGood }?.tier ?? PlexConnection.manual(url: lastGood).tier
-            if let identity = await identity(at: lastGood, tier: tier) {
-                if matches(identity, expectedMachineID) {
-                    return ProbeResult(url: lastGood, tier: tier, identity: identity)
+            if tier == .local {
+                // A remembered local address is the best there is: take it alone, fast.
+                if let identity = await identity(at: lastGood, tier: tier) {
+                    if matches(identity, expectedMachineID) {
+                        return ProbeResult(url: lastGood, tier: tier, identity: identity)
+                    }
+                    sawMismatch = true
                 }
-                sawMismatch = true
+                ordered.removeAll { $0.url == lastGood }
+            } else if !ordered.contains(where: { $0.url == lastGood }) {
+                // A remembered remote or relay address races the rest, so a local answer still wins
+                // (the public address makes Plex treat us as remote and cap the stream).
+                ordered.append((lastGood, tier))
+                ordered.sort { $0.tier < $1.tier }
             }
-            ordered.removeAll { $0.url == lastGood }
         }
         guard !ordered.isEmpty else { throw sawMismatch ? PlexError.serverMismatch : PlexError.serverUnreachable }
 

@@ -396,6 +396,80 @@ struct PlexSessionResumeTests {
         #expect((rig.lockout()?.failedAttempts ?? 0) == 0)
     }
 
+    // A remembered public address: resume goes ready on it at once, then looks for the LAN address.
+    private static let publicURL = URL(string: "https://203-0-113-5.abc.plex.direct:32400")!
+
+    private func relaunchOnPublicAddress(
+        _ rig: SessionRig, resources: RoutedTransport.Reply, resourcesDelay: Duration = .zero
+    ) async throws -> PlexSession {
+        try await rig.settings.update { doc in
+            doc.modules[ModuleID("plex")]?.config["lastURI"] = Self.publicURL.absoluteString
+        }
+        let transport = RoutedTransport()
+        let identity = Fixture.data("identity")
+        await transport.route(host: "203-0-113-5.abc.plex.direct", .ok(identity))
+        await transport.route(host: "192.168.1.20", .ok(identity))
+        await transport.route(
+            host: "clients.plex.tv", path: "/api/v2/resources", delay: resourcesDelay, resources)
+        return rig.makeSession(transport: transport)
+    }
+
+    private func readyServer(_ session: PlexSession) async -> PlexConnectedServer? {
+        if case .ready(_, let server) = await session.snapshot().state { return server }
+        Issue.record("expected ready, got \(await session.snapshot().state)")
+        return nil
+    }
+
+    private func savedURI(_ rig: SessionRig) async -> String? {
+        await rig.settings.document.modules[ModuleID("plex")]?.config["lastURI"]
+    }
+
+    @Test func resumeOnAPublicAddressGoesReadyWithoutWaitingForPlexTV() async throws {
+        let (rig, _) = try await signedIn()
+        defer { rig.cleanup() }
+        // plex.tv never answers within the test: a resume that waited for it would hit the time limit.
+        let session = try await relaunchOnPublicAddress(
+            rig, resources: .ok(Fixture.data("resources_single")), resourcesDelay: .seconds(3600))
+
+        #expect(await session.resume() == true)
+
+        let server = await readyServer(session)
+        #expect(server?.baseURL == Self.publicURL)
+        #expect(server?.tier == .remote)
+    }
+
+    @Test func theBackgroundCheckSwitchesToTheLocalAddressAndKeepsTheGeneration() async throws {
+        let (rig, _) = try await signedIn()
+        defer { rig.cleanup() }
+        let session = try await relaunchOnPublicAddress(rig, resources: .ok(Fixture.data("resources_single")))
+        #expect(await session.resume() == true)
+        let generation = await session.currentGeneration()
+
+        await session.awaitConnectionUpgrade()
+
+        let server = await readyServer(session)
+        #expect(server?.baseURL == loungeURL)
+        #expect(server?.tier == .local)
+        #expect(await savedURI(rig) == loungeURL.absoluteString)
+        // Same server: work already started (playback, timeline reports) stays valid.
+        #expect(await session.currentGeneration() == generation)
+    }
+
+    @Test func aFailedBackgroundCheckLeavesThePublicAddressAndReachability() async throws {
+        let (rig, _) = try await signedIn()
+        defer { rig.cleanup() }
+        let session = try await relaunchOnPublicAddress(rig, resources: .fail(.notConnectedToInternet))
+        #expect(await session.resume() == true)
+
+        await session.awaitConnectionUpgrade()
+
+        let server = await readyServer(session)
+        #expect(server?.baseURL == Self.publicURL)
+        #expect(server?.tier == .remote)
+        #expect(await savedURI(rig) == Self.publicURL.absoluteString)
+        #expect(await session.snapshot().plexTVReachable == true)
+    }
+
     @Test func nothingSavedReturnsFalse() async {
         let rig = SessionRig()
         defer { rig.cleanup() }

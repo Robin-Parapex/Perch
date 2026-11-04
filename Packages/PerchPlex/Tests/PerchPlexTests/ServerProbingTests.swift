@@ -136,16 +136,46 @@ struct ConnectionProberTests {
         #expect(result.url == relayURL)
     }
 
-    @Test func aLastGoodAddressThatAnswersWinsWithoutProbingTheRest() async throws {
+    @Test func aLocalLastGoodAddressThatAnswersWinsWithoutProbingTheRest() async throws {
         let transport = RoutedTransport()
         await transport.route(host: localHost, identity())
         await transport.route(host: remoteHost, identity())
 
-        let result = try await prober(transport).probe(connections: [local, remote], lastGood: remoteURL)
+        let result = try await prober(transport).probe(connections: [local, remote], lastGood: localURL)
+
+        #expect(result.url == localURL)
+        #expect(result.tier == .local)
+        #expect(await transport.requests(forHost: remoteHost).isEmpty)
+    }
+
+    @Test func aRemoteLastGoodLosesToALocalAddressThatAnswers() async throws {
+        let transport = RoutedTransport()
+        await transport.route(host: remoteHost, identity())
+        await transport.route(host: localHost, delay: .milliseconds(30), identity())
+
+        let result = try await prober(transport, grace: .seconds(3600))
+            .probe(connections: [local, remote], lastGood: remoteURL)
+
+        #expect(result.url == localURL)
+        #expect(result.tier == .local)
+    }
+
+    @Test func aRemoteLastGoodStillWinsWhenNoLocalAddressAnswers() async throws {
+        let transport = RoutedTransport()
+        await transport.route(host: remoteHost, identity())
+        await transport.route(host: localHost, .fail(.cannotFindHost))
+
+        let result = try await prober(transport).probe(connections: [local], lastGood: remoteURL)
 
         #expect(result.url == remoteURL)
         #expect(result.tier == .remote)
-        #expect(await transport.requests(forHost: localHost).isEmpty)
+    }
+
+    @Test func aPlexDirectNameForAPrivateAddressCountsAsLocal() {
+        let lan = URL(string: "https://192-168-90-10.e3609fd3c80241619d7aa807c6d2c109.plex.direct:32400")!
+        let wan = URL(string: "https://178-79-141-27.e3609fd3c80241619d7aa807c6d2c109.plex.direct:8443")!
+        #expect(PlexConnection.manual(url: lan).tier == .local)
+        #expect(PlexConnection.manual(url: wan).tier == .remote)
     }
 
     @Test func aDeadLastGoodFallsBackToTheRest() async throws {
