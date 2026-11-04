@@ -63,9 +63,9 @@ public struct UpNextRules: Sendable {
         timedSpent = true
     }
 
-    /// For an item that ends without an accepted proposal.
+    /// For an item that ends without an accepted proposal. A dismissed proposal means stop (Back cancels).
     public func endAction() -> EndAction {
-        guard hasNext, policy.autoplayNext else { return .stop }
+        guard hasNext, !dismissed, policy.autoplayNext else { return .stop }
         return autoChainCount >= policy.stillWatchingAfter ? .stillWatching : .advance
     }
 }

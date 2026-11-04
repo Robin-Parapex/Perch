@@ -19,6 +19,7 @@ final class CoreServices {
     let plexSignIn: PlexSignInModel
     let setupCompletion: SetupCompletion
     let profileSwitcher: ProfileSwitcher
+    let playback: PlaybackCoordinator
     let launch = LaunchState()
     let eventBus = EventBus()
     let pollers = PollerCoordinator()
@@ -71,6 +72,8 @@ final class CoreServices {
         self.modules = modules
         self.library = library
         self.authoriser = authoriser
+        playback = PlaybackCoordinator(
+            library: library, plexSession: session, modules: modules, logFileURL: PlaybackCoordinator.logFileURL())
         // Once at launch: sign-out deletes the Home snapshots, a profile change clears memory.
         Task { await library.observe(session) }
     }

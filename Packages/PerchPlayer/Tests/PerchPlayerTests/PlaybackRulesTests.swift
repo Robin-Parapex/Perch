@@ -130,6 +130,13 @@ import Testing
         #expect(rules(chain: 2).endAction() == .advance)
         #expect(rules(chain: 0).endAction() == .advance)
     }
+
+    @Test func endActionAfterDismissIsStop() {
+        var r = rules(markers: [finalCredits])
+        _ = r.phase(atMs: 3_100_000)
+        r.dismiss()
+        #expect(r.endAction() == .stop)
+    }
 }
 
 @Suite struct AutoChainCounterTests {

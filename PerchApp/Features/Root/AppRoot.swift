@@ -1,6 +1,7 @@
 import Observation
 import PerchCore
 import PerchDesign
+import PerchPlayer
 import PerchPlex
 import SwiftUI
 
@@ -25,6 +26,7 @@ struct AppRoot: View {
     /// Set when the first-run wizard ends: the picker shows once ("Choose who's watching") before home.
     @State private var choosingAfterSetup = false
     @State private var route: Route
+    @State private var launchItemPlayed = false
 
     init(core: CoreServices) {
         self.core = core
@@ -51,6 +53,25 @@ struct AppRoot: View {
         return ((try? core.secrets.string(for: .plexOwnerToken)) ?? nil) == nil
     }
 
+    private var playerPresented: Binding<Bool> {
+        Binding(get: { core.playback.activeSession != nil }, set: { if !$0 { core.playback.dismissActive() } })
+    }
+
+    #if DEBUG
+    /// `-PerchPlayItem <rating key> [-PerchStartMs <ms>]`: plays that title once, when home is shown.
+    private func playLaunchItemIfAsked() async {
+        guard route == .home, !launchItemPlayed else { return }
+        let arguments = ProcessInfo.processInfo.arguments
+        func value(_ flag: String) -> String? {
+            arguments.firstIndex(of: flag).flatMap { arguments.indices.contains($0 + 1) ? arguments[$0 + 1] : nil }
+        }
+        guard let key = value("-PerchPlayItem") else { return }
+        launchItemPlayed = true
+        guard let detail = try? await core.library.detail(ratingKey: key) else { return }
+        core.playback.play(detail.summary, startMs: value("-PerchStartMs").flatMap(Int.init))
+    }
+    #endif
+
     /// Nil while a connection is being made: the screen stays as it is.
     private var desired: Route? {
         if Self.opensGallery { return .home }
@@ -74,6 +95,19 @@ struct AppRoot: View {
         .animation(.easeInOut(duration: PerchMotion.crossfadeDuration), value: route)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .perchPageBackground()
+        // The player sits above whatever screen launched it, so Back returns to that screen as it was.
+        .fullScreenCover(isPresented: playerPresented) {
+            if let session = core.playback.activeSession {
+                PlayerContainerView(
+                    session: session, onExit: { core.playback.dismissActive() },
+                    overlay: { request in PlayerOverlayContent(request: request, session: session) }
+                )
+                .ignoresSafeArea()
+            }
+        }
+        #if DEBUG
+        .task(id: route) { await playLaunchItemIfAsked() }
+        #endif
         .onChange(of: hasNoStoredSignIn, initial: true) { _, none in
             if none { reconnecting = true }
         }

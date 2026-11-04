@@ -209,7 +209,7 @@ struct FakeHouseholdTransport: PlexTransport {
     private static let continueWatchingJSON = """
         {"MediaContainer": {"size": 1, "Hub": [
           {"hubIdentifier": "home.continue", "title": "Continue Watching", "type": "mixed", "key": "/hubs/continueWatching/items", "size": 4, "Metadata": [
-            {"ratingKey": "2101", "key": "/library/metadata/2101", "type": "episode", "title": "Salt and Signal", "grandparentRatingKey": "2000", "grandparentTitle": "The Lantern Keepers", "grandparentThumb": "/library/metadata/2000/thumb/1", "parentRatingKey": "2100", "parentIndex": 1, "index": 3, "contentRating": "TV-14", "duration": 2700000, "viewOffset": 600000, "viewCount": 0, "thumb": "/library/metadata/2101/thumb/1", "addedAt": 1700000100, "lastViewedAt": 1790000500},
+            {"ratingKey": "2101", "key": "/library/metadata/2101", "type": "episode", "title": "Salt and Signal", "grandparentRatingKey": "2000", "grandparentTitle": "The Lantern Keepers", "grandparentThumb": "/library/metadata/2000/thumb/1", "parentRatingKey": "2100", "parentIndex": 1, "index": 3, "contentRating": "TV-14", "duration": 60000, "viewOffset": 600000, "viewCount": 0, "thumb": "/library/metadata/2101/thumb/1", "addedAt": 1700000100, "lastViewedAt": 1790000500},
             {"ratingKey": "1001", "key": "/library/metadata/1001", "type": "movie", "title": "Harbour Lights", "year": 2019, "contentRating": "PG", "duration": 7200000, "viewOffset": 2400000, "viewCount": 0, "thumb": "/library/metadata/1001/thumb/1", "art": "/library/metadata/1001/art/1", "addedAt": 1700000000, "lastViewedAt": 1790000000},
             {"ratingKey": "3102", "key": "/library/metadata/3102", "type": "episode", "title": "The Second Folder", "grandparentRatingKey": "3000", "grandparentTitle": "Cold Harbour Files", "grandparentThumb": "/library/metadata/3000/thumb/1", "parentRatingKey": "3100", "parentIndex": 2, "index": 2, "contentRating": "TV-14", "duration": 3000000, "viewCount": 0, "thumb": "/library/metadata/3102/thumb/1", "addedAt": 1700000300}
           ]}
@@ -242,9 +242,9 @@ struct FakeHouseholdTransport: PlexTransport {
           {"ratingKey": "\(ratingKey)", "key": "/library/metadata/\(ratingKey)", "type": "episode", "title": "Salt and Signal",
             "grandparentRatingKey": "2000", "grandparentTitle": "The Lantern Keepers", "parentRatingKey": "2100", "parentTitle": "Season 1", "parentIndex": 1, "index": 3,
             "contentRating": "TV-14", "summary": "The keepers watch for a light that never comes.", "year": 2024,
-            "thumb": "/library/metadata/\(ratingKey)/thumb/1", "duration": 2700000, "viewOffset": 600000, "viewCount": 0, "addedAt": 1700000100,
-            "Media": [{"id": 7001, "duration": 2700000, "width": 3840, "height": 2160, "videoResolution": "4k", "container": "mkv", "videoCodec": "hevc", "audioCodec": "eac3",
-              "Part": [{"id": 8001, "key": "/library/parts/8001/1/file.mkv", "duration": 2699500, "size": 4123456789, "container": "mkv", "accessible": true,
+            "thumb": "/library/metadata/\(ratingKey)/thumb/1", "duration": 60000, "viewOffset": 600000, "viewCount": 0, "addedAt": 1700000100,
+            "Media": [{"id": 7001, "duration": 60000, "width": 3840, "height": 2160, "videoResolution": "4k", "container": "mkv", "videoCodec": "hevc", "audioCodec": "eac3",
+              "Part": [{"id": 8001, "key": "/library/parts/8001/1/file.mkv", "duration": 59500, "size": 4123456789, "container": "mkv", "accessible": true,
                 "Stream": [
                   {"id": 9001, "streamType": 1, "codec": "hevc", "bitDepth": 10, "colorTrc": "smpte2084", "DOVIProfile": 8, "DOVIPresent": true, "frameRate": 23.976, "width": 3840, "height": 2160, "default": true, "selected": true},
                   {"id": 9002, "streamType": 2, "codec": "eac3", "channels": 6, "languageCode": "eng", "default": true, "selected": true},
@@ -252,7 +252,7 @@ struct FakeHouseholdTransport: PlexTransport {
                 ]}]}],
             "Marker": [
               {"id": 501, "type": "intro", "startTimeOffset": 5000, "endTimeOffset": 65000},
-              {"id": 503, "type": "credits", "startTimeOffset": 2600000, "endTimeOffset": 2700000, "final": true}
+              {"id": 503, "type": "credits", "startTimeOffset": 45000, "endTimeOffset": 60000, "final": true}
             ],
             "Chapter": [
               {"id": 601, "index": 1, "startTimeOffset": 0, "endTimeOffset": 900000, "tag": "Cold open"},
