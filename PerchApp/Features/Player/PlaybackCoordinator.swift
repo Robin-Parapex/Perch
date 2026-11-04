@@ -42,15 +42,18 @@ final class PlaybackCoordinator {
         startError = nil
         Task {
             defer { starting = false }
+            // The active Plex Home profile, for the log and the player hooks.
+            let profileID = await plexSession.currentProfile()?.id.rawValue
             do {
                 let first = try await prepare(item, startMs: startMs ?? item.viewOffsetMs)
-                activeSession = makeSession(first: first, item: item)
+                activeSession = makeSession(first: first, item: item, profileID: profileID)
             } catch {
                 startError = String(describing: error)
                 Logger.playback.error("playback did not start: \(String(describing: error), privacy: .public)")
+                // No decision was made, so no method is logged.
                 await log.append(
                     PlaybackLogEntry(
-                        ratingKey: item.id, title: item.title, method: .directPlay, outcome: .failure,
+                        profileID: profileID, ratingKey: item.id, title: item.title, outcome: .failure,
                         error: String(describing: error)))
             }
         }
@@ -75,17 +78,27 @@ final class PlaybackCoordinator {
         return PlaybackItem(source: source, metadata: await metadata(for: item), reporter: reporter)
     }
 
-    private func makeSession(first: PlaybackItem, item: MediaSummary) -> PlaybackSession {
+    private func makeSession(first: PlaybackItem, item: MediaSummary, profileID: String?) -> PlaybackSession {
         let library = library
         let log = log
         let current = CurrentItem(item)
         let engine = NativeEngine()
+        #if DEBUG
+        let policy = Self.debugPolicy(.household)
+        #else
+        let policy = PlaybackPolicy.household
+        #endif
         let session = PlaybackSession(
-            engine: engine, source: first.source, metadata: first.metadata, policy: .household,
-            reporter: first.reporter, hooks: modules.playerHooks,
+            engine: engine, source: first.source, metadata: first.metadata, policy: policy,
+            reporter: first.reporter, hooks: modules.playerHooks, profileID: profileID,
             log: { entry in await log.append(entry) },
             nextItem: { [weak self] in
-                guard let self, let next = try? await library.nextEpisode(after: current.item) else { return nil }
+                guard let self else { return nil }
+                guard let next = try? await library.nextEpisode(after: current.item) else {
+                    current.pending = nil
+                    self.nextEpisodeLine = nil
+                    return nil
+                }
                 current.pending = next
                 self.nextEpisodeLine = Self.nextLine(for: next)
                 return await self.proposal(for: next)
@@ -94,7 +107,12 @@ final class PlaybackCoordinator {
                 guard let self, let next = current.pending, next.id == proposal.ratingKey else {
                     throw PlaybackCoordinatorError.noNext
                 }
-                let resolved = try await self.prepare(next, startMs: 0)
+                #if DEBUG
+                let startMs = Self.debugChainStartMs ?? 0
+                #else
+                let startMs = 0
+                #endif
+                let resolved = try await self.prepare(next, startMs: startMs)
                 current.item = next
                 current.pending = nil
                 return resolved
@@ -141,6 +159,31 @@ final class PlaybackCoordinator {
     }
 
     #if DEBUG
+    private static func argument(_ flag: String) -> String? {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let index = arguments.firstIndex(of: flag), arguments.indices.contains(index + 1) else { return nil }
+        return arguments[index + 1]
+    }
+
+    /// `-PerchPolicy upNextCountdown=2,stillWatchingAfter=2`: shorter rules for the UI tests' real chain.
+    private static func debugPolicy(_ base: PlaybackPolicy) -> PlaybackPolicy {
+        guard let spec = argument("-PerchPolicy") else { return base }
+        var policy = base
+        for pair in spec.split(separator: ",") {
+            let parts = pair.split(separator: "=", maxSplits: 1).map(String.init)
+            guard parts.count == 2, let value = Int(parts[1]) else { continue }
+            switch parts[0] {
+            case "upNextCountdown": policy.upNextCountdownSeconds = value
+            case "stillWatchingAfter": policy.stillWatchingAfter = value
+            default: Logger.playback.error("unknown -PerchPolicy key \(parts[0], privacy: .public)")
+            }
+        }
+        return policy
+    }
+
+    /// `-PerchChainStartMs <ms>`: where each next episode starts (normally 0), so a chain reaches its credits fast.
+    private static var debugChainStartMs: Int? { argument("-PerchChainStartMs").flatMap(Int.init) }
+
     /// `-PerchForceOverlay stillWatching|failed`: the session raises that overlay shortly after playback starts.
     private static func forceOverlayIfAsked(_ session: PlaybackSession) {
         let arguments = ProcessInfo.processInfo.arguments

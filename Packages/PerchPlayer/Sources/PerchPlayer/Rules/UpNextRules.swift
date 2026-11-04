@@ -51,6 +51,9 @@ public struct UpNextRules: Sendable {
             return .idle
         }
         if dismissed { return .dismissed }
+        // At the chain limit nothing is proposed: the end of the item asks "Are you still watching?"
+        // instead, so a proposal and the prompt never stack. Any remote input resets the chain first.
+        if policy.autoplayNext, autoChainCount >= policy.stillWatchingAfter { return .idle }
         if !isEstimated, !timedSpent, policy.autoplayNext, autoChainCount < policy.stillWatchingAfter {
             return .proposed(.timed(seconds: policy.upNextCountdownSeconds))
         }

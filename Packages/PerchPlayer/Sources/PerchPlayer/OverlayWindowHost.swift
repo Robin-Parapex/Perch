@@ -39,6 +39,14 @@ public final class OverlayWindowHost {
             window.makeKey()
             host.setNeedsFocusUpdate()
             host.updateFocusIfNeeded()
+            // AVKit reacts to its controls being hidden on the next turn of the run loop; take key and
+            // focus again after that so the overlay keeps them.
+            DispatchQueue.main.async { [weak self, weak host] in
+                guard let self, let host, self.mode == .focusTaking, self.window.rootViewController === host else { return }
+                if !self.window.isKeyWindow { self.window.makeKey() }
+                host.setNeedsFocusUpdate()
+                host.updateFocusIfNeeded()
+            }
         }
         Logger.player.notice(
             "Overlay shown mode=\(String(describing: mode), privacy: .public) key=\(self.window.isKeyWindow, privacy: .public)")

@@ -5,6 +5,11 @@ import SwiftUI
 /// What the overlay window shows for a session request: the two app-owned overlays, in the tvOS 26 player
 /// style (bottom-left block over a soft bottom gradient, glass pills, no full-screen scrim).
 struct PlayerOverlayContent: View {
+    /// AVKit's title and transport bar start at the tvOS title-safe edge: 80 pt from the screen edge on a
+    /// 1920 pt screen (measured on a 3840 px capture: chrome at x = 160 px). Our block uses the same line,
+    /// counted from the screen edge (the window's safe area would add a second 80 pt).
+    static let chromeLeadingInset: CGFloat = 80
+
     let request: PlayerOverlayRequest
     let session: PlaybackSession
     let playback: PlaybackCoordinator
@@ -21,6 +26,7 @@ struct PlayerOverlayContent: View {
             )
             .frame(height: 560)
             .frame(maxHeight: .infinity, alignment: .bottom)
+            .ignoresSafeArea()
             .allowsHitTesting(false)
 
             VStack(alignment: .leading, spacing: 10) {
@@ -37,12 +43,13 @@ struct PlayerOverlayContent: View {
                 HStack(spacing: PerchSpacing.itemGap) { buttons }
                     .padding(.top, 26)
             }
-            .padding(.leading, PerchSpacing.horizontalMargin)
+            .padding(.leading, Self.chromeLeadingInset)
             .padding(.bottom, 90)
             .opacity(shown ? 1 : 0)
             .offset(y: shown || reduceMotion ? 0 : PerchMotion.panelOffset)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .ignoresSafeArea(edges: .horizontal)
         .onExitCommand { session.stopWatching() }
         .onAppear {
             primaryFocused = true
@@ -95,7 +102,7 @@ struct PlayerOverlayContent: View {
 
 #if DEBUG
 /// DEBUG: an invisible, accessible status element for the UI tests (AVKit's chrome is not in the
-/// accessibility tree), e.g. "playing pos=12 skip=intro upnext=none". Same idea as the spike's label.
+/// accessibility tree), e.g. "playing pos=12 skip=intro upnext=none overlay=none item=2101 items=1 chain=0".
 struct PlayerStatusProbe: View {
     let session: PlaybackSession
 
@@ -112,7 +119,8 @@ struct PlayerStatusProbe: View {
             .frame(width: 4, height: 4)
             .accessibilityElement()
             .accessibilityLabel(
-                "\(session.phase) pos=\(session.positionMs / 1000) skip=\(skip) upnext=\(upNext) overlay=\(overlay)"
+                "\(session.phase) pos=\(session.positionMs / 1000) skip=\(skip) upnext=\(upNext) overlay=\(overlay) "
+                    + "item=\(session.source.ratingKey) items=\(session.itemsStarted) chain=\(session.autoChainCount)"
             )
             .accessibilityIdentifier("player.status")
             .allowsHitTesting(false)

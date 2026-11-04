@@ -336,6 +336,11 @@ public final class PlaybackSession {
         guard var rules = upNextRules else { return }
         let upNextPhase = rules.phase(atMs: position)
         upNextRules = rules
+        // The credits hook fires on reaching the final credits, also when no proposal shows (chain limit).
+        if !creditsSent, let start = rules.creditsStartMs, position >= start {
+            creditsSent = true
+            sendHook(.credits, at: position)
+        }
         switch upNextPhase {
         case .proposed(let mode):
             guard upNextShown == nil, let proposal = nextProposal, !isTransitioning else { return }
@@ -345,10 +350,6 @@ public final class PlaybackSession {
                 proposal, mode: mode,
                 onAccept: { [weak self] acceptance in self?.acceptUpNext(acceptance) },
                 onDismiss: { [weak self] in self?.dismissUpNext() })
-            if !creditsSent {
-                creditsSent = true
-                sendHook(.credits, at: position)
-            }
         case .idle:
             guard upNextShown != nil else { return }
             upNextShown = nil
@@ -391,6 +392,13 @@ public final class PlaybackSession {
         Task { await advance(to: proposal) }
     }
 
+    private func withdrawUpNext() {
+        guard upNextShown != nil else { return }
+        upNextShown = nil
+        upNextMode = nil
+        engine.showUpNext(nil, mode: .manual, onAccept: { _ in }, onDismiss: {})
+    }
+
     private func dismissUpNext() {
         upNextDismissed = true
         upNextRules?.dismiss()
@@ -417,6 +425,8 @@ public final class PlaybackSession {
             automaticAdvances += 1
             await advance(to: next)
         case .stillWatching:
+            // Only our prompt: never a proposal underneath it.
+            withdrawUpNext()
             setOverlay(.stillWatching)
         case .stop:
             await exit()
@@ -429,6 +439,8 @@ public final class PlaybackSession {
         phase = .failed
         autoSkipTask?.cancel()
         engine.showSkip(nil, onSkip: {})
+        skipOffer = nil
+        withdrawUpNext()
         enqueueLog(entry(.failure, positionMs: currentPosition, error: message))
         sendHook(.failure(message), at: currentPosition)
         setOverlay(.playbackFailed(message: message))
@@ -444,12 +456,24 @@ public final class PlaybackSession {
     #if DEBUG
     /// UI tests (`-PerchForceOverlay`): raise an overlay as if the rules or the engine had asked for it.
     public func debugRaiseOverlay(_ request: PlayerOverlayRequest) { setOverlay(request) }
+
+    /// Unit tests: set the chain count mid-item (unreachable in use) to prove a shown proposal is withdrawn.
+    func setAutoChainCountForTesting(_ count: Int) {
+        counter = AutoChainCounter(count: count)
+        if upNextRules != nil { rebuildUpNextRules() }
+    }
     #endif
 
     private func setOverlay(_ request: PlayerOverlayRequest?) {
         guard overlayRequest != request else { return }
         overlayRequest = request
+        // Raising: the overlay window takes key and focus first, then the engine's chrome goes (hiding it
+        // first left focus nowhere). Clearing: the chrome comes back first, so the container has something
+        // to focus when the window hands key back. Never after exit (the engine is torn down).
+        let live = phase != .finished
+        if request == nil, live { engine.setNativeChromeHidden(false) }
         onOverlayRequestChange?(request)
+        if request != nil, live { engine.setNativeChromeHidden(true) }
     }
 
     private func report(_ state: PlaybackState) {

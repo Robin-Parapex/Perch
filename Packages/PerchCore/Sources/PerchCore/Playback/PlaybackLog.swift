@@ -10,7 +10,8 @@ public struct PlaybackLogEntry: Codable, Sendable, Equatable {
     public var profileID: String?
     public var ratingKey: String
     public var title: String
-    public var method: PlaybackMethod
+    /// Nil when playback failed before a decision existed (logged as "unknown"). Older lines always carry it.
+    public var method: PlaybackMethod?
     public var reasons: [String]
     public var notes: [String]
     public var engine: String
@@ -21,7 +22,7 @@ public struct PlaybackLogEntry: Codable, Sendable, Equatable {
 
     public init(
         date: Date = Date(), profileID: String? = nil, ratingKey: String, title: String,
-        method: PlaybackMethod, reasons: [String] = [], notes: [String] = [],
+        method: PlaybackMethod? = nil, reasons: [String] = [], notes: [String] = [],
         engine: String = "native", outcome: Outcome, positionMs: Int? = nil,
         startLatencyMs: Int? = nil, error: String? = nil
     ) {
@@ -130,7 +131,7 @@ public actor PlaybackLog {
     private static func line(_ e: PlaybackLogEntry) -> String {
         var parts = [
             ISO8601DateFormatter().string(from: e.date), e.outcome.rawValue, e.engine,
-            e.method.rawValue, "\(e.title) (\(e.ratingKey))",
+            e.method?.rawValue ?? "unknown", "\(e.title) (\(e.ratingKey))",
         ]
         if let p = e.profileID { parts.append("profile \(p)") }
         if let ms = e.positionMs { parts.append("at \(ms) ms") }

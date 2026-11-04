@@ -67,6 +67,11 @@ final class FakeEngine: PlaybackEngine {
         self.onDismiss = proposal == nil ? nil : onDismiss
     }
 
+    /// Every `setNativeChromeHidden` call, in order.
+    var chromeHiddenCalls: [Bool] = []
+    var chromeHidden: Bool { chromeHiddenCalls.last ?? false }
+    func setNativeChromeHidden(_ hidden: Bool) { chromeHiddenCalls.append(hidden) }
+
     func teardown() {
         tornDown += 1
         continuation.finish()
@@ -269,16 +274,56 @@ func until(_ condition: @MainActor () -> Bool, timeout: Duration = .seconds(2)) 
         await h.autoAdvance()
         await h.autoAdvance()
         #expect(h.session.autoChainCount == 3)
-        // Fourth item: the proposal is manual now, and the end asks.
+        // Fourth item: nothing is proposed at the credits, and the end asks once, with the chrome hidden.
+        let shows = h.engine.upNextShows
         await h.tick(46_000)
-        #expect(h.engine.upNextMode == .manual)
+        await h.tick(55_000)
+        #expect(h.engine.upNext == nil)
+        #expect(h.engine.upNextShows == shows)
+        #expect(h.engine.chromeHiddenCalls.isEmpty)
         h.engine.send(.ended)
         await until { h.session.overlayRequest != nil }
         #expect(h.session.overlayRequest == .stillWatching)
+        #expect(h.engine.upNext == nil && h.session.upNextShown == nil)
+        #expect(h.engine.chromeHiddenCalls == [true])
         h.session.continueWatching()
         await until { h.session.itemsStarted == 5 && h.session.phase == .playing }
         #expect(h.session.overlayRequest == nil)
         #expect(h.session.autoChainCount == 0)
+        #expect(h.engine.chromeHiddenCalls == [true, false])
+        #expect(h.engine.loads.last?.ratingKey == "next")
+        // The next item is back under the limit: a timed proposal again.
+        await h.tick(46_000)
+        #expect(h.engine.upNextMode == .timed(seconds: 10))
+    }
+
+    @Test func manualProposalIsWithdrawnBeforeStillWatching() async {
+        // Estimated credits give a manual proposal; reaching the limit mid-item (count rebuilt from 3
+        // automatic advances) must not leave it under the prompt.
+        let h = Harness(source: makeSource(durationMs: 1_200_000, markers: []))
+        await h.start()
+        await h.tick(1_160_000)
+        #expect(h.engine.upNextMode == .manual)
+        h.session.setAutoChainCountForTesting(3)
+        h.engine.send(.ended)
+        await until { h.session.overlayRequest != nil }
+        #expect(h.session.overlayRequest == .stillWatching)
+        #expect(h.engine.upNext == nil && h.session.upNextShown == nil)
+        #expect(h.engine.chromeHidden)
+    }
+
+    @Test func failureOverlayHidesChromeAndRetryRestoresIt() async {
+        let h = Harness()
+        await h.start()
+        h.engine.send(.failed("boom"))
+        await until { h.session.overlayRequest != nil }
+        #expect(h.engine.chromeHiddenCalls == [true])
+        h.session.retry()
+        await until { h.session.phase == .playing }
+        #expect(h.engine.chromeHiddenCalls == [true, false])
+        await h.session.exit()
+        // Exit after a cleared overlay does not touch the torn-down engine.
+        #expect(h.engine.chromeHiddenCalls == [true, false])
     }
 
     @Test func userInputResetsTheCount() async {

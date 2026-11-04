@@ -164,7 +164,7 @@ enum PlayerSpikeLog {
         let latency = entry.startLatencyMs.map { "\($0)" } ?? "-"
         let position = entry.positionMs.map { "\($0)" } ?? "-"
         log.notice(
-            "playback log \(entry.outcome.rawValue, privacy: .public) engine=\(entry.engine, privacy: .public) method=\(entry.method.rawValue, privacy: .public) key=\(entry.ratingKey, privacy: .public) positionMs=\(position, privacy: .public) startLatencyMs=\(latency, privacy: .public) error=\(entry.error ?? "-", privacy: .public)")
+            "playback log \(entry.outcome.rawValue, privacy: .public) engine=\(entry.engine, privacy: .public) method=\(entry.method?.rawValue ?? "unknown", privacy: .public) key=\(entry.ratingKey, privacy: .public) positionMs=\(position, privacy: .public) startLatencyMs=\(latency, privacy: .public) error=\(entry.error ?? "-", privacy: .public)")
     }
 }
 

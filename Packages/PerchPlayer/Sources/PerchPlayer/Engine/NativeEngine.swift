@@ -239,6 +239,14 @@ public final class NativeEngine: NSObject, PlaybackEngine {
         item.nextContentProposal = content
     }
 
+    public func setNativeChromeHidden(_ hidden: Bool) {
+        guard !isTornDown else { return }
+        // With controls off, AVKit draws no title, transport bar, info pill or contextual actions, and
+        // takes no remote input; turning them back on restores all of it (the container then takes focus).
+        playerViewController.showsPlaybackControls = !hidden
+        Logger.player.notice("Native chrome hidden=\(hidden, privacy: .public)")
+    }
+
     private func withdrawUpNext() {
         upNext = nil
         player.currentItem?.nextContentProposal = nil

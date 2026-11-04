@@ -24,6 +24,23 @@ final class PlayerSpikeUITests: XCTestCase {
         XCTAssertTrue(waitUntil(timeout) { self.status(app).contains(part) }, "\(why): status was '\(status(app))'")
     }
 
+    /// Presses Menu until the player closes (at most 4) and asserts it took exactly `presses`, with a
+    /// screenshot before each press (AVKit's chrome is not in the accessibility tree).
+    @MainActor
+    private func leaveWithMenu(_ app: XCUIApplication, presses: Int, _ state: String) {
+        let probe = element(app, "spike.status")
+        var took = 0
+        for press in 1...4 {
+            shot("menu-\(state)-before-\(press)")
+            XCUIRemote.shared.press(.menu)
+            if waitForGone(probe, timeout: press < presses ? 2.5 : 5) {
+                took = press
+                break
+            }
+        }
+        XCTAssertEqual(took, presses, "\(state): Menu presses to leave the player (0 = still up after 4)")
+    }
+
     private func dump(_ app: XCUIApplication, _ name: String) {
         let attachment = XCTAttachment(string: app.debugDescription)
         attachment.name = name
@@ -99,15 +116,12 @@ final class PlayerSpikeUITests: XCTestCase {
         XCUIRemote.shared.press(.playPause)
         expectStatus(app, contains: "playing", "and resume")
 
-        // (d) Menu with no overlay: AVKit takes one press to hide the transport bar and, inside the fake
-        // intro, one to put away the Skip Intro action; the next leaves the player.
-        for press in 1...3 {
-            XCUIRemote.shared.press(.menu)
-            if waitForGone(element(app, "spike.status"), timeout: 3) { break }
-            dump(app, "q1d-after-menu-\(press)")
-            shot("q1d-after-menu-\(press)")
-        }
-        XCTAssertTrue(waitForGone(element(app, "spike.status"), timeout: 5), "Menu should leave the player")
+        // (d) Menu with no overlay, past the intro (no Skip action) and paused (transport bar up and held):
+        // the first press hides the bar, the second leaves the player.
+        expectStatus(app, contains: "skip=none", timeout: 15, "past the intro")
+        XCUIRemote.shared.press(.playPause)
+        expectStatus(app, contains: "paused", "pause holds the transport bar up")
+        leaveWithMenu(app, presses: 2, "spike-transport-bar")
         XCTAssertTrue(waitUntil(5) { self.text(self.element(app, "spike.exits")) == "Exits: 1" })
         let launcher = element(app, "spike.play.focus")
         XCTAssertTrue(waitUntil(5) { launcher.hasFocus }, "focus should return to the launching button")
@@ -134,13 +148,10 @@ final class PlayerSpikeUITests: XCTestCase {
         expectStatus(app, contains: "upnext=none", "proposal gone")
         shot("q1e-next-item")
 
-        // As (d): the transport bar and, inside the intro, Skip Intro each take one Menu first.
-        for press in 1...3 {
-            XCUIRemote.shared.press(.menu)
-            if waitForGone(element(app, "spike.status"), timeout: 3) { break }
-            shot("q1e-after-menu-\(press)")
-        }
-        XCTAssertTrue(waitForGone(element(app, "spike.status"), timeout: 5), "Menu should leave the player")
+        // Inside the next item's intro, no remote input since the advance: only the native Skip Intro action
+        // shows. The first press puts it away, the second leaves the player.
+        expectStatus(app, contains: "skip=intro", timeout: 15, "Skip Intro in the next item's intro")
+        leaveWithMenu(app, presses: 2, "spike-skip")
         XCTAssertTrue(waitUntil(5) { self.text(self.element(app, "spike.exits")) == "Exits: 1" })
     }
 }

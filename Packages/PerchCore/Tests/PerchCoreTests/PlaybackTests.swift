@@ -81,6 +81,23 @@ import Testing
         #expect(await log.lastLines(0) == "")
     }
 
+    @Test func failureBeforeADecisionHasNoMethodAndOldLinesStillDecode() async throws {
+        let url = tempFile()
+        // A line written before `method` became optional, then one with no method at all.
+        let old = #"{"date":"2023-11-14T22:13:20Z","engine":"native","method":"directPlay","notes":[],"outcome":"start","ratingKey":"7","reasons":[],"title":"Old"}"#
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data((old + "\n").utf8).write(to: url)
+        let log = PlaybackLog(fileURL: url)
+        await log.append(PlaybackLogEntry(ratingKey: "8", title: "New", outcome: .failure, error: "refused"))
+        let entries = await log.entries()
+        #expect(entries.map(\.ratingKey) == ["7", "8"])
+        #expect(entries[0].method == .directPlay)
+        #expect(entries[1].method == nil)
+        #expect(await PlaybackLog(fileURL: url).entries().last?.method == nil)
+        let last = await log.lastLines(1)
+        #expect(last.contains("unknown") && !last.contains("directPlay"))
+    }
+
     @Test func stripsQueriesFromErrors() async {
         let log = PlaybackLog(fileURL: tempFile())
         await log.append(

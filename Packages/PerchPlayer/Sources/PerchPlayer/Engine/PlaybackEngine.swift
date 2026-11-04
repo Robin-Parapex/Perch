@@ -73,6 +73,10 @@ public protocol PlaybackEngine: AnyObject {
         onAccept: @escaping @MainActor (UpNextAcceptance) -> Void,
         onDismiss: @escaping @MainActor () -> Void)
 
+    /// Hides (or shows again) the engine's own chrome: title, transport bar, info panel and its pill, so
+    /// an app overlay never sits on top of it. The session calls it whenever an overlay is raised or cleared.
+    func setNativeChromeHidden(_ hidden: Bool)
+
     /// Stops playback, drops the item and observers, resets display criteria. Idempotent.
     func teardown()
 }

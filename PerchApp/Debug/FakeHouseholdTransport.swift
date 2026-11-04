@@ -179,7 +179,7 @@ struct FakeHouseholdTransport: PlexTransport {
         case "/hubs/continueWatching": return raw(Self.continueWatchingJSON, url)
         case "/hubs": return raw(Self.hubsJSON, url)
         case "/library/onDeck": return raw(Self.onDeckJSON, url)
-        // The next episode for the player (WP-07): the series of the fake episode has E3 and E4.
+        // The next episodes for the player (WP-07): the fake series has E3 to E6, each playing the bundled clip.
         case "/library/metadata/2000/allLeaves": return raw(Self.allLeavesJSON, url)
         // A transcode decision (the fake file is 4K DV): accepted. The coordinator plays the bundled clip anyway.
         case "/video/:/transcode/universal/decision":
@@ -222,9 +222,11 @@ struct FakeHouseholdTransport: PlexTransport {
         """
 
     private static let allLeavesJSON = """
-        {"MediaContainer": {"size": 2, "Metadata": [
+        {"MediaContainer": {"size": 4, "Metadata": [
           {"ratingKey": "2101", "key": "/library/metadata/2101", "type": "episode", "title": "Salt and Signal", "grandparentRatingKey": "2000", "grandparentTitle": "The Lantern Keepers", "parentRatingKey": "2100", "parentIndex": 1, "index": 3, "duration": 60000, "viewCount": 0, "thumb": "/library/metadata/2101/thumb/1", "addedAt": 1700000100},
-          {"ratingKey": "2102", "key": "/library/metadata/2102", "type": "episode", "title": "The Long Watch", "grandparentRatingKey": "2000", "grandparentTitle": "The Lantern Keepers", "parentRatingKey": "2100", "parentIndex": 1, "index": 4, "duration": 60000, "viewCount": 0, "thumb": "/library/metadata/2102/thumb/1", "addedAt": 1700000200}
+          {"ratingKey": "2102", "key": "/library/metadata/2102", "type": "episode", "title": "The Long Watch", "grandparentRatingKey": "2000", "grandparentTitle": "The Lantern Keepers", "parentRatingKey": "2100", "parentIndex": 1, "index": 4, "duration": 60000, "viewCount": 0, "thumb": "/library/metadata/2102/thumb/1", "addedAt": 1700000200},
+          {"ratingKey": "2104", "key": "/library/metadata/2104", "type": "episode", "title": "Slack Water", "grandparentRatingKey": "2000", "grandparentTitle": "The Lantern Keepers", "parentRatingKey": "2100", "parentIndex": 1, "index": 5, "duration": 60000, "viewCount": 0, "thumb": "/library/metadata/2104/thumb/1", "addedAt": 1790000200},
+          {"ratingKey": "2105", "key": "/library/metadata/2105", "type": "episode", "title": "First Light", "grandparentRatingKey": "2000", "grandparentTitle": "The Lantern Keepers", "parentRatingKey": "2100", "parentIndex": 1, "index": 6, "duration": 60000, "viewCount": 0, "thumb": "/library/metadata/2105/thumb/1", "addedAt": 1790000250}
         ]}}
         """
 

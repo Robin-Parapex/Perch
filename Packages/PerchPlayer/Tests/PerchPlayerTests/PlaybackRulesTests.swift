@@ -106,11 +106,18 @@ import Testing
         #expect(r.phase(atMs: 3_100_000) == .proposed(.manual))
     }
 
-    @Test func manualWhenChainAtLimit() {
+    @Test func nothingProposedAtChainLimit() {
+        // At the limit the end asks "Are you still watching?" instead; no proposal under it.
         var r = rules(markers: [finalCredits], chain: 3)
-        #expect(r.phase(atMs: 3_100_000) == .proposed(.manual))
+        #expect(r.phase(atMs: 3_100_000) == .idle)
+        #expect(r.endAction() == .stillWatching)
+        var estimated = rules(chain: 3)
+        #expect(estimated.phase(atMs: 3_500_000) == .idle)
         var below = rules(markers: [finalCredits], chain: 2)
         #expect(below.phase(atMs: 3_100_000) == .proposed(.timed(seconds: 10)))
+        // Autoplay off has no chain: the manual proposal stays.
+        var off = rules(markers: [finalCredits], policy: PlaybackPolicy(autoplayNext: false), chain: 3)
+        #expect(off.phase(atMs: 3_100_000) == .proposed(.manual))
     }
 
     @Test func dismissedThenSeekBackIsManual() {
