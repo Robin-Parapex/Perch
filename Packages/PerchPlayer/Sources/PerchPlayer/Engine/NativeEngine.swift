@@ -36,6 +36,8 @@ public final class NativeEngine: NSObject, PlaybackEngine {
     private var itemObservation: NSKeyValueObservation?
     private var itemTokens: [any NSObjectProtocol] = []
     private var readyContinuation: CheckedContinuation<Void, any Error>?
+    /// Start-up phase timings for the debug log, cleared once the item first plays.
+    private var phases: (readyMs: Int, seekMs: Int?, playAt: ContinuousClock.Instant)?
 
     private struct UpNextRequest {
         var proposal: UpNextProposal
@@ -92,6 +94,7 @@ public final class NativeEngine: NSObject, PlaybackEngine {
         clearItemObservers()
         hideChrome()
         player.pause()
+        phases = nil
 
         // Display mode first, so the switch happens while the asset loads.
         let matched = displayMatcher.apply(source.decision, window: playerViewController.view.window)
@@ -113,6 +116,7 @@ public final class NativeEngine: NSObject, PlaybackEngine {
         player.replaceCurrentItem(with: item)
         lastState = nil
 
+        let loadAt = ContinuousClock.now
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
             if item.status == .readyToPlay {
                 continuation.resume()
@@ -121,10 +125,28 @@ public final class NativeEngine: NSObject, PlaybackEngine {
             }
         }
         guard gen == generation, !isTornDown else { throw CancellationError() }
-        if source.startMs > 0 {
+        let readyAt = ContinuousClock.now
+        var seekMs: Int?
+        if Self.needsStartSeek(
+            openedAtMs: positionMs, startMs: source.startMs, serverOffset: source.isTranscodeSession)
+        {
             await seek(toMs: source.startMs)
             guard gen == generation, !isTornDown else { throw CancellationError() }
+            seekMs = Self.ms(readyAt, .now)
         }
+        phases = (Self.ms(loadAt, readyAt), seekMs, .now)
+    }
+
+    /// Whether the item still has to be moved to its start after it opened. A Plex transcode session
+    /// is asked for the start as its `offset` and opens there already (live: offset 120 s opened at
+    /// 120.56 s); an exact seek back to the saved millisecond lands in the previous segment and refills
+    /// the buffer (0.5-0.9 s measured). So for those, a playhead from 3 s before to 2 s after the start
+    /// counts as there. Direct play opens at 0 and always gets the exact seek, as does a session whose
+    /// server ignored the offset.
+    nonisolated static func needsStartSeek(openedAtMs: Int, startMs: Int, serverOffset: Bool) -> Bool {
+        guard startMs > 0 else { return false }
+        guard serverOffset else { return true }
+        return !(-3_000...2_000).contains(openedAtMs - startMs)
     }
 
     public func play() {
@@ -195,7 +217,9 @@ public final class NativeEngine: NSObject, PlaybackEngine {
         guard !isTornDown, player.currentItem != nil else { return }
         let state: EngineEvent
         switch player.timeControlStatus {
-        case .playing: state = .playing
+        case .playing:
+            state = .playing
+            logPhases()
         case .paused: state = .paused
         case .waitingToPlayAtSpecifiedRate: state = .buffering
         @unknown default: return
@@ -276,6 +300,19 @@ public final class NativeEngine: NSObject, PlaybackEngine {
         player.replaceCurrentItem(with: nil)
         displayMatcher.reset()
         continuation.finish()
+    }
+
+    private func logPhases() {
+        guard let phases else { return }
+        self.phases = nil
+        let seek = phases.seekMs.map { "\($0)ms" } ?? "skipped"
+        Logger.player.info(
+            "Start phases ready=\(phases.readyMs, privacy: .public)ms seek=\(seek, privacy: .public) playing=\(Self.ms(phases.playAt, .now), privacy: .public)ms at=\(self.positionMs / 1000, privacy: .public)s"
+        )
+    }
+
+    private static func ms(_ from: ContinuousClock.Instant, _ to: ContinuousClock.Instant) -> Int {
+        Int(((to - from) / .milliseconds(1)).rounded())
     }
 
     private func cancelReady() {

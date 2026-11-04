@@ -14,9 +14,11 @@ extension PlexLibrary {
         for ratingKey: String, startMs: Int?, subtitleStreamID: Int?,
         sessionID: String = UUID().uuidString
     ) async throws -> PlaybackSource {
+        let startedAt = ContinuousClock.now
         let context = try await current()
         try await authorisePlay(context, entity: ratingKey)
         let detail = try await detailForPlayback(ratingKey: ratingKey)
+        let detailAt = ContinuousClock.now
 
         let versions = detail.versions
         let index =
@@ -53,6 +55,9 @@ extension PlexLibrary {
                 endpoints.transcodeDecision(base: context.baseURL, token: context.token, query: query),
                 host: .server)
             try Self.requireAccepted(body)
+            plexLog.info(
+                "Playback source prep=\(Self.ms(startedAt, detailAt), privacy: .public)ms decision=\(Self.ms(detailAt, .now), privacy: .public)ms"
+            )
             guard let start = endpoints.transcodeStartURL(base: context.baseURL, query: query) else {
                 throw PlexError.decoding
             }
@@ -85,6 +90,10 @@ extension PlexLibrary {
         } catch {
             plexLog.error("transcode stop failed")
         }
+    }
+
+    private static func ms(_ from: ContinuousClock.Instant, _ to: ContinuousClock.Instant) -> Int {
+        Int(((to - from) / .milliseconds(1)).rounded())
     }
 
     /// Requires the general and the transcode decision codes in 1000..<2000.

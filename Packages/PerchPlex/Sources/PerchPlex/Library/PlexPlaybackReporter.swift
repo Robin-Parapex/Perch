@@ -124,6 +124,7 @@ public actor PlexPlaybackReporter: PlaybackReporting {
                 timeMs: next.positionMs, durationMs: durationMs, sessionID: sessionID)
             do {
                 _ = try await transport.perform(request, host: .server)
+                Self.logReport(next, outcome: "ok")
                 // Accepted by the server; tell the sink only while this playback is still current.
                 if await contextSource.currentGeneration() == context.generation {
                     await sink?.playbackProgressed(
@@ -133,11 +134,22 @@ public actor PlexPlaybackReporter: PlaybackReporting {
                         generation: context.generation)
                 }
             } catch {
-                // perform has already logged the path; reporting never throws to the player.
-                plexLog.error("Timeline report failed")
+                // perform has already logged the path and status; reporting never throws to the player.
+                Self.logReport(next, outcome: "failed")
             }
         }
         drainTask = nil
+    }
+
+    /// One status line per report: state, position and outcome. Never the token, URL or session id.
+    /// Info level (shown by `log show --info`); failures at error level.
+    private static func logReport(_ item: Pending, outcome: String) {
+        let seconds = item.positionMs / 1000
+        if outcome == "ok" {
+            plexLog.info("timeline state=\(item.state.rawValue, privacy: .public) pos=\(seconds, privacy: .public)s \(outcome, privacy: .public)")
+        } else {
+            plexLog.error("timeline state=\(item.state.rawValue, privacy: .public) pos=\(seconds, privacy: .public)s \(outcome, privacy: .public)")
+        }
     }
 
     private func goInert() {
