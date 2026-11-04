@@ -14,9 +14,17 @@
 ## Not done on the device
 - Display-mode switching and the dropped-frames check on the 80 Mbit/s 4K sample (simulator-only runs since 2 Nov).
 - The live codec matrix waits on the optional fixtures library.
+- Full-quality 4K, HEVC and Dolby Vision playback from the simulator (blocked by the Mac's DNS, see below).
+- HEVC over TS versus fMP4 is still open.
 
 ## How it was checked
 - The design had two Opus reviews; the final verdict was ready for household review.
+
+## Remote SD transcodes and the connection fix
+- On the Mac, the Pi-hole (192.168.70.7) blocks plex.direct names that resolve to private addresses (DNS rebind protection). The simulator could only reach the public address, so the server sent SD (decision line for item 61131, HEVC Dolby Vision 8: container=mpegts videoCodec=h264 audioCodec=mp3 videoResolution=SD).
+- The household Apple TV network resolves the names fine; Robin confirmed on 4 Nov 2026 that the official Plex app plays locally there.
+- Fix committed in 2b8a9e9 (prefer local connections, upgrade in the background).
+- Not verified: full-quality 4K/HEVC/Dolby Vision playback from the simulator. The Mac's DNS blocks it; the fix would be `rebind-domain-ok=/plex.direct/` in Pi-hole or a hosts entry.
 
 ## Open items
 - TLS resets on the public Plex endpoint.

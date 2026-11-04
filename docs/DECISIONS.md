@@ -426,8 +426,14 @@ Append-only log of decisions and why. Newest at the bottom. Format: date, decisi
 - Decided by the WP-07 lead (Claude).
 
 ## 2026-11-04 Known environment issue: Plex connections
-- The remembered Plex address is the public plex.direct:8443 endpoint, which intermittently resets TLS handshakes (seen 4 Nov). LAN connections fail from the simulator (-1003/-1004, possibly DNS rebind protection). Follow-up: prefer local connections and revisit the sticky `lastURI`.
+- The remembered Plex address is the public plex.direct:8443 endpoint, which intermittently resets TLS handshakes (seen 4 Nov). LAN connections fail from the simulator (-1003/-1004, possibly DNS rebind protection). Cause found the same day: the Mac's Pi-hole blocks plex.direct names that resolve to private addresses (DNS rebind protection); the household Apple TV network is not affected. Followed up in the next entry.
 - Recorded by the WP-07 lead (Claude).
+
+## 2026-11-04 Prefer local Plex connections; upgrade in the background
+- Context: the app had stuck to the public plex.direct:8443 address, so Plex treated it as remote and capped every stream to SD H.264 + MP3.
+- Decision: local non-relay addresses win over the remembered address unless that is local. plex.direct names with private IPs count as local. `resume()` never waits on plex.tv when a remembered address answers; a background check switches to a better tier for later requests.
+- Rejected: plain HTTP or raw-IP fallback (the server requires secure connections and its certificate covers only *.plex.direct names; AVPlayer cannot use a custom trust check). A local network scan (GDM) is deferred to WP-05 first-run setup; it finds the IP but does not solve the certificate issue.
+- Decided by the WP-07 lead (Claude).
 
 ## Open decisions (resolve in the named work package)
 - Recovery when the stored Perch PIN cannot be read (Admin is locked out by design): confirm the owner through Plex, audited, then allow a new Perch PIN (WP-05).
