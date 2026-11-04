@@ -37,7 +37,8 @@ struct AppRoot: View {
     /// gallery pushed by the placeholder home is never routed away or re-mounted (WP-04 behaviour).
     private static var opensGallery: Bool {
         #if DEBUG
-        ProcessInfo.processInfo.arguments.contains("-PerchDesignGallery")
+        // `-PerchPlayerSpike` (WP-07 spike) is pinned the same way.
+        ProcessInfo.processInfo.arguments.contains("-PerchDesignGallery") || PlayerSpikeView.isRequested
         #else
         false
         #endif
@@ -106,9 +107,19 @@ struct AppRoot: View {
                 .accessibilityElement(children: .contain)
                 .accessibilityIdentifier("root.picker")
         case .home:
+            #if DEBUG
+            if PlayerSpikeView.isRequested {
+                PlayerSpikeView(core: core)
+            } else {
+                PlaceholderView(core: core, onRunSetupAgain: { isRerun = true })
+                    .accessibilityElement(children: .contain)
+                    .accessibilityIdentifier("root.home")
+            }
+            #else
             PlaceholderView(core: core, onRunSetupAgain: { isRerun = true })
                 .accessibilityElement(children: .contain)
                 .accessibilityIdentifier("root.home")
+            #endif
         }
     }
 

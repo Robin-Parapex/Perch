@@ -25,10 +25,13 @@
 		4B921CDDAC347E69092ABAA5 /* ImageDiskCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B02FF9E38171AE52DBB210 /* ImageDiskCache.swift */; };
 		4FF43F306571912D3E44B717 /* PerchTautulli in Frameworks */ = {isa = PBXBuildFile; productRef = D9BB25903DF7795D7E6F6281 /* PerchTautulli */; };
 		53BE2DF0F4E4331D38A3670D /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 65B77FBA7B90AF35072DBB7E /* PrivacyInfo.xcprivacy */; };
+		5D74EC2397FB1BB60C1842D9 /* PlayerSpikeClip.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 5049C881306F28A7D69171E2 /* PlayerSpikeClip.mp4 */; };
+		5EA6B7B6C16EAFE9EBEF4E84 /* PlayerSpikeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9747DA535C64AC2ADD90729 /* PlayerSpikeUITests.swift */; };
 		642A4DBDFED68899100CA244 /* CoreServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3FD1A399EE728F4D38CCD2C /* CoreServices.swift */; };
 		69C7FBB43B8946F4217CBA80 /* ModuleManifest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72EBCD50A28455935FE5B81E /* ModuleManifest.swift */; };
 		70DB6C9458CCE2CA58217FB4 /* WP05Support.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B74E85BFB25EAF18EAAFBAA /* WP05Support.swift */; };
 		737BC63B499B2034F488A938 /* SetupProfilesStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C0B3C5FC5D8A5ED71FF74CB /* SetupProfilesStep.swift */; };
+		77D857A027E5D884687C5DE2 /* PlayerSpikeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 975A43ACE2DD13C90E0B58A1 /* PlayerSpikeView.swift */; };
 		7D0F980230F0EED73C737127 /* ContentProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEC73F03519F0ABA8E1A202F /* ContentProvider.swift */; };
 		93FFCFF78D87B171B9178117 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 243A1FBF501983A4028E086D /* Assets.xcassets */; };
 		953A049EEFA1995A05CF2C41 /* PlaceholderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D11E7EAAD6441A75FF4CD087 /* PlaceholderView.swift */; };
@@ -91,6 +94,7 @@
 		46EFB7000E3577048BE61940 /* FakeArt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FakeArt.swift; sourceTree = "<group>"; };
 		47420A664FAA3977282845F2 /* LibraryDumpTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryDumpTransport.swift; sourceTree = "<group>"; };
 		4AE8EDB966DF6ECE15D70347 /* LibraryCheckView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryCheckView.swift; sourceTree = "<group>"; };
+		5049C881306F28A7D69171E2 /* PlayerSpikeClip.mp4 */ = {isa = PBXFileReference; path = PlayerSpikeClip.mp4; sourceTree = "<group>"; };
 		578031749B01762ADB2FC507 /* ProfileSwitcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSwitcher.swift; sourceTree = "<group>"; };
 		5D91C2D2667DAAD88A077BC0 /* LibraryCheckUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryCheckUITests.swift; sourceTree = "<group>"; };
 		65B77FBA7B90AF35072DBB7E /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
@@ -104,6 +108,7 @@
 		87964497C34D39061F3402E8 /* PerchHome */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PerchHome; path = Packages/PerchHome; sourceTree = SOURCE_ROOT; };
 		90B02FF9E38171AE52DBB210 /* ImageDiskCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageDiskCache.swift; sourceTree = "<group>"; };
 		90C301A09F83201E1F03BCD0 /* PerchTautulli */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PerchTautulli; path = Packages/PerchTautulli; sourceTree = SOURCE_ROOT; };
+		975A43ACE2DD13C90E0B58A1 /* PlayerSpikeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerSpikeView.swift; sourceTree = "<group>"; };
 		9C77FB42827DCAB58DA4C110 /* PerchCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PerchCore; path = Packages/PerchCore; sourceTree = SOURCE_ROOT; };
 		9DEC51BF47974BCC5F748D16 /* PerchUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PerchUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9F61457CD2103D9581212D8C /* PerchDesign */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PerchDesign; path = Packages/PerchDesign; sourceTree = SOURCE_ROOT; };
@@ -112,6 +117,7 @@
 		B4E088AAD12B918F3014DDE1 /* SetupFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupFlowView.swift; sourceTree = "<group>"; };
 		BD04E58E88BA9BC35355C563 /* PerchAI */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PerchAI; path = Packages/PerchAI; sourceTree = SOURCE_ROOT; };
 		D11E7EAAD6441A75FF4CD087 /* PlaceholderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaceholderView.swift; sourceTree = "<group>"; };
+		D9747DA535C64AC2ADD90729 /* PlayerSpikeUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerSpikeUITests.swift; sourceTree = "<group>"; };
 		DAFA42F3295D0579E36B8D6C /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		DFCF9214DE208DF357C09CFF /* SetupFlowModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupFlowModel.swift; sourceTree = "<group>"; };
 		E3FD1A399EE728F4D38CCD2C /* CoreServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreServices.swift; sourceTree = "<group>"; };
@@ -215,6 +221,8 @@
 				733569FCF6FF7AC55BDD33F9 /* FakeHouseholdTransport.swift */,
 				4AE8EDB966DF6ECE15D70347 /* LibraryCheckView.swift */,
 				47420A664FAA3977282845F2 /* LibraryDumpTransport.swift */,
+				5049C881306F28A7D69171E2 /* PlayerSpikeClip.mp4 */,
+				975A43ACE2DD13C90E0B58A1 /* PlayerSpikeView.swift */,
 			);
 			path = Debug;
 			sourceTree = "<group>";
@@ -225,6 +233,7 @@
 				FF483B6C94B4DC73D18C4462 /* DesignGalleryUITests.swift */,
 				5D91C2D2667DAAD88A077BC0 /* LibraryCheckUITests.swift */,
 				7DCA53A26933A2B3B0B4F245 /* PerchUITests.swift */,
+				D9747DA535C64AC2ADD90729 /* PlayerSpikeUITests.swift */,
 				08393C8DD9CE37ACF64C1E97 /* ProfilePickerUITests.swift */,
 				24058FD508AF202F5629849E /* SetupWizardUITests.swift */,
 				7B74E85BFB25EAF18EAAFBAA /* WP05Support.swift */,
@@ -439,6 +448,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				93FFCFF78D87B171B9178117 /* Assets.xcassets in Resources */,
+				5D74EC2397FB1BB60C1842D9 /* PlayerSpikeClip.mp4 in Resources */,
 				216985AF718481FBA2C86A17 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -453,6 +463,7 @@
 				B43D5DC91E95AC408194BEF3 /* DesignGalleryUITests.swift in Sources */,
 				9852F3937FE0FA15F011E5AD /* LibraryCheckUITests.swift in Sources */,
 				487B2E112C27D4631E1E3BA0 /* PerchUITests.swift in Sources */,
+				5EA6B7B6C16EAFE9EBEF4E84 /* PlayerSpikeUITests.swift in Sources */,
 				05EE20E1CEDCBCB567CC7E61 /* ProfilePickerUITests.swift in Sources */,
 				3DF3EEA72F6F90D6F28662F0 /* SetupWizardUITests.swift in Sources */,
 				70DB6C9458CCE2CA58217FB4 /* WP05Support.swift in Sources */,
@@ -474,6 +485,7 @@
 				69C7FBB43B8946F4217CBA80 /* ModuleManifest.swift in Sources */,
 				34E73F508EA639C0CB7DFB51 /* PerchMain.swift in Sources */,
 				953A049EEFA1995A05CF2C41 /* PlaceholderView.swift in Sources */,
+				77D857A027E5D884687C5DE2 /* PlayerSpikeView.swift in Sources */,
 				22E7464F851F3DFAE221147A /* PlexSignInModel.swift in Sources */,
 				13C2D6C32B8E74412EFFD95F /* ProfilePickerView.swift in Sources */,
 				14385D923BA789B87B7EA200 /* ProfileSwitcher.swift in Sources */,
@@ -515,6 +527,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
 				CODE_SIGN_ENTITLEMENTS = PerchApp/PerchApp.entitlements;
+				EXCLUDED_SOURCE_FILE_NAMES = PlayerSpikeClip.mp4;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = PerchApp/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
