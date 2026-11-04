@@ -68,7 +68,7 @@ final class PlaybackCoordinator {
             let profileID = profile?.id.rawValue
             let role = await role(of: profile)
             do {
-                let first = try await prepare(item, startMs: startMs ?? item.viewOffsetMs)
+                let first = try await prepare(item, startMs: startMs ?? item.viewOffsetMs, profileID: profileID)
                 activeSession = makeSession(first: first, item: item, profileID: profileID, role: role)
             } catch {
                 startError = String(describing: error)
@@ -104,7 +104,7 @@ final class PlaybackCoordinator {
     /// Only the decision (which authorises the play) is waited for. The artwork is fetched alongside it and
     /// used only if it is already here; the timeline reporter starts in parallel with presentation and
     /// `engine.load`, behind a `DeferredReporter` that holds every report until it exists (same session ID).
-    private func prepare(_ item: MediaSummary, startMs: Int?) async throws -> PlaybackItem {
+    private func prepare(_ item: MediaSummary, startMs: Int?, profileID: String?) async throws -> PlaybackItem {
         let sessionID = UUID().uuidString
         let artwork = ArtworkBox()
         if let path = item.thumbPath {
@@ -118,13 +118,24 @@ final class PlaybackCoordinator {
         #endif
         source.title = Self.logTitle(for: item)
         let library = library
+        let log = log
+        let logTitle = source.title
+        let ratingKey = item.id
         let reporterTask = Task { () async throws -> any PlaybackReporting in
             try await library.startPlayback(item: item, sessionID: sessionID)
         }
         var metadata = PlayerItemMetadata(title: Self.displayTitle(for: item), subtitle: Self.displaySubtitle(for: item))
         metadata.artworkData = artwork.data  // nil when it has not arrived: the info panel goes without
         return PlaybackItem(
-            source: source, metadata: metadata, reporter: DeferredReporter(sessionID: sessionID, task: reporterTask))
+            source: source, metadata: metadata,
+            reporter: DeferredReporter(sessionID: sessionID, task: reporterTask) {
+                // Feedback reports must show that the server saw no progress for this play. No raw error: it
+                // may carry a host.
+                await log.append(
+                    PlaybackLogEntry(
+                        profileID: profileID, ratingKey: ratingKey, title: logTitle, outcome: .failure,
+                        error: DeferredReporter.notReportedLine))
+            })
     }
 
     @MainActor private final class ArtworkBox {
@@ -167,7 +178,13 @@ final class PlaybackCoordinator {
                 #else
                 let startMs = 0
                 #endif
-                let resolved = try await self.prepare(next, startMs: startMs)
+                let resolved: PlaybackItem
+                do {
+                    resolved = try await self.prepare(next, startMs: startMs, profileID: profileID)
+                } catch PlexError.notAllowed {
+                    // The session ends instead of offering a retry that would be refused again.
+                    throw PlaybackNotAllowed()
+                }
                 current.item = next
                 current.pending = nil
                 return resolved
@@ -291,14 +308,22 @@ enum PlaybackCoordinatorError: Error { case noNext }
 /// order (the session's outbox is serial, so playback never waits). If it fails, nothing is reported; the
 /// play was already authorised by the decision call.
 actor DeferredReporter: PlaybackReporting {
+    /// The playback-log line when the reporter never started (no URLs, no codes).
+    static let notReportedLine = "progress not reported: the timeline did not start"
+
     nonisolated let sessionID: String
     private let task: Task<any PlaybackReporting, any Error>
+    private let onStartFailed: @Sendable () async -> Void
     private var resolved: (any PlaybackReporting)?
     private var failed = false
 
-    init(sessionID: String, task: Task<any PlaybackReporting, any Error>) {
+    init(
+        sessionID: String, task: Task<any PlaybackReporting, any Error>,
+        onStartFailed: @escaping @Sendable () async -> Void = {}
+    ) {
         self.sessionID = sessionID
         self.task = task
+        self.onStartFailed = onStartFailed
     }
 
     private func reporter() async -> (any PlaybackReporting)? {
@@ -311,6 +336,7 @@ actor DeferredReporter: PlaybackReporting {
         } catch {
             failed = true
             Logger.playback.error("timeline reporter did not start: \(String(describing: error), privacy: .public)")
+            await onStartFailed()
             return nil
         }
     }

@@ -72,6 +72,16 @@ final class FakeEngine: PlaybackEngine {
     var chromeHidden: Bool { chromeHiddenCalls.last ?? false }
     func setNativeChromeHidden(_ hidden: Bool) { chromeHiddenCalls.append(hidden) }
 
+    /// The user dismisses the card in the player: the real engine takes it down, then tells the session.
+    func userDismissUpNext() {
+        let dismiss = onDismiss
+        upNext = nil
+        upNextMode = nil
+        onAccept = nil
+        onDismiss = nil
+        dismiss?()
+    }
+
     func teardown() {
         tornDown += 1
         continuation.finish()
@@ -124,6 +134,9 @@ final class Harness {
     let session: PlaybackSession
     var hasNext = true
     var finished = 0
+    /// Thrown by `resolveNext` while set; `resolveCalls` counts every attempt.
+    var resolveError: (any Error)?
+    var resolveCalls = 0
 
     static let failureCopy = "App copy for the failure line."
 
@@ -139,7 +152,9 @@ final class Harness {
             reporter: reporter, log: { await log.add($0) },
             nextItem: { box?.hasNext == true ? UpNextProposal(title: "Next", ratingKey: "next") : nil },
             resolveNext: { proposal in
-                PlaybackItem(
+                box?.resolveCalls += 1
+                if let error = box?.resolveError { throw error }
+                return PlaybackItem(
                     source: makeSource(key: proposal.ratingKey), metadata: PlayerItemMetadata(title: "Next"),
                     reporter: reporter)
             },

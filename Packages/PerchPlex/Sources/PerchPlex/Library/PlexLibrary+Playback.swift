@@ -48,7 +48,8 @@ extension PlexLibrary {
             let query = endpoints.transcodeQuery(
                 ratingKey: ratingKey, mediaIndex: index,
                 directStream: decision.method != .transcode,
-                directStreamAudio: decision.method == .directStream,
+                // From the audio dimension: a video transcode still copies AAC/AC3/EAC3 (keeps Atmos).
+                directStreamAudio: decision.audioPassthrough,
                 sessionID: sessionID, subtitles: subtitles, subtitleStreamID: streamID,
                 offsetSeconds: startMs.map { $0 / 1000 })
             let body = try await transport.perform(
@@ -57,6 +58,9 @@ extension PlexLibrary {
             try Self.requireAccepted(body)
             plexLog.info(
                 "Playback source prep=\(Self.ms(startedAt, detailAt), privacy: .public)ms decision=\(Self.ms(detailAt, .now), privacy: .public)ms"
+            )
+            plexLog.info(
+                "Playback decision range=\(decision.videoRange.rawValue, privacy: .public) dv=\(decision.dolbyVisionProfile.map(String.init) ?? "-", privacy: .public) server: \(Self.decisionSummary(body), privacy: .public)"
             )
             guard let start = endpoints.transcodeStartURL(base: context.baseURL, query: query) else {
                 throw PlexError.decoding
@@ -94,6 +98,29 @@ extension PlexLibrary {
 
     private static func ms(_ from: ContinuousClock.Instant, _ to: ContinuousClock.Instant) -> Int {
         Int(((to - from) / .milliseconds(1)).rounded())
+    }
+
+    /// What the server will send, from named fields only (never the body, which carries paths):
+    /// container, protocol and codecs of the media, then each stream's type, codec and copy/transcode.
+    static func decisionSummary(_ body: Data) -> String {
+        let container =
+            (try? JSONSerialization.jsonObject(with: body) as? [String: Any])?["MediaContainer"]
+            as? [String: Any]
+        let media = ((container?["Metadata"] as? [[String: Any]])?.first?["Media"] as? [[String: Any]])?.first
+        func field(_ dict: [String: Any]?, _ key: String) -> String { dict?[key].map { "\($0)" } ?? "-" }
+        var parts = ["container", "protocol", "videoCodec", "audioCodec", "videoResolution", "bitrate"].map {
+            "\($0)=\(field(media, $0))"
+        }
+        // The server's own reasons (plain wording, no paths).
+        for key in ["directPlayDecisionText", "transcodeDecisionText", "generalDecisionText"] {
+            parts.append("\(key)=\(field(container, key))")
+        }
+        let streams = ((media?["Part"] as? [[String: Any]])?.first?["Stream"] as? [[String: Any]]) ?? []
+        for stream in streams {
+            parts.append(
+                "stream\(field(stream, "streamType"))=\(field(stream, "codec"))/\(field(stream, "decision"))")
+        }
+        return parts.joined(separator: " ")
     }
 
     /// Requires the general and the transcode decision codes in 1000..<2000.

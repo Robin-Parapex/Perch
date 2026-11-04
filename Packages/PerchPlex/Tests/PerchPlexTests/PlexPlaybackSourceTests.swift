@@ -4,7 +4,9 @@ import Testing
 
 @testable import PerchPlex
 
-private func movieJSON(container: String, videoCodec: String = "h264", subtitleCodec: String? = nil) -> String {
+private func movieJSON(
+    container: String, videoCodec: String = "h264", audioCodec: String = "aac", subtitleCodec: String? = nil
+) -> String {
     let subtitle = subtitleCodec.map {
         #",{"id":30,"streamType":3,"codec":"\#($0)","forced":0}"#
     } ?? ""
@@ -12,7 +14,7 @@ private func movieJSON(container: String, videoCodec: String = "h264", subtitleC
         {"MediaContainer":{"Metadata":[{"ratingKey":"500","type":"movie","title":"Harbour Lights","duration":7200000,
         "Media":[{"id":1,"container":"\#(container)","duration":7200000,"Part":[{"id":2,"key":"/library/parts/2/1/file.\#(container)","container":"\#(container)","accessible":true,
         "Stream":[{"id":10,"streamType":1,"codec":"\#(videoCodec)","width":1920,"height":1080},
-        {"id":20,"streamType":2,"codec":"aac","selected":1}\#(subtitle)]}]}]}]}}
+        {"id":20,"streamType":2,"codec":"\#(audioCodec)","selected":1}\#(subtitle)]}]}]}]}}
         """#
 }
 
@@ -86,7 +88,37 @@ struct PlexPlaybackSourceTests {
         #expect(value(source.url, "subtitles") == "burn")
         #expect(value(source.url, "subtitleStreamID") == "30")
         #expect(value(source.url, "offset") == "95")
-        #expect(value(source.url, "directStream") == "0" && value(source.url, "directStreamAudio") == "0")
+        // Burned-in subtitles transcode the video; the AAC track still passes through.
+        #expect(value(source.url, "directStream") == "0" && value(source.url, "directStreamAudio") == "1")
+    }
+
+    @Test func videoTranscodeKeepsPassthroughAudio() async throws {
+        let rig = try await rig(movieJSON(container: "mkv", videoCodec: "av1", audioCodec: "eac3"))
+        defer { rig.cleanup() }
+        await rig.transport.script(path: "/video/:/transcode/universal/decision", json: acceptedDecision)
+        let source = try await rig.library.playbackSource(for: "500", startMs: nil, subtitleStreamID: nil)
+        #expect(source.decision.method == .transcode && source.decision.audioPassthrough)
+        #expect(value(source.url, "directStream") == "0" && value(source.url, "directStreamAudio") == "1")
+    }
+
+    @Test func decisionSummaryNamesWhatTheServerSendsAndNoPaths() {
+        let body = Data(
+            #"{"MediaContainer":{"transcodeDecisionText":"Direct play not available; Conversion OK.","Metadata":[{"key":"/library/metadata/500","Media":[{"container":"mpegts","protocol":"hls","videoCodec":"h264","audioCodec":"mp3","Part":[{"key":"/video/secret/path","Stream":[{"streamType":1,"codec":"h264","decision":"transcode"},{"streamType":2,"codec":"mp3","decision":"transcode"}]}]}]}]}}"#
+                .utf8)
+        let summary = PlexLibrary.decisionSummary(body)
+        #expect(summary.contains("container=mpegts protocol=hls videoCodec=h264 audioCodec=mp3"))
+        #expect(summary.contains("stream1=h264/transcode stream2=mp3/transcode"))
+        #expect(summary.contains("transcodeDecisionText=Direct play not available; Conversion OK."))
+        #expect(!summary.contains("/library") && !summary.contains("/video"))
+    }
+
+    @Test func convertedAudioIsNotDirectStreamed() async throws {
+        let rig = try await rig(movieJSON(container: "mkv", audioCodec: "truehd"))
+        defer { rig.cleanup() }
+        await rig.transport.script(path: "/video/:/transcode/universal/decision", json: acceptedDecision)
+        let source = try await rig.library.playbackSource(for: "500", startMs: nil, subtitleStreamID: nil)
+        #expect(source.decision.method == .audioTranscode && !source.decision.audioPassthrough)
+        #expect(value(source.url, "directStream") == "1" && value(source.url, "directStreamAudio") == "0")
     }
 
     @Test func stopTranscodeHitsTheStopEndpointWithTheSession() async throws {

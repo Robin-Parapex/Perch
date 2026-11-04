@@ -37,7 +37,12 @@ public final class PlayerContainerViewController: UIViewController {
         child.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         view.addSubview(child.view)
         child.didMove(toParent: self)
-        session.onFinished = { [weak self] in self?.onExit?() }
+        // Chain to the owner's handler (the app's coordinator sets one before the container exists).
+        let existing = session.onFinished
+        session.onFinished = { [weak self] in
+            existing?()
+            self?.onExit?()
+        }
         session.onOverlayRequestChange = { [weak self] request in self?.render(request) }
     }
 

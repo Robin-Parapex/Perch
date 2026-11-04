@@ -66,6 +66,13 @@ public struct UpNextRules: Sendable {
         timedSpent = true
     }
 
+    /// A rebuild (new chain count) keeps what the user did to this item's proposal: still dismissed while
+    /// in the credits, and never timed again once dismissed.
+    public mutating func carryUserChoices(from previous: UpNextRules) {
+        dismissed = previous.dismissed
+        timedSpent = previous.timedSpent
+    }
+
     /// For an item that ends without an accepted proposal. A dismissed proposal means stop (Back cancels).
     public func endAction() -> EndAction {
         guard hasNext, !dismissed, policy.autoplayNext else { return .stop }

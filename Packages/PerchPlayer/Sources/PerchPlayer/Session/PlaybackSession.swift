@@ -10,6 +10,12 @@ public enum PlayerOverlayRequest: Sendable, Equatable {
     case playbackFailed(message: String)
 }
 
+/// Thrown by `resolveNext` when the active profile may not play the next item. The session then ends
+/// instead of offering "Try Again" (a retry would be refused again).
+public struct PlaybackNotAllowed: Error, Sendable, Equatable {
+    public init() {}
+}
+
 /// One item ready to play: what to open, what to show, and its own reporter (one per playback).
 public struct PlaybackItem: Sendable {
     public var source: PlaybackSource
@@ -72,7 +78,8 @@ public final class PlaybackSession {
     @ObservationIgnored private var counter = AutoChainCounter()
     @ObservationIgnored private var skipRules: SkipRules
     @ObservationIgnored private var upNextRules: UpNextRules?
-    @ObservationIgnored private var upNextDismissed = false
+    /// The next item whose preparation failed: the failure belongs to it and "Try Again" re-advances.
+    @ObservationIgnored private var failedAdvance: UpNextProposal?
     @ObservationIgnored private var nextProposal: UpNextProposal?
     @ObservationIgnored private var nextTask: Task<Void, Never>?
     @ObservationIgnored private var eventTask: Task<Void, Never>?
@@ -178,10 +185,15 @@ public final class PlaybackSession {
     /// Fallback for `failureMessage` when the app supplies none.
     public static let defaultFailureMessage = "It may be a network hiccup. Try again, or come back later."
 
-    /// Try the current item again from where it stopped. Refused when the profile may not retry.
+    /// Try the current item again from where it stopped, or the next item again when preparing it failed
+    /// (the finished item's stop was sent and its transcode stopped). Refused when the profile may not retry.
     public func retry() {
         guard case .playbackFailed = overlayRequest, canRetry else { return }
         setOverlay(nil)
+        if let proposal = failedAdvance {
+            Task { await advance(to: proposal) }
+            return
+        }
         source.startMs = positionMs
         Task { await loadCurrent() }
     }
@@ -220,7 +232,6 @@ public final class PlaybackSession {
         nextTask?.cancel()
         skipRules = SkipRules(markers: source.markers, durationMs: source.durationMs, policy: policy)
         upNextRules = nil
-        upNextDismissed = false
         nextProposal = nil
         skipOffer = nil
         upNextShown = nil
@@ -245,7 +256,8 @@ public final class PlaybackSession {
         var rules = UpNextRules(
             markers: source.markers, durationMs: source.durationMs, hasNext: nextProposal != nil,
             policy: policy, autoChainCount: counter.count)
-        if upNextDismissed { rules.dismiss() }
+        // The rules own the dismissal (a seek back before the credits clears it): carry it, never re-apply it.
+        if let previous = upNextRules { rules.carryUserChoices(from: previous) }
         upNextRules = rules
     }
 
@@ -256,15 +268,21 @@ public final class PlaybackSession {
         stopCurrentItem(at: currentPosition)
         engine.showSkip(nil, onSkip: {})
         engine.showUpNext(nil, mode: .manual, onAccept: { _ in }, onDismiss: {})
+        failedAdvance = proposal
         do {
             let item = try await resolveNext(proposal)
             guard phase != .finished else { return }
+            failedAdvance = nil
             source = item.source
             metadata = item.metadata
             reporter = item.reporter
         } catch {
             guard phase != .finished else { return }
-            fail(String(describing: error))
+            failAdvance(proposal, error: error)
+            if error is PlaybackNotAllowed {
+                // No retry can succeed: log it against the next item (above), then end the session.
+                await exit()
+            }
             return
         }
         await loadCurrent()
@@ -313,6 +331,8 @@ public final class PlaybackSession {
             report(.buffering)
         case .positionTick(let ms):
             guard phase != .loading || loadStartedAt == nil else { return }
+            // A failed advance leaves the finished item running under the overlay: no proposal over it.
+            guard phase != .failed else { return }
             positionMs = ms
             reportPosition(ms)
             evaluate()
@@ -364,13 +384,8 @@ public final class PlaybackSession {
                 proposal, mode: mode,
                 onAccept: { [weak self] acceptance in self?.acceptUpNext(acceptance) },
                 onDismiss: { [weak self] in self?.dismissUpNext() })
-        case .idle:
-            guard upNextShown != nil else { return }
-            upNextShown = nil
-            upNextMode = nil
-            engine.showUpNext(nil, mode: .manual, onAccept: { _ in }, onDismiss: {})
-        case .dismissed:
-            break
+        case .idle, .dismissed:
+            withdrawUpNext()
         }
     }
 
@@ -413,8 +428,8 @@ public final class PlaybackSession {
         engine.showUpNext(nil, mode: .manual, onAccept: { _ in }, onDismiss: {})
     }
 
+    /// The engine already took its card down (the user dismissed it there); only the state follows.
     private func dismissUpNext() {
-        upNextDismissed = true
         upNextRules?.dismiss()
         upNextShown = nil
         upNextMode = nil
@@ -459,6 +474,32 @@ public final class PlaybackSession {
         enqueueLog(entry(.failure, positionMs: currentPosition, error: message))
         sendHook(.failure(message), at: currentPosition)
         setOverlay(.playbackFailed(message: failureMessage))
+    }
+
+    /// Preparing the next item failed: the finished item's stop is already sent, so the log line and the
+    /// hook name the next item, and the overlay's "Try Again" re-advances to it.
+    private func failAdvance(_ proposal: UpNextProposal, error: any Error) {
+        guard phase != .finished else { return }
+        let message = scrub(String(describing: error))
+        phase = .failed
+        autoSkipTask?.cancel()
+        engine.showSkip(nil, onSkip: {})
+        skipOffer = nil
+        withdrawUpNext()
+        let title = [proposal.title, proposal.subtitle].compactMap { $0 }.joined(separator: " \u{00B7} ")
+        enqueueLog(
+            PlaybackLogEntry(
+                profileID: profileID, ratingKey: proposal.ratingKey, title: title, engine: engine.name,
+                outcome: .failure, positionMs: 0, error: message))
+        if !hooks.isEmpty {
+            let hooks = hooks
+            let context = PlayerEventContext(
+                ratingKey: proposal.ratingKey, profileID: profileID, positionMs: 0, sessionID: "")
+            enqueue {
+                for hook in hooks { await hook.handle(.failure(message), context: context) }
+            }
+        }
+        if !(error is PlaybackNotAllowed) { setOverlay(.playbackFailed(message: failureMessage)) }
     }
 
     // MARK: outputs

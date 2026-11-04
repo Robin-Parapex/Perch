@@ -29,11 +29,15 @@ public struct PlaybackDecision: Codable, Sendable, Equatable {
     public var subtitle: SubtitleChoice
     /// What is lost or changed, e.g. "Atmos lost", "Dolby Vision 7 plays as HDR10".
     public var notes: [String]
+    /// Whether the chosen audio track goes through untouched (AAC, AC3, EAC3) when the server repackages
+    /// or transcodes the video. True when there is no audio track.
+    public var audioPassthrough: Bool
 
     public init(
         method: PlaybackMethod, reasons: [String] = [], videoRange: VideoRange = .sdr,
         dolbyVisionProfile: Int? = nil, frameRate: Double? = nil, width: Int? = nil,
-        height: Int? = nil, subtitle: SubtitleChoice = .none, notes: [String] = []
+        height: Int? = nil, subtitle: SubtitleChoice = .none, notes: [String] = [],
+        audioPassthrough: Bool = true
     ) {
         self.method = method
         self.reasons = reasons
@@ -44,5 +48,6 @@ public struct PlaybackDecision: Codable, Sendable, Equatable {
         self.height = height
         self.subtitle = subtitle
         self.notes = notes
+        self.audioPassthrough = audioPassthrough
     }
 }

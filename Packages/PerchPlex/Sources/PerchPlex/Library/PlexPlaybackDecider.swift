@@ -7,6 +7,8 @@ import PerchCore
 public enum PlexPlaybackDecider {
     private static let textSubtitles: Set<String> = ["srt", "ass", "ssa", "webvtt", "vtt", "mov_text", "tx3g", "subrip"]
     private static let directContainers: Set<String> = ["mp4", "mov", "m4v"]
+    /// Audio the HLS target carries as is, so a video transcode keeps it (Atmos in EAC3 survives).
+    private static let passthroughAudio: Set<String> = ["aac", "ac3", "eac3"]
 
     private static func rank(_ method: PlaybackMethod) -> Int {
         switch method {
@@ -78,6 +80,7 @@ public enum PlexPlaybackDecider {
             let titles = [audio.displayTitle, audio.extendedDisplayTitle, audio.title].compactMap { $0 }
                 .joined(separator: " ")
             let isDTS = codec.hasPrefix("dts") || codec.hasPrefix("dca")
+            decision.audioPassthrough = passthroughAudio.contains(codec)
             if ["truehd", "flac", "opus"].contains(codec) || codec.hasPrefix("pcm") || isDTS {
                 raise(.audioTranscode)
                 decision.reasons.append("audio \(codec): convert to EAC3 5.1")
