@@ -250,6 +250,7 @@ struct PlexWireMetadata: Decodable {
     var chapter: [PlexWireChapter]?
     var media: [PlexWireMedia]?
     var extras: PlexWireExtras?
+    var image: [PlexWireImage]?
 
     enum CodingKeys: String, CodingKey {
         case ratingKey, key, type, subtype, title
@@ -264,6 +265,7 @@ struct PlexWireMetadata: Decodable {
         case chapter = "Chapter"
         case media = "Media"
         case extras = "Extras"
+        case image = "Image"
     }
 
     init(from decoder: Decoder) throws {
@@ -297,6 +299,7 @@ struct PlexWireMetadata: Decodable {
         childCount = c.lenientInt(.childCount)
         addedAt = c.lenientInt(.addedAt)
         lastViewedAt = c.lenientInt(.lastViewedAt)
+        image = c.lossyArray(.image, of: PlexWireImage.self)
         originallyAvailableAt = c.lenientString(.originallyAvailableAt)
         librarySectionID = c.lenientString(.librarySectionID)
         extraType = c.lenientInt(.extraType)
@@ -332,6 +335,20 @@ struct PlexWireMedia: Decodable {
         videoResolution = c.lenientString(.videoResolution)
         duration = c.lenientInt(.duration)
         part = c.lossyArray(.part, of: PlexWirePart.self)
+    }
+}
+
+/// One entry of a metadata item's `Image` array (coverPoster, background, clearLogo, snapshot).
+struct PlexWireImage: Decodable {
+    var type: String?
+    var url: String?
+
+    enum CodingKeys: String, CodingKey { case type, url }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        type = c.lenientString(.type)
+        url = c.lenientString(.url)
     }
 }
 

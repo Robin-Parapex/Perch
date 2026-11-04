@@ -608,6 +608,19 @@ public actor PlexSession {
         return try await transport.perform(request, host: .server)
     }
 
+    /// A sized image request for a server path, or nil when not connected or the path is refused.
+    /// The token is in the header only; run it through the transport for the connected server.
+    public func imageRequest(path: String, size: ArtworkSize) -> URLRequest? {
+        guard let (base, token) = try? serverContext() else { return nil }
+        return endpoints.photoTranscode(base: base, path: path, size: size, token: token)
+    }
+
+    /// The connected server's machine identifier, for image cache keys. Nil when not connected.
+    public var currentServerID: String? {
+        guard case .ready(_, let server) = snapshotValue.state else { return nil }
+        return server.machineID
+    }
+
     private func serverContext() throws -> (URL, String) {
         let context = try libraryContext()
         return (context.baseURL, context.token)

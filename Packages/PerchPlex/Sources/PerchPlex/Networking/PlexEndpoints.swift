@@ -1,4 +1,5 @@
 import Foundation
+import PerchCore
 
 /// Pure request builders. No I/O, no logging. Tokens are headers only; the one URL that carries
 /// a secret is the Home switch (the documented `pin` query item), so callers must never log URLs.
@@ -99,6 +100,29 @@ public struct PlexEndpoints: Sendable {
         else { return nil }
         target.path = parts.path
         target.percentEncodedQuery = parts.percentEncodedQuery
+        target.fragment = nil
+        guard let url = target.url else { return nil }
+        var request = make("GET", url, token: token)
+        request.setValue("image/*", forHTTPHeaderField: "Accept")
+        return request
+    }
+
+    /// A server-scaled image: `/photo/:/transcode` with the source path inside the encoded `url`
+    /// value (a `?t=` version query stays inside it). Same path checks and header-only token as
+    /// `image(base:path:token:)`, so nil for anything but a plain absolute server path.
+    public func photoTranscode(base: URL, path: String, size: ArtworkSize, token: String) -> URLRequest? {
+        guard path.hasPrefix("/"), !path.hasPrefix("//"), !path.contains("://"),
+            let parts = URLComponents(string: path),
+            !(parts.queryItems ?? []).contains(where: { $0.name.lowercased().contains("token") }),
+            var target = URLComponents(url: base, resolvingAgainstBaseURL: false)
+        else { return nil }
+        var allowed = CharacterSet.urlQueryAllowed
+        allowed.remove(charactersIn: "?&=+#/:")
+        guard let encoded = path.addingPercentEncoding(withAllowedCharacters: allowed) else { return nil }
+        let pixels = size.pixelSize
+        target.path = "/photo/:/transcode"
+        target.percentEncodedQuery =
+            "width=\(pixels.width)&height=\(pixels.height)&minSize=1&upscale=1&url=\(encoded)"
         target.fragment = nil
         guard let url = target.url else { return nil }
         var request = make("GET", url, token: token)
