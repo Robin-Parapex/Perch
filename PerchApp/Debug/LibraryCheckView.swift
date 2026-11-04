@@ -26,6 +26,7 @@ struct LibraryCheckView: View {
                 if !model.finished { line("Loading", id: "libraryCheck.loading") }
                 sectionsBlock
                 rowsBlock
+                playBlock
                 hubsBlock
                 detailBlock
                 if LibraryCheckModel.writeCheckEnabled { WriteCheckBlock(model: model) }
@@ -59,6 +60,20 @@ struct LibraryCheckView: View {
                 line(
                     row.items.prefix(3).map(\.title).joined(separator: ", "),
                     id: "libraryCheck.first.\(row.id)")
+            }
+        }
+    }
+
+    /// WP-07 entry point until Home exists: plays through the PlaybackCoordinator.
+    private var playBlock: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Play").font(.headline)
+            if let error = core.playback.startError {
+                line("Play error: \(error)", id: "libraryCheck.play.error")
+            }
+            ForEach(model.items.filter { $0.kind == .film || $0.kind == .episode }) { item in
+                Button("Play \(item.title)") { core.playback.play(item) }
+                    .accessibilityIdentifier("libraryCheck.play.\(item.id)")
             }
         }
     }

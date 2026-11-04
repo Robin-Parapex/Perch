@@ -31,7 +31,7 @@ Effort assumes Claude Code writes most of the code and Robin tests on the TV in 
 | 1.1.0 | Discovery and Trakt | WP-22 to WP-23 | 1 weekend |
 | 1.2.0 | Recommendations, people, seasonal, polish | WP-24 to WP-28 | 1 to 2 weekends |
 | 1.3.0 | House and Music | WP-29 to WP-35 | 2 weekends |
-| 2.0.0 | Second player engine | WP-36 to WP-37 | 1 to 2 weekends |
+| 2.0.0 | Second player engine (WP-36 and WP-37 only if real use shows we need it, decided 4 Nov 2026) | WP-36 to WP-37 | 1 to 2 weekends |
 | 2.1.0 | AI | WP-38 to WP-41 | 1 to 2 weekends |
 | 2.2.0 | Insights and full Admin | WP-42 to WP-43 | 1 weekend |
 | 2.3.0 | House extended | WP-44 to WP-45 | 1 weekend |
@@ -136,8 +136,10 @@ Roughly 13 to 19 weekends in total; the MVP around weekend 5 to 7.
 
 ## 2.0.0 Second player engine
 
-- **WP-36 VLCKit engine.** TVVLCKit behind the same player API and chrome; automatic selection from the decision table (MKV with DTS or TrueHD, image subtitles); manual override per title; audio offset remembered per title; night mode (DRC); subtitle styling parity. Licences recorded in `THIRD_PARTY_NOTICES.md`.
-- **WP-37 Dolby Vision profile 7 to 8.1.** On-the-fly conversion following Dusk's approach so Blu-ray remuxes keep DV.
+Both packages are only if real use shows we need them (decided 4 Nov 2026): 4K image subtitles and lossless audio are the cases. Plex converts the audio meanwhile.
+
+- **WP-36 VLCKit engine** (only if real use shows we need it, decided 4 Nov 2026). TVVLCKit behind the same player API and chrome; automatic selection from the decision table (MKV with DTS or TrueHD, image subtitles); manual override per title; audio offset remembered per title; night mode (DRC); subtitle styling parity. Licences recorded in `THIRD_PARTY_NOTICES.md`.
+- **WP-37 Dolby Vision profile 7 to 8.1** (only if real use shows we need it, decided 4 Nov 2026). On-the-fly conversion following Dusk's approach so Blu-ray remuxes keep DV.
 
 **Acceptance**
 - The PGS and DTS fixture files play without server transcoding.

@@ -173,13 +173,30 @@ public struct MediaStream: Codable, Sendable, Hashable, Identifiable {
     public var isForced: Bool
     /// Path of a sidecar subtitle file; nil when embedded.
     public var key: String?
+    // Extra detail for the playback decision and the playback log.
+    /// Codec profile, e.g. "main 10", "dts-hd ma", "truehd".
+    public var profile: String?
+    public var audioChannelLayout: String?
+    public var dolbyVisionPresent: Bool?
+    public var dolbyVisionLevel: Int?
+    public var dolbyVisionBLCompatID: Int?
+    public var colourPrimaries: String?
+    public var colourSpace: String?
+    public var scanType: String?
+    public var displayTitle: String?
+    /// Atmos and DTS:X show up in the display titles.
+    public var extendedDisplayTitle: String?
 
     public init(
         id: String, kind: Kind, codec: String? = nil, languageCode: String? = nil,
         title: String? = nil, isDefault: Bool = false, isSelected: Bool = false,
         bitDepth: Int? = nil, colourTransfer: String? = nil, dolbyVisionProfile: Int? = nil,
         frameRate: Double? = nil, width: Int? = nil, height: Int? = nil, channels: Int? = nil,
-        format: String? = nil, isForced: Bool = false, key: String? = nil
+        format: String? = nil, isForced: Bool = false, key: String? = nil,
+        profile: String? = nil, audioChannelLayout: String? = nil, dolbyVisionPresent: Bool? = nil,
+        dolbyVisionLevel: Int? = nil, dolbyVisionBLCompatID: Int? = nil,
+        colourPrimaries: String? = nil, colourSpace: String? = nil, scanType: String? = nil,
+        displayTitle: String? = nil, extendedDisplayTitle: String? = nil
     ) {
         self.id = id
         self.kind = kind
@@ -198,6 +215,16 @@ public struct MediaStream: Codable, Sendable, Hashable, Identifiable {
         self.format = format
         self.isForced = isForced
         self.key = key
+        self.profile = profile
+        self.audioChannelLayout = audioChannelLayout
+        self.dolbyVisionPresent = dolbyVisionPresent
+        self.dolbyVisionLevel = dolbyVisionLevel
+        self.dolbyVisionBLCompatID = dolbyVisionBLCompatID
+        self.colourPrimaries = colourPrimaries
+        self.colourSpace = colourSpace
+        self.scanType = scanType
+        self.displayTitle = displayTitle
+        self.extendedDisplayTitle = extendedDisplayTitle
     }
 }
 

@@ -383,8 +383,19 @@ struct PlexWireStream: Decodable {
     var format: String?
     var forced: Bool?
     var key: String?
+    var profile: String?
+    var audioChannelLayout: String?
+    var doviPresent: Bool?
+    var doviLevel: Int?
+    var doviBLCompatID: Int?
+    var colorPrimaries: String?
+    var colorSpace: String?
+    var scanType: String?
+    var extendedDisplayTitle: String?
 
     enum CodingKeys: String, CodingKey {
+        case profile, audioChannelLayout, colorPrimaries, colorSpace, scanType, extendedDisplayTitle
+        case doviPresent = "DOVIPresent", doviLevel = "DOVILevel", doviBLCompatID = "DOVIBLCompatID"
         case id, streamType, codec, languageCode, displayTitle, title
         case isDefault = "default"
         case selected, bitDepth, colorTrc
@@ -412,6 +423,15 @@ struct PlexWireStream: Decodable {
         format = c.lenientString(.format)
         forced = c.lenientBool(.forced)
         key = c.lenientString(.key)
+        profile = c.lenientString(.profile)
+        audioChannelLayout = c.lenientString(.audioChannelLayout)
+        doviPresent = c.lenientBool(.doviPresent)
+        doviLevel = c.lenientInt(.doviLevel)
+        doviBLCompatID = c.lenientInt(.doviBLCompatID)
+        colorPrimaries = c.lenientString(.colorPrimaries)
+        colorSpace = c.lenientString(.colorSpace)
+        scanType = c.lenientString(.scanType)
+        extendedDisplayTitle = c.lenientString(.extendedDisplayTitle)
     }
 }
 

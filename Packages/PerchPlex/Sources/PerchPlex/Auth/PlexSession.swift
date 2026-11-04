@@ -89,6 +89,7 @@ public actor PlexSession {
     private var profile: PlexActiveProfile?
     private var knownServers: [PlexServer] = []
     private var switchInFlight = false
+    private var connectionUpgrade: Task<Void, Never>?
 
     public init(
         transport: any PlexTransport,
@@ -145,8 +146,22 @@ public actor PlexSession {
 
     private func setState(_ state: PlexSessionState) {
         if Self.readyKey(snapshotValue.state) != Self.readyKey(state) { generation &+= 1 }
+        if case .ready(_, let next) = state, Self.baseURL(of: snapshotValue.state) != next.baseURL {
+            Self.logConnection(next.baseURL, tier: next.tier)
+        }
         snapshotValue.state = state
         publish()
+    }
+
+    private static func baseURL(of state: PlexSessionState) -> URL? {
+        if case .ready(_, let server) = state { server.baseURL } else { nil }
+    }
+
+    /// One line per change of server address: scheme, host, port and tier (never a token; none is in it).
+    private static func logConnection(_ url: URL, tier: PlexConnectionTier) {
+        log.info(
+            "Plex connection: \(url.scheme ?? "", privacy: .public)://\(url.host(percentEncoded: false) ?? "", privacy: .public):\(url.port ?? 0, privacy: .public) tier=\(String(describing: tier), privacy: .public)"
+        )
     }
 
     private func setPlexTVReachable(_ reachable: Bool) {
@@ -483,7 +498,8 @@ public actor PlexSession {
         var result = try? await prober.probe(
             connections: cached, lastGood: saved.lastURI, expectedMachineID: saved.machineID)
 
-        if result == nil, let token = (try? secrets.string(for: .plexUserToken(id))) ?? ownerToken {
+        let token = (try? secrets.string(for: .plexUserToken(id))) ?? ownerToken
+        if result == nil, let token {
             if let found = try? await trackedServers(token: token),
                 let server = found.first(where: { $0.machineID == saved.machineID })
             {
@@ -502,8 +518,47 @@ public actor PlexSession {
                 profile: profile,
                 server: PlexConnectedServer(
                     name: saved.name, machineID: saved.machineID, baseURL: result.url, tier: result.tier)))
+        // A remembered public address works but makes Plex cap the stream: look for a LAN address
+        // without holding up the launch.
+        if result.tier != .local, let token {
+            connectionUpgrade = Task { await self.upgradeConnection(token: token, cached: cached) }
+        }
         return true
     }
+
+    /// Background check after `resume()` on a non-local address: fetches the server's addresses from
+    /// plex.tv and probes them; if a strictly better tier answers while the same profile and address are
+    /// still current, later requests use it and it becomes `lastURI`. Work already started (requests in
+    /// flight, a playing item, timeline reports) keeps its URL: the generation does not change, because
+    /// the server is the same. Does not touch `plexTVReachable`; failures leave everything as it was.
+    private func upgradeConnection(token: String, cached: [PlexConnection]) async {
+        guard case .ready(let startProfile, let start) = snapshotValue.state else { return }
+        guard let found = try? await discovery.servers(token: token),
+            let server = found.first(where: { $0.machineID == start.machineID })
+        else { return }
+        // plex.tv knows which addresses are relays; a remembered address looks like a direct one.
+        let startTier = server.connections.first(where: { $0.url == start.baseURL })?.tier ?? start.tier
+        guard
+            let fresh = try? await prober.probe(
+                connections: server.connections + cached, lastGood: start.baseURL,
+                expectedMachineID: start.machineID),
+            fresh.url != start.baseURL, fresh.tier < startTier
+        else { return }
+        // Re-check after the awaits: a profile switch, server change or sign-out wins over this.
+        guard case .ready(let profile, let current) = snapshotValue.state, profile.id == startProfile.id,
+            current == start
+        else { return }
+        snapshotValue.state = .ready(
+            profile: profile,
+            server: PlexConnectedServer(
+                name: current.name, machineID: current.machineID, baseURL: fresh.url, tier: fresh.tier))
+        Self.logConnection(fresh.url, tier: fresh.tier)
+        publish()
+        await remember(url: fresh.url)
+    }
+
+    /// For tests: waits for the background connection check started by `resume()`, if any.
+    func awaitConnectionUpgrade() async { await connectionUpgrade?.value }
 
     /// After `resume()`: asks plex.tv for the Home users once (which also syncs restrictions into the
     /// settings document) so `plexTVReachable` reflects reality. Never changes the current profile, never throws.

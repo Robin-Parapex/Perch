@@ -70,6 +70,10 @@ targets:
         CODE_SIGN_ENTITLEMENTS: PerchApp/PerchApp.entitlements
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         GENERATE_INFOPLIST_FILE: NO
+      configs:
+        # WP-07 player spike: the DEBUG test clip never ships.
+        Release:
+          EXCLUDED_SOURCE_FILE_NAMES: PlayerSpikeClip.mp4
     dependencies:
       - package: PerchCore
       - package: PerchDesign

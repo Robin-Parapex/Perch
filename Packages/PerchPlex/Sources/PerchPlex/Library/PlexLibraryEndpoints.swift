@@ -178,4 +178,87 @@ extension PlexEndpoints {
                 .init(name: "time", value: String(max(0, timeMs))),
             ])
     }
+
+    // MARK: transcode sessions
+
+    /// Direct-play URL for a part's file. Nil unless `key` is a server-relative path. No query, so no token.
+    public func directPlayURL(base: URL, partKey key: String) -> URL? {
+        guard key.hasPrefix("/"), !key.hasPrefix("//"), !key.contains("://"), !key.contains(".."),
+            !key.contains("?"), var components = URLComponents(url: base, resolvingAgainstBaseURL: false)
+        else { return nil }
+        var basePath = components.percentEncodedPath
+        if basePath.hasSuffix("/") { basePath.removeLast() }
+        components.percentEncodedPath = basePath + key
+        components.queryItems = nil
+        return components.url
+    }
+
+    /// Headers for the player's asset: identity plus the token (the only place it goes), and the session.
+    public func playbackHeaders(token: String, sessionID: String) -> [String: String] {
+        var headers = identity.headers(token: token)
+        headers["Accept"] = nil
+        headers["X-Plex-Session-Identifier"] = sessionID
+        return headers
+    }
+
+    /// The query shared by `decision` and `start.m3u8` (the server wants the same items on both).
+    /// Never carries the token. Items after Dusk's parameter set; the profile extra gives the HLS target
+    /// ("Generic" alone gave decision 4005 on the live server).
+    public func transcodeQuery(
+        ratingKey: String, mediaIndex: Int, directStream: Bool, directStreamAudio: Bool,
+        sessionID: String, subtitles: String?, subtitleStreamID: Int?, offsetSeconds: Int?
+    ) -> [URLQueryItem] {
+        var items: [URLQueryItem] = [
+            .init(name: "hasMDE", value: "1"),
+            .init(name: "path", value: "/library/metadata/\(ratingKey)"),
+            .init(name: "mediaIndex", value: String(mediaIndex)),
+            .init(name: "partIndex", value: "0"),
+            .init(name: "protocol", value: "hls"),
+            .init(name: "fastSeek", value: "1"),
+            .init(name: "directPlay", value: "0"),
+            .init(name: "directStream", value: directStream ? "1" : "0"),
+            .init(name: "directStreamAudio", value: directStreamAudio ? "1" : "0"),
+            .init(name: "location", value: "lan"),
+            .init(name: "autoAdjustQuality", value: "0"),
+            .init(name: "mediaBufferSize", value: "102400"),
+            .init(name: "session", value: sessionID),
+            .init(name: "transcodeSessionId", value: sessionID),
+            .init(name: "copyts", value: "1"),
+            .init(name: "X-Plex-Session-Identifier", value: sessionID),
+            .init(
+                name: "X-Plex-Client-Profile-Extra",
+                value:
+                    "add-transcode-target(type=videoProfile&context=streaming&protocol=hls&container=mpegts&videoCodec=h264,hevc&audioCodec=aac,ac3,eac3)"),
+            .init(name: "X-Plex-Incomplete-Segments", value: "1"),
+        ]
+        if let subtitles { items.append(.init(name: "subtitles", value: subtitles)) }
+        if let subtitleStreamID { items.append(.init(name: "subtitleStreamID", value: String(subtitleStreamID))) }
+        if let offsetSeconds, offsetSeconds > 0 { items.append(.init(name: "offset", value: String(offsetSeconds))) }
+        // Client identity (never the token) as query items too, as Dusk sends it.
+        let headers = identity.headers()
+        for key in ["X-Plex-Product", "X-Plex-Version", "X-Plex-Client-Identifier", "X-Plex-Platform", "X-Plex-Device"] {
+            if let value = headers[key] { items.append(.init(name: key, value: value)) }
+        }
+        return items
+    }
+
+    public func transcodeDecision(base: URL, token: String, query: [URLQueryItem]) -> URLRequest {
+        libraryRequest(base: base, token: token, path: "/video/:/transcode/universal/decision", query: query)
+    }
+
+    /// The HLS start playlist URL for the same query. No token in it.
+    public func transcodeStartURL(base: URL, query: [URLQueryItem]) -> URL? {
+        guard var components = URLComponents(url: base, resolvingAgainstBaseURL: false) else { return nil }
+        var basePath = components.percentEncodedPath
+        if basePath.hasSuffix("/") { basePath.removeLast() }
+        components.percentEncodedPath = basePath + "/video/:/transcode/universal/start.m3u8"
+        components.queryItems = query
+        return components.url
+    }
+
+    public func transcodeStop(base: URL, token: String, sessionID: String) -> URLRequest {
+        libraryRequest(
+            base: base, token: token, path: "/video/:/transcode/universal/stop",
+            query: [.init(name: "session", value: sessionID)])
+    }
 }

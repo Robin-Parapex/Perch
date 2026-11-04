@@ -113,8 +113,8 @@ public actor PlexLibrary: PlexWatchStateSink {
     }
 
     private let contextSource: any PlexServerContextProviding
-    private let transport: any PlexTransport
-    private let endpoints: PlexEndpoints
+    let transport: any PlexTransport
+    let endpoints: PlexEndpoints
     private let settings: SettingsStore
     private let authoriser: any PlexActionAuthorising
     private let snapshots: PlexHomeSnapshotStore
@@ -601,7 +601,7 @@ public actor PlexLibrary: PlexWatchStateSink {
 
     // MARK: internals
 
-    private func current() async throws -> PlexServerContext {
+    func current() async throws -> PlexServerContext {
         let context = try await contextSource.libraryContext()
         activeKey = RowsKey(context)
         activeGeneration = context.generation
@@ -609,7 +609,7 @@ public actor PlexLibrary: PlexWatchStateSink {
     }
 
     /// A missing profile, or any decision but allowed or limited, throws `notAllowed` before a request.
-    private func authorisePlay(_ context: PlexServerContext, entity: String) async throws {
+    func authorisePlay(_ context: PlexServerContext, entity: String) async throws {
         guard
             let profile = await settings.document.profiles[PlexUserID(context.profileID)]
         else { throw PlexError.notAllowed }

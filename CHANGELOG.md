@@ -47,8 +47,18 @@ All notable changes to Perch. Format follows Keep a Changelog; versions follow `
 - WP-06 PerchPlex: per-profile Home snapshot in the App Group caches so Home can render without waiting; stale results are dropped after a profile switch.
 - WP-06 App: Home row providers wired through PlexModule; DEBUG fake household library data; DEBUG Library check screen with opt-in write check (`-PerchLibraryWriteCheck`) and response dump (`-PerchLibraryDump`).
 - WP-06 App: `-PerchLibraryCheckItem <rating key>` (DEBUG) shows that title's detail in Library check.
+- WP-07 PerchPlayer: AVPlayerViewController inside our own container, behind a swappable engine seam (`PlaybackEngine`). Native Skip Intro and Skip Credits through contextual actions. Up next through the AVKit content proposal, with the video shrunk top right, a draining Play Now and Watch Credits. Display-mode matching from the playback decision before load. A separate overlay window for app overlays.
+- WP-07 PerchPlayer: engine-agnostic playback rules: skip offers (one auto-skip per marker), up next (estimated credits are manual only), "Are you still watching?" after 3 automatic advances with no remote input, and household defaults until WP-18.
+- WP-07 PerchPlex and PerchCore: the playback decision table (ARCHITECTURE.md) and playback sources with the Plex token in headers only (decision, start.m3u8, stop). Playback log (capped JSON lines in App Group Caches). PlayerHook context.
+- WP-07 App: playback coordinator: resume from the saved position, the next episode, timeline reports with advancing positions, and artwork that never delays playback.
+- WP-07 App: "Are you still watching?" and "Couldn't play this" overlays. Try Again is for parents only.
+- WP-07 App: DEBUG Play buttons in Library check, `-PerchPlayItem`, `-PerchStartMs`, `-PerchForceOverlay`, `-PerchPolicy`, `-PerchChainStartMs`, the player status probe, and the fake household episode chain with a bundled 60 s clip.
+- WP-07 Scripts and docs: `scripts/make-fixtures.sh` and `docs/howto/fixtures-library.md`.
 - Project document pack (README, CLAUDE.md, spec, roadmap with numbered work packages, modules, architecture, design, integrations, permissions, references, decisions, glossary).
 - Decisions through 1 November 2026: name Perch; build from scratch referencing Dusk and Swiftfin; app only with no proxy or hub; Plex PINs for profiles and an Admin PIN; provider-agnostic bring-your-own-key AI with permission levels and no free chat; setup wizard, welcome guide and feedback; Seerr-only polling and user-controlled Plex library refresh.
+
+### Fixed
+- WP-07 PerchPlex: Perch now prefers the server's home-network address. A remembered public address no longer wins without checking local addresses, and when the app starts on a public address it looks for a local one in the background without delaying launch.
 
 ### Removed
 - WP-05: the WP-04 debug sign-in screens, replaced by the wizard.

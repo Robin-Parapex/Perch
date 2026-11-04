@@ -396,6 +396,164 @@ struct PlexSessionResumeTests {
         #expect((rig.lockout()?.failedAttempts ?? 0) == 0)
     }
 
+    // A remembered public address: resume goes ready on it at once, then looks for the LAN address.
+    private static let publicURL = URL(string: "https://203-0-113-5.abc.plex.direct:32400")!
+
+    private func relaunchOnPublicAddress(
+        _ rig: SessionRig, resources: RoutedTransport.Reply, resourcesDelay: Duration = .zero
+    ) async throws -> PlexSession {
+        try await rig.settings.update { doc in
+            doc.modules[ModuleID("plex")]?.config["lastURI"] = Self.publicURL.absoluteString
+        }
+        let transport = RoutedTransport()
+        let identity = Fixture.data("identity")
+        await transport.route(host: "203-0-113-5.abc.plex.direct", .ok(identity))
+        await transport.route(host: "192.168.1.20", .ok(identity))
+        await transport.route(
+            host: "clients.plex.tv", path: "/api/v2/resources", delay: resourcesDelay, resources)
+        return rig.makeSession(transport: transport)
+    }
+
+    private func readyServer(_ session: PlexSession) async -> PlexConnectedServer? {
+        if case .ready(_, let server) = await session.snapshot().state { return server }
+        Issue.record("expected ready, got \(await session.snapshot().state)")
+        return nil
+    }
+
+    private func savedURI(_ rig: SessionRig) async -> String? {
+        await rig.settings.document.modules[ModuleID("plex")]?.config["lastURI"]
+    }
+
+    @Test func resumeOnAPublicAddressGoesReadyWithoutWaitingForPlexTV() async throws {
+        let (rig, _) = try await signedIn()
+        defer { rig.cleanup() }
+        // plex.tv never answers within the test: a resume that waited for it would hit the time limit.
+        let session = try await relaunchOnPublicAddress(
+            rig, resources: .ok(Fixture.data("resources_single")), resourcesDelay: .seconds(3600))
+
+        #expect(await session.resume() == true)
+
+        let server = await readyServer(session)
+        #expect(server?.baseURL == Self.publicURL)
+        #expect(server?.tier == .remote)
+    }
+
+    @Test func theBackgroundCheckSwitchesToTheLocalAddressAndKeepsTheGeneration() async throws {
+        let (rig, _) = try await signedIn()
+        defer { rig.cleanup() }
+        let session = try await relaunchOnPublicAddress(rig, resources: .ok(Fixture.data("resources_single")))
+        #expect(await session.resume() == true)
+        let generation = await session.currentGeneration()
+
+        await session.awaitConnectionUpgrade()
+
+        let server = await readyServer(session)
+        #expect(server?.baseURL == loungeURL)
+        #expect(server?.tier == .local)
+        #expect(await savedURI(rig) == loungeURL.absoluteString)
+        // Same server: work already started (playback, timeline reports) stays valid.
+        #expect(await session.currentGeneration() == generation)
+    }
+
+    @Test func aFailedBackgroundCheckLeavesThePublicAddressAndReachability() async throws {
+        let (rig, _) = try await signedIn()
+        defer { rig.cleanup() }
+        let session = try await relaunchOnPublicAddress(rig, resources: .fail(.notConnectedToInternet))
+        #expect(await session.resume() == true)
+
+        await session.awaitConnectionUpgrade()
+
+        let server = await readyServer(session)
+        #expect(server?.baseURL == Self.publicURL)
+        #expect(server?.tier == .remote)
+        #expect(await savedURI(rig) == Self.publicURL.absoluteString)
+        #expect(await session.snapshot().plexTVReachable == true)
+    }
+
+    @Test func aRememberedRelayUpgradesToADirectRemoteAddress() async throws {
+        let (rig, _) = try await signedIn()
+        defer { rig.cleanup() }
+        let relayURL = "https://relay.example.net:8443"
+        try await rig.settings.update { doc in doc.modules[ModuleID("plex")]?.config["lastURI"] = relayURL }
+        let resources = """
+            [{"name": "Lounge Server", "provides": "server", "clientIdentifier": "FAKE-MACHINE-LOUNGE",
+              "owned": true, "accessToken": "FAKE-SERVER-TOKEN-1", "connections": [
+              {"protocol": "https", "address": "relay.example.net", "port": 8443, "uri": "\(relayURL)",
+               "local": false, "relay": true},
+              {"protocol": "https", "address": "203-0-113-5.abc.plex.direct", "port": 32400,
+               "uri": "\(Self.publicURL.absoluteString)", "local": false, "relay": false}]}]
+            """
+        let transport = RoutedTransport()
+        await transport.route(host: "relay.example.net", .ok(Fixture.data("identity")))
+        await transport.route(host: "203-0-113-5.abc.plex.direct", .ok(Fixture.data("identity")))
+        await transport.route(host: "clients.plex.tv", path: "/api/v2/resources", .ok(Data(resources.utf8)))
+        let session = rig.makeSession(transport: transport)
+        #expect(await session.resume() == true)
+
+        await session.awaitConnectionUpgrade()
+
+        let server = await readyServer(session)
+        #expect(server?.baseURL == Self.publicURL)
+        #expect(server?.tier == .remote)
+        #expect(await savedURI(rig) == Self.publicURL.absoluteString)
+    }
+
+    /// Resume on the public address with the background check's plex.tv request held open.
+    private func resumeWithHeldUpgrade(_ rig: SessionRig) async throws -> (PlexSession, RoutedTransport) {
+        try await rig.settings.update { doc in
+            doc.modules[ModuleID("plex")]?.config["lastURI"] = Self.publicURL.absoluteString
+        }
+        let transport = RoutedTransport()
+        let identity = Fixture.data("identity")
+        await transport.route(host: "203-0-113-5.abc.plex.direct", .ok(identity))
+        await transport.route(host: "192.168.1.20", .ok(identity))
+        await transport.route(host: "clients.plex.tv", path: "/api/v2/resources", .ok(Fixture.data("resources_single")))
+        await transport.route(host: "plex.tv", path: "/api/v2/user", .ok(Fixture.data("user")))
+        await transport.route(host: "plex.tv", path: "/api/v2/home/users", .ok(Fixture.data("home_users")))
+        await transport.route(host: "plex.tv", path: switchPath, .ok(Fixture.data("switch_ok")))
+        await transport.holdNext(host: "clients.plex.tv", path: "/api/v2/resources")
+        let session = rig.makeSession(transport: transport)
+        #expect(await session.resume() == true)
+        await transport.waitForHeldRequest()
+        return (session, transport)
+    }
+
+    @Test func signingOutDuringTheBackgroundCheckWins() async throws {
+        let (rig, _) = try await signedIn()
+        defer { rig.cleanup() }
+        let (session, transport) = try await resumeWithHeldUpgrade(rig)
+        await session.signOut()
+        let savedAfterSignOut = await savedURI(rig)
+
+        await transport.releaseHold()
+        await session.awaitConnectionUpgrade()
+
+        #expect(await session.snapshot().state == .signedOut)
+        #expect(await savedURI(rig) == savedAfterSignOut)
+    }
+
+    @Test func switchingProfileDuringTheBackgroundCheckWins() async throws {
+        let (rig, _) = try await signedIn()
+        defer { rig.cleanup() }
+        let (session, transport) = try await resumeWithHeldUpgrade(rig)
+        // The switch lands on the public address (the LAN one is down just then)...
+        await transport.reroute(host: "192.168.1.20", .fail(.cannotConnectToHost))
+        try await session.switchProfile(to: partner, pin: "1234")
+        // ...then the LAN address comes back before the old check resumes: it must not switch the new profile.
+        await transport.reroute(host: "192.168.1.20", .ok(Fixture.data("identity")))
+
+        await transport.releaseHold()
+        await session.awaitConnectionUpgrade()
+
+        guard case .ready(let profile, let server) = await session.snapshot().state else {
+            Issue.record("expected ready, got \(await session.snapshot().state)")
+            return
+        }
+        #expect(profile.id == partner)
+        #expect(server.baseURL == Self.publicURL)
+        #expect(await savedURI(rig) == Self.publicURL.absoluteString)
+    }
+
     @Test func nothingSavedReturnsFalse() async {
         let rig = SessionRig()
         defer { rig.cleanup() }
