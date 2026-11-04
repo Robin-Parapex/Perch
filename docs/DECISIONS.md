@@ -385,10 +385,54 @@ Append-only log of decisions and why. Newest at the bottom. Format: date, decisi
 - Package and UI tests during WP-06 development ran on a separate simulator, "Perch WP-06 unit tests" (5341203D, Apple TV 4K 3rd generation, tvOS 27.2), so the shared test simulator 11ACEAE4 stayed free for the other session. The gate still runs on 11ACEAE4.
 - Decided by the WP-06 lead (Claude).
 
+## 2026-11-04 Native player kept, with an engine seam
+- AVPlayerViewController stays the player in 1.x for native feel, behind a swappable engine seam. Skip and up next use AVKit contextual actions and content proposals. An overlay window carries app overlays.
+- Decided by Robin, 4 Nov 2026 ("proceed" after the recommendation).
+
+## 2026-11-04 2.0 second engine only if needed
+- WP-36 and WP-37 become "only if real use shows we need it" (4K image subtitles, lossless audio). Plex converts the audio meanwhile.
+- Approved by Robin, 4 Nov 2026.
+
+## 2026-11-04 Token transport
+- The token is sent as an `X-Plex-Token` header via `AVURLAssetHTTPHeaderFieldsKey`, never in URLs. Proven live for direct play and HLS, including child playlists and segments, with no resource loader needed.
+- Decided by the WP-07 lead (Claude).
+
+## 2026-11-04 Transcode profile
+- Plex rejected `X-Plex-Client-Profile-Name=Generic` with decision 4005. `X-Plex-Client-Profile-Extra=add-transcode-target(...)` works. Flow: decision, then start.m3u8 with the same items, then stop at teardown.
+- Decided by the WP-07 lead (Claude).
+
+## 2026-11-04 Resume
+- Offset transcodes open at the resume point (copyts). No client seek when the playhead is within -3/+2 s; direct play still seeks exactly. Warm resume about 0.9 s, first launch about 1.4 s.
+- Decided by the WP-07 lead (Claude).
+
+## 2026-11-04 Behaviour defaults until WP-18
+- Auto-skip off; autoplay next on, 10 s countdown; "Are you still watching?" after 3 automatic advances with no remote input; estimated credits (duration minus clamp(4%, 45 s, 120 s)) are manual only (Dusk approach); subtitles off unless forced text; no proposal at the chain limit.
+- Decided by the WP-07 lead (Claude).
+
+## 2026-11-04 Back in the player
+- Back during the up-next countdown cancels the next episode (endAction stop). Measured counts: 1 press with no chrome; 2 when the transport bar or Skip is showing (native AVKit behaviour, kept).
+- Decided by the WP-07 lead (Claude).
+
+## 2026-11-04 Player copy
+- Headlines are in sentence case, per GLOSSARY. Buttons inside the player use AVKit Title Case (Continue Watching, Try Again, Play Now, Watch Credits, Stop, Back), to sit beside native chrome. Failure lines: parents "It may be a network hiccup. Try again, or come back later."; kids "Ask a grown-up to try again."; others "Try again later, or ask a parent." Raw errors go to the log only.
+- Decided by the WP-07 lead (Claude).
+
+## 2026-11-04 Playback log
+- About 500 entries, under 200 KB, in App Group Caches `playback-log.jsonl`. `method` is optional (unknown before a decision). Profile ID recorded. URLs scrubbed from errors.
+- Decided by the WP-07 lead (Claude).
+
+## 2026-11-04 Fixtures
+- Generated clips in one folder, added as a Plex "Other Videos" library (optional for Robin). Dolby Vision, DTS:X, Atmos and PGS are covered by unit tests only.
+- Decided by the WP-07 lead (Claude).
+
+## 2026-11-04 Known environment issue: Plex connections
+- The remembered Plex address is the public plex.direct:8443 endpoint, which intermittently resets TLS handshakes (seen 4 Nov). LAN connections fail from the simulator (-1003/-1004, possibly DNS rebind protection). Follow-up: prefer local connections and revisit the sticky `lastURI`.
+- Recorded by the WP-07 lead (Claude).
+
 ## Open decisions (resolve in the named work package)
 - Recovery when the stored Perch PIN cannot be read (Admin is locked out by design): confirm the owner through Plex, audited, then allow a new Perch PIN (WP-05).
 - Assistant name (placeholder Pip) (WP-19).
 - Feedback endpoint hosting: Dokploy VPS or Cloudflare Worker (perch-site, later).
 - Whether to install on a locked kids' device via Xcode development signing (one-year validity) rather than TestFlight (90 days) (1.3).
-- Second engine: KSPlayer vs VLCKit, after reading current licences (2.0).
+- Second engine: KSPlayer vs VLCKit, after reading current licences. Conditional on 2.0 happening at all (only if real use shows we need it, 4 Nov 2026).
 - Whether to supervise one Apple TV for Single App Mode (1.3; user approval needed because it erases the device).

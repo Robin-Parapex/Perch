@@ -7,7 +7,7 @@ What each backend gives us, what we call, and the traps. Exact endpoints get con
 - **Auth:** plex.tv PIN flow (`/pins`), token per Plex Home user; switch user with `/api/v2/home/users/<id>/switch`. Store tokens in Keychain.
 - **Discovery:** `/identity`, `/library/sections`, hubs (`/hubs`, `/hubs/continueWatching`), `/library/metadata/<key>` with `includeMarkers=1`, `includeChapters=1`, `includeExtras=1`.
 - **Markers:** intro and credits markers come on metadata; use them for Skip and for the end-state trigger.
-- **Playback:** build the decision from `Media/Part/Stream` attributes; direct play URL `/library/parts/<id>/<ts>/file.<ext>?X-Plex-Token=`; direct stream / transcode via `/video/:/transcode/universal/start.m3u8` with `directPlay`, `directStream`, `videoResolution`, `subtitles=auto|burn|sidecar`.
+- **Playback:** build the decision from `Media/Part/Stream` attributes; direct play URL `/library/parts/<id>/<ts>/file.<ext>` with the token sent as an `X-Plex-Token` header (`AVURLAssetHTTPHeaderFieldsKey`), never in the URL; direct stream / transcode via `/video/:/transcode/universal/start.m3u8` with `directPlay`, `directStream`, `videoResolution`, `subtitles=auto|burn|sidecar`. A transcode runs decision, then `start.m3u8` with the same items, then stop at teardown.
 - **Timeline:** `/:/timeline` every 10 s during playback, plus on pause/stop, so Plex (and Tautulli) see accurate progress.
 - **Themes:** series theme music at `/library/metadata/<key>/theme`.
 - **Library refresh:** refresh on app start and manual refresh use `/library/sections/<id>/refresh` (or all sections). Perch never refreshes on a timer. The setup guide tells users to enable Sonarr and Radarr's Plex connection for partial scans on import.
