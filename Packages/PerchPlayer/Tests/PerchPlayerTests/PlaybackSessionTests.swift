@@ -125,7 +125,12 @@ final class Harness {
     var hasNext = true
     var finished = 0
 
-    init(source: PlaybackSource = makeSource(), policy: PlaybackPolicy = .household, hasNext: Bool = true) {
+    static let failureCopy = "App copy for the failure line."
+
+    init(
+        source: PlaybackSource = makeSource(), policy: PlaybackPolicy = .household, hasNext: Bool = true,
+        canRetry: Bool = true
+    ) {
         self.hasNext = hasNext
         let log = log, stops = transcodeStops, reporter = reporter
         var box: Harness?
@@ -139,6 +144,7 @@ final class Harness {
                     reporter: reporter)
             },
             onTranscodeStop: { await stops.add($0) },
+            failureMessage: Harness.failureCopy, canRetry: canRetry,
             sleep: { _ in })
         box = self
         session.onFinished = { [weak self] in self?.finished += 1 }
@@ -326,6 +332,32 @@ func until(_ condition: @MainActor () -> Bool, timeout: Duration = .seconds(2)) 
         #expect(h.engine.chromeHiddenCalls == [true, false])
     }
 
+    @Test func positionTicksAdvanceTheReportedPosition() async {
+        let h = Harness()
+        await h.start()
+        for ms in [10_000, 20_000, 30_000] { h.engine.send(.positionTick(ms)) }
+        await until { h.session.positionMs == 30_000 }
+        await h.session.settle()
+        let positions = await h.reporter.reports.filter { $0.0 == .playing }.map(\.1).filter { $0 >= 10_000 }
+        #expect(positions == [10_000, 20_000, 30_000])
+    }
+
+    @Test func retryIsRefusedWhenTheProfileMayNotRetry() async {
+        let h = Harness(canRetry: false)
+        await h.start()
+        h.engine.send(.failed("boom"))
+        await until { h.session.overlayRequest != nil }
+        #expect(h.session.overlayRequest == .playbackFailed(message: Harness.failureCopy))
+        let loads = h.engine.loads.count
+        h.session.retry()
+        await h.session.settle()
+        #expect(h.session.phase == .failed)
+        #expect(h.engine.loads.count == loads)
+        #expect(h.session.overlayRequest == .playbackFailed(message: Harness.failureCopy))
+        h.session.stopWatching()
+        await until { h.session.phase == .finished }
+    }
+
     @Test func userInputResetsTheCount() async {
         let h = Harness()
         await h.start()
@@ -370,7 +402,9 @@ func until(_ condition: @MainActor () -> Bool, timeout: Duration = .seconds(2)) 
             Issue.record("no failure overlay")
             return
         }
-        #expect(!message.contains("https://"))
+        // The overlay gets the app's line, never any of the raw error (scrubbed or not).
+        #expect(message == Harness.failureCopy)
+        #expect(!message.contains("-11800") && !message.contains("AVFoundation") && !message.contains("(link)"))
         #expect(!message.contains(token))
         await h.session.settle()
         let failure = await h.log.items.first { $0.outcome == .failure }

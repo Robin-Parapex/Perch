@@ -73,7 +73,8 @@ final class CoreServices {
         self.library = library
         self.authoriser = authoriser
         playback = PlaybackCoordinator(
-            library: library, plexSession: session, modules: modules, logFileURL: PlaybackCoordinator.logFileURL())
+            library: library, plexSession: session, modules: modules, logFileURL: PlaybackCoordinator.logFileURL(),
+            settings: settings)
         // Once at launch: sign-out deletes the Home snapshots, a profile change clears memory.
         Task { await library.observe(session) }
     }

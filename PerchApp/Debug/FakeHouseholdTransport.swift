@@ -251,11 +251,13 @@ struct FakeHouseholdTransport: PlexTransport {
     /// One episode whatever the key: intro and final credits markers, three chapters, a trailer, and a
     /// 4K HEVC Dolby Vision profile 8 file with EAC3 5.1 audio and an SRT subtitle.
     private static func detailJSON(ratingKey: String) -> String {
-        """
+        // `-PerchFakeRatingU`: the episode is rated U, so a kid profile may play it (player UI tests).
+        let rating = ProcessInfo.processInfo.arguments.contains("-PerchFakeRatingU") ? "U" : "TV-14"
+        return """
         {"MediaContainer": {"size": 1, "Metadata": [
           {"ratingKey": "\(ratingKey)", "key": "/library/metadata/\(ratingKey)", "type": "episode", "title": "Salt and Signal",
             "grandparentRatingKey": "2000", "grandparentTitle": "The Lantern Keepers", "parentRatingKey": "2100", "parentTitle": "Season 1", "parentIndex": 1, "index": 3,
-            "contentRating": "TV-14", "summary": "The keepers watch for a light that never comes.", "year": 2024,
+            "contentRating": "\(rating)", "summary": "The keepers watch for a light that never comes.", "year": 2024,
             "thumb": "/library/metadata/\(ratingKey)/thumb/1", "duration": 60000, "viewOffset": 20000, "viewCount": 0, "addedAt": 1700000100,
             "Media": [{"id": 7001, "duration": 60000, "width": 3840, "height": 2160, "videoResolution": "4k", "container": "mkv", "videoCodec": "hevc", "audioCodec": "eac3",
               "Part": [{"id": 8001, "key": "/library/parts/8001/1/file.mkv", "duration": 59500, "size": 4123456789, "container": "mkv", "accessible": true,

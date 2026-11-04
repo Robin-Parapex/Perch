@@ -2,7 +2,9 @@ import Foundation
 import Observation
 import PerchCore
 
-/// A full-screen overlay the app must render (with PerchDesign) above the player.
+/// A full-screen overlay the app must render above the player. `playbackFailed` carries the app's own
+/// family-facing line (`PlaybackSession.failureMessage`), never the engine's error text: that goes, scrubbed,
+/// to the playback log only.
 public enum PlayerOverlayRequest: Sendable, Equatable {
     case stillWatching
     case playbackFailed(message: String)
@@ -47,6 +49,11 @@ public final class PlaybackSession {
     public var autoChainCount: Int { counter.count }
 
     public let engine: any PlaybackEngine
+    /// The line under "Couldn't Play This", supplied by the app (GLOSSARY: no codes, links or service names).
+    public let failureMessage: String
+    /// Whether "Try Again" is allowed for the active profile (parents only, GLOSSARY). `retry()` refuses
+    /// otherwise, whatever the overlay shows.
+    public let canRetry: Bool
     /// Called once when the session ends (Back, stop at the end, "stop watching").
     @ObservationIgnored public var onFinished: (() -> Void)?
     /// Called whenever `overlayRequest` changes (the container shows or hides the overlay window).
@@ -86,9 +93,12 @@ public final class PlaybackSession {
         nextItem: @escaping @MainActor () async -> UpNextProposal?,
         resolveNext: @escaping @MainActor (UpNextProposal) async throws -> PlaybackItem,
         onTranscodeStop: @escaping @Sendable (String) async -> Void,
+        failureMessage: String = PlaybackSession.defaultFailureMessage, canRetry: Bool = true,
         sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
     ) {
         self.engine = engine
+        self.failureMessage = failureMessage
+        self.canRetry = canRetry
         self.source = source
         self.metadata = metadata
         self.policy = policy
@@ -165,9 +175,12 @@ public final class PlaybackSession {
         Task { await exit() }
     }
 
-    /// Try the current item again from where it stopped.
+    /// Fallback for `failureMessage` when the app supplies none.
+    public static let defaultFailureMessage = "It may be a network hiccup. Try again, or come back later."
+
+    /// Try the current item again from where it stopped. Refused when the profile may not retry.
     public func retry() {
-        guard case .playbackFailed = overlayRequest else { return }
+        guard case .playbackFailed = overlayRequest, canRetry else { return }
         setOverlay(nil)
         source.startMs = positionMs
         Task { await loadCurrent() }
@@ -301,6 +314,7 @@ public final class PlaybackSession {
         case .positionTick(let ms):
             guard phase != .loading || loadStartedAt == nil else { return }
             positionMs = ms
+            reportPosition(ms)
             evaluate()
         case .ended:
             guard phase != .loading, phase != .failed else { return }
@@ -433,6 +447,7 @@ public final class PlaybackSession {
         }
     }
 
+    /// The raw error is scrubbed and kept for the log and the hooks; the overlay gets the app's line only.
     private func fail(_ raw: String) {
         guard phase != .finished else { return }
         let message = scrub(raw)
@@ -443,7 +458,7 @@ public final class PlaybackSession {
         withdrawUpNext()
         enqueueLog(entry(.failure, positionMs: currentPosition, error: message))
         sendHook(.failure(message), at: currentPosition)
-        setOverlay(.playbackFailed(message: message))
+        setOverlay(.playbackFailed(message: failureMessage))
     }
 
     // MARK: outputs
@@ -456,6 +471,9 @@ public final class PlaybackSession {
     #if DEBUG
     /// UI tests (`-PerchForceOverlay`): raise an overlay as if the rules or the engine had asked for it.
     public func debugRaiseOverlay(_ request: PlayerOverlayRequest) { setOverlay(request) }
+
+    /// UI tests (`-PerchForceOverlay failed`): fail as if the engine had, through the real failure path.
+    public func debugFail() { fail("forced failure (debug)") }
 
     /// Unit tests: set the chain count mid-item (unreachable in use) to prove a shown proposal is withdrawn.
     func setAutoChainCountForTesting(_ count: Int) {
@@ -474,6 +492,21 @@ public final class PlaybackSession {
         if request == nil, live { engine.setNativeChromeHidden(false) }
         onOverlayRequestChange?(request)
         if request != nil, live { engine.setNativeChromeHidden(true) }
+    }
+
+    /// Every tick refreshes the reporter's position for the current state. The reporter sends on a state
+    /// change and otherwise resends its latest value on its own cadence, so without this the server keeps
+    /// seeing the position of the last state change.
+    private func reportPosition(_ ms: Int) {
+        let state: PlaybackState
+        switch phase {
+        case .playing: state = .playing
+        case .paused: state = .paused
+        case .buffering: state = .buffering
+        default: return
+        }
+        let reporter = reporter
+        enqueue { await reporter.report(state, positionMs: ms) }
     }
 
     private func report(_ state: PlaybackState) {

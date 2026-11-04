@@ -20,13 +20,28 @@ final class PlaybackCoordinator {
     @ObservationIgnored private let plexSession: PlexSession
     @ObservationIgnored private let modules: ModuleRegistry
     @ObservationIgnored private let log: PlaybackLog
+    /// Stored roles (Admin can change them); nil falls back to the Plex Home defaults for the profile.
+    @ObservationIgnored private let settings: SettingsStore?
     @ObservationIgnored private var starting = false
 
-    init(library: PlexLibrary, plexSession: PlexSession, modules: ModuleRegistry, logFileURL: URL) {
+    init(
+        library: PlexLibrary, plexSession: PlexSession, modules: ModuleRegistry, logFileURL: URL,
+        settings: SettingsStore? = nil
+    ) {
         self.library = library
         self.plexSession = plexSession
         self.modules = modules
+        self.settings = settings
         log = PlaybackLog(fileURL: logFileURL)
+    }
+
+    /// Failure copy (GLOSSARY "Couldn't play this", "Try again" for parents): the line under the title.
+    nonisolated static let failureLineParent = "It may be a network hiccup. Try again, or come back later."
+    nonisolated static let failureLineChild = "Ask a grown-up to try again."
+
+    /// Only parents may retry a failed playback; teens, kids and an unknown profile get Back only.
+    nonisolated static func failureCopy(for role: Role) -> (message: String, canRetry: Bool) {
+        role == .parent ? (failureLineParent, true) : (failureLineChild, false)
     }
 
     /// The playback log in the App Group Caches (the app's Caches when the group is not available).
@@ -42,18 +57,20 @@ final class PlaybackCoordinator {
         startError = nil
         Task {
             defer { starting = false }
-            // The active Plex Home profile, for the log and the player hooks.
-            let profileID = await plexSession.currentProfile()?.id.rawValue
+            // The active Plex Home profile, for the log, the player hooks and what a failure may offer.
+            let profile = await plexSession.currentProfile()
+            let profileID = profile?.id.rawValue
+            let role = await role(of: profile)
             do {
                 let first = try await prepare(item, startMs: startMs ?? item.viewOffsetMs)
-                activeSession = makeSession(first: first, item: item, profileID: profileID)
+                activeSession = makeSession(first: first, item: item, profileID: profileID, role: role)
             } catch {
                 startError = String(describing: error)
                 Logger.playback.error("playback did not start: \(String(describing: error), privacy: .public)")
                 // No decision was made, so no method is logged.
                 await log.append(
                     PlaybackLogEntry(
-                        profileID: profileID, ratingKey: item.id, title: item.title, outcome: .failure,
+                        profileID: profileID, ratingKey: item.id, title: Self.logTitle(for: item), outcome: .failure,
                         error: String(describing: error)))
             }
         }
@@ -65,20 +82,51 @@ final class PlaybackCoordinator {
         nextEpisodeLine = nil
     }
 
+    /// The profile's role as the rest of the app reads it: the stored setting, else the Plex Home default
+    /// (owner and unrestricted users parent, restricted users kid). No profile means the strictest role.
+    private func role(of profile: PlexActiveProfile?) async -> Role {
+        guard let profile else { return .kid }
+        if let settings, let stored = await settings.document.profiles[profile.id]?.role { return stored }
+        return ProfileSettings.defaults(
+            plexUserID: profile.id, displayName: profile.displayName, isOwner: profile.isOwner,
+            restriction: profile.restriction
+        ).role
+    }
+
     // MARK: building
 
+    /// Only the decision (which authorises the play) is waited for. The artwork is fetched alongside it and
+    /// used only if it is already here; the timeline reporter starts in parallel with presentation and
+    /// `engine.load`, behind a `DeferredReporter` that holds every report until it exists (same session ID).
     private func prepare(_ item: MediaSummary, startMs: Int?) async throws -> PlaybackItem {
         let sessionID = UUID().uuidString
+        let artwork = ArtworkBox()
+        if let path = item.thumbPath {
+            let plexSession = plexSession
+            artwork.task = Task { @MainActor in artwork.data = try? await plexSession.imageData(for: path) }
+        }
         var source = try await library.playbackSource(
             for: item.id, startMs: startMs, subtitleStreamID: nil, sessionID: sessionID)
         #if DEBUG
         source = Self.fakeSource(source)
         #endif
-        let reporter = try await library.startPlayback(item: item, sessionID: sessionID)
-        return PlaybackItem(source: source, metadata: await metadata(for: item), reporter: reporter)
+        source.title = Self.logTitle(for: item)
+        let library = library
+        let reporterTask = Task { () async throws -> any PlaybackReporting in
+            try await library.startPlayback(item: item, sessionID: sessionID)
+        }
+        var metadata = PlayerItemMetadata(title: Self.displayTitle(for: item), subtitle: Self.displaySubtitle(for: item))
+        metadata.artworkData = artwork.data  // nil when it has not arrived: the info panel goes without
+        return PlaybackItem(
+            source: source, metadata: metadata, reporter: DeferredReporter(sessionID: sessionID, task: reporterTask))
     }
 
-    private func makeSession(first: PlaybackItem, item: MediaSummary, profileID: String?) -> PlaybackSession {
+    @MainActor private final class ArtworkBox {
+        var data: Data?
+        var task: Task<Void, Never>?
+    }
+
+    private func makeSession(first: PlaybackItem, item: MediaSummary, profileID: String?, role: Role) -> PlaybackSession {
         let library = library
         let log = log
         let current = CurrentItem(item)
@@ -117,7 +165,8 @@ final class PlaybackCoordinator {
                 current.pending = nil
                 return resolved
             },
-            onTranscodeStop: { id in await library.stopTranscode(sessionID: id) })
+            onTranscodeStop: { id in await library.stopTranscode(sessionID: id) },
+            failureMessage: Self.failureCopy(for: role).message, canRetry: Self.failureCopy(for: role).canRetry)
         session.onFinished = { [weak self] in self?.dismissActive() }
         #if DEBUG
         Self.forceOverlayIfAsked(session)
@@ -132,30 +181,45 @@ final class PlaybackCoordinator {
         init(_ item: MediaSummary) { self.item = item }
     }
 
-    private func metadata(for item: MediaSummary) async -> PlayerItemMetadata {
-        var data = PlayerItemMetadata(title: item.title, subtitle: Self.subtitle(for: item))
-        if let path = item.thumbPath { data.artworkData = try? await plexSession.imageData(for: path) }
-        return data
-    }
-
     private func proposal(for item: MediaSummary) async -> UpNextProposal {
         var image: Data?
         if let path = item.thumbPath { image = try? await plexSession.imageData(for: path) }
         return UpNextProposal(
-            title: item.title, subtitle: Self.subtitle(for: item), previewImageData: image, ratingKey: item.id)
+            title: Self.displayTitle(for: item), subtitle: Self.displaySubtitle(for: item), previewImageData: image,
+            ratingKey: item.id)
     }
 
-    private static func nextLine(for item: MediaSummary) -> String {
-        guard let season = item.seasonNumber, let number = item.episodeNumber else { return "Next: \(item.title)" }
-        return "Next: S\(season), E\(number) · \(item.title)"
+    // MARK: one episode format everywhere: "S1, E6 · First Light"
+
+    /// "S1, E6", or nil when the item is not an episode or lacks numbers.
+    nonisolated static func episodeCode(for item: MediaSummary) -> String? {
+        guard item.kind == .episode, let season = item.seasonNumber, let number = item.episodeNumber else { return nil }
+        return "S\(season), E\(number)"
     }
 
-    private static func subtitle(for item: MediaSummary) -> String? {
-        guard item.kind == .episode else { return nil }
-        var code: String?
-        if let season = item.seasonNumber, let number = item.episodeNumber { code = "S\(season) E\(number)" }
-        let parts = [item.seriesTitle, code].compactMap { $0 }
-        return parts.isEmpty ? nil : parts.joined(separator: ", ")
+    /// "S1, E6 · First Light" for an episode (the name alone without numbers).
+    nonisolated static func episodeLine(for item: MediaSummary) -> String {
+        [episodeCode(for: item), item.title].compactMap { $0 }.joined(separator: " · ")
+    }
+
+    /// Player title (AVKit's title and the info panel): the series for an episode, the title for a film.
+    nonisolated static func displayTitle(for item: MediaSummary) -> String {
+        item.kind == .episode ? (item.seriesTitle ?? item.title) : item.title
+    }
+
+    /// Player subtitle: "S1, E6 · First Light" for an episode, the year for a film.
+    nonisolated static func displaySubtitle(for item: MediaSummary) -> String? {
+        if item.kind == .episode { return item.seriesTitle == nil && episodeCode(for: item) == nil ? nil : episodeLine(for: item) }
+        return item.year.map(String.init)
+    }
+
+    /// The still-watching context: "Next: S1, E6 · First Light".
+    nonisolated static func nextLine(for item: MediaSummary) -> String { "Next: \(episodeLine(for: item))" }
+
+    /// Playback log title: "The Lantern Keepers · S1, E6 · First Light"; a film by its title.
+    nonisolated static func logTitle(for item: MediaSummary) -> String {
+        guard item.kind == .episode else { return item.title }
+        return [item.seriesTitle, episodeLine(for: item)].compactMap { $0 }.joined(separator: " · ")
     }
 
     #if DEBUG
@@ -189,14 +253,12 @@ final class PlaybackCoordinator {
         let arguments = ProcessInfo.processInfo.arguments
         guard let index = arguments.firstIndex(of: "-PerchForceOverlay"), arguments.indices.contains(index + 1)
         else { return }
-        let request: PlayerOverlayRequest =
-            arguments[index + 1] == "failed"
-            ? .playbackFailed(message: "Something went wrong while playing. Check the connection and try again.")
-            : .stillWatching
+        let failed = arguments[index + 1] == "failed"
         Task { @MainActor in
             for _ in 0..<100 where session.phase != .playing { try? await Task.sleep(for: .milliseconds(100)) }
             try? await Task.sleep(for: .seconds(2))
-            session.debugRaiseOverlay(request)
+            // A failure goes through the session's real path, so the overlay shows the app's copy.
+            if failed { session.debugFail() } else { session.debugRaiseOverlay(.stillWatching) }
         }
     }
 
@@ -217,6 +279,43 @@ final class PlaybackCoordinator {
 }
 
 enum PlaybackCoordinatorError: Error { case noNext }
+
+/// The Plex timeline reporter while `startPlayback` is still running: reports and the stop wait for it in
+/// order (the session's outbox is serial, so playback never waits). If it fails, nothing is reported; the
+/// play was already authorised by the decision call.
+actor DeferredReporter: PlaybackReporting {
+    nonisolated let sessionID: String
+    private let task: Task<any PlaybackReporting, any Error>
+    private var resolved: (any PlaybackReporting)?
+    private var failed = false
+
+    init(sessionID: String, task: Task<any PlaybackReporting, any Error>) {
+        self.sessionID = sessionID
+        self.task = task
+    }
+
+    private func reporter() async -> (any PlaybackReporting)? {
+        if let resolved { return resolved }
+        if failed { return nil }
+        do {
+            let real = try await task.value
+            resolved = real
+            return real
+        } catch {
+            failed = true
+            Logger.playback.error("timeline reporter did not start: \(String(describing: error), privacy: .public)")
+            return nil
+        }
+    }
+
+    func report(_ state: PlaybackState, positionMs: Int) async {
+        await reporter()?.report(state, positionMs: positionMs)
+    }
+
+    func stop(positionMs: Int) async {
+        await reporter()?.stop(positionMs: positionMs)
+    }
+}
 
 extension Logger {
     static let playback = Logger(subsystem: "com.robrolabs.perch", category: "playback")
