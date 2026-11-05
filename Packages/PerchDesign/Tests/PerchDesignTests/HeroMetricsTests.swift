@@ -10,6 +10,11 @@ struct HeroMetricsTests {
         #expect(HeroMetrics.contentBottomInset == 72)
     }
 
+    @Test func synopsisRowCollapsesWhenEmpty() {
+        #expect(HeroMetrics.reservedSynopsisHeight(for: "") == nil)
+        #expect(HeroMetrics.reservedSynopsisHeight(for: "A story.") == 68)
+    }
+
     @Test func bottomScrimStopsFollowTheSpec() {
         let stops = HeroMetrics.bottomScrimStops(height: 864)
         #expect(stops.count == 3)

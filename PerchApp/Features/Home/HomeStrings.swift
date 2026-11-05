@@ -65,11 +65,12 @@ enum HomeStrings {
 
     // MARK: Hero
 
-    /// Film "2024 · 1 h 52 min · 15"; series "Series · 2024 · 12"; episode "Series title · S2 E5 · 31 min left".
+    /// Film "2024 · 1 h 52 min · 15"; series "Series · 2024 · 12"; episode "S2 E5 · Episode title · 31 min left"
+    /// (the hero title already shows the series name).
     static func heroMetadata(_ item: MediaSummary) -> String {
         switch item.kind {
         case .episode:
-            joined([item.seriesTitle, episodeCode(item), item.remainingMs.map(timeLeft)])
+            joined([episodeCode(item), item.title, item.remainingMs.map(timeLeft)])
         case .series:
             joined([series, item.year.map(String.init), item.certificate])
         default:

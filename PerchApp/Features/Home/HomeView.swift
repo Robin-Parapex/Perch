@@ -227,12 +227,14 @@ struct HomeView: View {
             if let logo = item.logoPath {
                 HeroCard(
                     title: title, synopsis: item.summary ?? "", metadata: metadata,
+                    titleIdentifier: "home.hero.title",
                     backdrop: { heroBackdrop(item) },
                     logo: { HeroLogo(path: logo, title: title) },
                     actions: { heroButton(item) })
             } else {
                 HeroCard(
                     title: title, synopsis: item.summary ?? "", metadata: metadata,
+                    titleIdentifier: "home.hero.title",
                     backdrop: { heroBackdrop(item) },
                     actions: { heroButton(item) })
             }
@@ -437,7 +439,6 @@ private struct HeroLogo: View {
             .pipeline(service.pipeline)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(title)
-            .accessibilityIdentifier("home.hero.title")
         } else {
             fallback
         }
@@ -451,6 +452,5 @@ private struct HeroLogo: View {
             .minimumScaleFactor(0.6)
             .shadow(color: .black.opacity(0.4), radius: 2, y: 2)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
-            .accessibilityIdentifier("home.hero.title")
     }
 }

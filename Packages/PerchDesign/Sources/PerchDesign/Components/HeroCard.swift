@@ -10,6 +10,7 @@ public struct HeroCard<Backdrop: View, Logo: View, Actions: View>: View {
     private let metadata: String?
     private let badges: [Pill.Kind]
     private let replayKey: AnyHashable?
+    private let titleIdentifier: String?
     private let heightFraction: CGFloat
     private let backdrop: Backdrop
     private let logo: Logo?
@@ -22,6 +23,7 @@ public struct HeroCard<Backdrop: View, Logo: View, Actions: View>: View {
         badges: [Pill.Kind] = [],
         replayKey: AnyHashable? = nil,
         heightFraction: CGFloat = 0.8,
+        titleIdentifier: String? = nil,
         @ViewBuilder backdrop: () -> Backdrop,
         @ViewBuilder logo: () -> Logo,
         @ViewBuilder actions: () -> Actions
@@ -31,6 +33,7 @@ public struct HeroCard<Backdrop: View, Logo: View, Actions: View>: View {
         self.metadata = metadata
         self.badges = badges
         self.replayKey = replayKey
+        self.titleIdentifier = titleIdentifier
         self.heightFraction = heightFraction
         self.backdrop = backdrop()
         self.logo = logo()
@@ -38,7 +41,7 @@ public struct HeroCard<Backdrop: View, Logo: View, Actions: View>: View {
     }
 
     fileprivate init(
-        title: String, synopsis: String, metadata: String?, badges: [Pill.Kind], replayKey: AnyHashable?, heightFraction: CGFloat,
+        title: String, synopsis: String, metadata: String?, badges: [Pill.Kind], replayKey: AnyHashable?, heightFraction: CGFloat, titleIdentifier: String?,
         backdrop: Backdrop, actions: Actions
     ) {
         self.title = title
@@ -46,6 +49,7 @@ public struct HeroCard<Backdrop: View, Logo: View, Actions: View>: View {
         self.metadata = metadata
         self.badges = badges
         self.replayKey = replayKey
+        self.titleIdentifier = titleIdentifier
         self.heightFraction = heightFraction
         self.backdrop = backdrop
         self.logo = nil
@@ -53,11 +57,11 @@ public struct HeroCard<Backdrop: View, Logo: View, Actions: View>: View {
     }
 
     public var body: some View {
-        // A new key rebuilds the inner view from scratch, so the entrance replays and a second
-        // repeatForever Ken Burns never stacks on the first. Reduce Motion is part of the key
+        // A new key rebuilds the inner view from scratch, so the entrance replays and the
+        // one-shot Ken Burns restarts cleanly. Reduce Motion is part of the key
         // because it changes which effects exist.
         HeroEntrance(
-            title: title, synopsis: synopsis, metadata: metadata, badges: badges, heightFraction: heightFraction,
+            title: title, synopsis: synopsis, metadata: metadata, badges: badges, heightFraction: heightFraction, titleIdentifier: titleIdentifier,
             backdrop: backdrop, logo: logo, actions: actions
         )
         .id(EntranceKey(replay: replayKey, reduceMotion: reduceMotion))
@@ -79,14 +83,26 @@ enum HeroMetrics {
     static let bottomScrimTail: CGFloat = 36
 
     /// 0% at 44% of the height, 92% where the last 36 pt begin, 100% at the bottom.
-    static func bottomScrimStops(height: CGFloat) -> [Gradient.Stop] {
+    /// `strength` scales every opacity (used for the tint layer that sits over the base layer).
+    static func bottomScrimStops(height: CGFloat, color: Color = PerchColor.base, strength: Double = 1) -> [Gradient.Stop] {
         let h = max(height, bottomScrimTail * 2)
         let tail = (h - bottomScrimTail) / h
         return [
-            .init(color: PerchColor.base.opacity(0), location: bottomScrimStart),
-            .init(color: PerchColor.base.opacity(0.92), location: tail),
-            .init(color: PerchColor.base, location: 1),
+            .init(color: color.opacity(0), location: bottomScrimStart),
+            .init(color: color.opacity(0.92 * strength), location: tail),
+            .init(color: color.opacity(strength), location: 1),
         ]
+    }
+
+    /// The 68 pt reservation applies only when there is a synopsis; otherwise the row is absent.
+    static func reservedSynopsisHeight(for synopsis: String) -> CGFloat? {
+        synopsis.isEmpty ? nil : synopsisHeight
+    }
+}
+
+private extension View {
+    @ViewBuilder func optionalIdentifier(_ id: String?) -> some View {
+        if let id { accessibilityIdentifier(id) } else { self }
     }
 }
 
@@ -97,6 +113,8 @@ private struct EntranceKey: Hashable {
 
 private struct HeroEntrance<Backdrop: View, Logo: View, Actions: View>: View {
     @Environment(\.perchStyle) private var style
+    @Environment(\.perchTint) private var tint
+    @Environment(\.perchAmbientMotion) private var ambientMotion
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var backdropIn = false
@@ -109,6 +127,7 @@ private struct HeroEntrance<Backdrop: View, Logo: View, Actions: View>: View {
     let metadata: String?
     let badges: [Pill.Kind]
     let heightFraction: CGFloat
+    let titleIdentifier: String?
     let backdrop: Backdrop
     let logo: Logo?
     let actions: Actions
@@ -144,6 +163,7 @@ private struct HeroEntrance<Backdrop: View, Logo: View, Actions: View>: View {
                 Group {
                     if let logo {
                         logo.frame(maxWidth: HeroMetrics.logoWidth, maxHeight: HeroMetrics.logoHeight, alignment: .bottomLeading)
+                            .optionalIdentifier(titleIdentifier)
                     } else {
                         // Text fallback: same box and baseline as the logo, so it reads as a choice.
                         Text(title)
@@ -153,6 +173,7 @@ private struct HeroEntrance<Backdrop: View, Logo: View, Actions: View>: View {
                             .minimumScaleFactor(0.6)
                             .shadow(color: .black.opacity(0.4), radius: 2, y: 2)
                             .frame(maxWidth: HeroMetrics.titleMaxWidth, alignment: .leading)
+                            .optionalIdentifier(titleIdentifier)
                     }
                 }
                 .frame(height: HeroMetrics.logoHeight, alignment: .bottomLeading)
@@ -168,12 +189,14 @@ private struct HeroEntrance<Backdrop: View, Logo: View, Actions: View>: View {
                             .padding(.top, 20)
                     }
                     if !badges.isEmpty { BadgeStrip(badges).padding(.top, 16) }
-                    Text(synopsis)
-                        .font(PerchFont.body(style))
-                        .foregroundStyle(PerchColor.textBody)
-                        .lineLimit(2)
-                        .frame(maxWidth: HeroMetrics.synopsisWidth, minHeight: HeroMetrics.synopsisHeight, maxHeight: HeroMetrics.synopsisHeight, alignment: .topLeading)
-                        .padding(.top, 16)
+                    if let reserved = HeroMetrics.reservedSynopsisHeight(for: synopsis) {
+                        Text(synopsis)
+                            .font(PerchFont.body(style))
+                            .foregroundStyle(PerchColor.textBody)
+                            .lineLimit(2)
+                            .frame(maxWidth: HeroMetrics.synopsisWidth, minHeight: reserved, maxHeight: reserved, alignment: .topLeading)
+                            .padding(.top, 16)
+                    }
                     HStack(spacing: 24) { actions }.focusSection().padding(.top, 24)
                 }
                 .offset(y: textOffset)
@@ -202,8 +225,17 @@ private struct HeroEntrance<Backdrop: View, Logo: View, Actions: View>: View {
 
     private var scrim: some View {
         ZStack(alignment: .leading) {
+            // Base then tint at the page's own opacity, so the bottom edge equals PageBackground exactly.
             GeometryReader { proxy in
-                LinearGradient(stops: HeroMetrics.bottomScrimStops(height: proxy.size.height), startPoint: .top, endPoint: .bottom)
+                ZStack {
+                    LinearGradient(stops: HeroMetrics.bottomScrimStops(height: proxy.size.height), startPoint: .top, endPoint: .bottom)
+                    if let tint {
+                        LinearGradient(
+                            stops: HeroMetrics.bottomScrimStops(height: proxy.size.height, color: tint, strength: PerchColor.pageTintOpacity),
+                            startPoint: .top, endPoint: .bottom
+                        )
+                    }
+                }
             }
             LinearGradient(
                 colors: [PerchColor.base.opacity(HeroMetrics.leftScrimOpacity), PerchColor.base.opacity(0)],
@@ -224,8 +256,9 @@ private struct HeroEntrance<Backdrop: View, Logo: View, Actions: View>: View {
             .delay(reduceMotion ? 0 : PerchMotion.heroLogoDelay)) { logoIn = true }
         withAnimation(.easeOut(duration: reduceMotion ? PerchMotion.crossfadeDuration : PerchMotion.panelDuration)
             .delay(reduceMotion ? 0 : PerchMotion.heroTextDelay)) { textIn = true }
-        if !reduceMotion {
-            withAnimation(.linear(duration: PerchMotion.kenBurnsDuration).repeatForever(autoreverses: true)) { panning = true }
+        // One-shot pan that then holds; it replays only when the entrance does (spec 7).
+        if !reduceMotion && ambientMotion {
+            withAnimation(.linear(duration: PerchMotion.kenBurnsDuration)) { panning = true }
         }
     }
 }
@@ -239,10 +272,11 @@ extension HeroCard where Logo == EmptyView {
         badges: [Pill.Kind] = [],
         replayKey: AnyHashable? = nil,
         heightFraction: CGFloat = 0.8,
+        titleIdentifier: String? = nil,
         @ViewBuilder backdrop: () -> Backdrop,
         @ViewBuilder actions: () -> Actions
     ) {
-        self.init(title: title, synopsis: synopsis, metadata: metadata, badges: badges, replayKey: replayKey, heightFraction: heightFraction, backdrop: backdrop(), actions: actions())
+        self.init(title: title, synopsis: synopsis, metadata: metadata, badges: badges, replayKey: replayKey, heightFraction: heightFraction, titleIdentifier: titleIdentifier, backdrop: backdrop(), actions: actions())
     }
 }
 

@@ -39,6 +39,15 @@ struct HomeScreen: View {
         return path
     }
 
+    /// Ambient hero motion is off for UI tests (`-PerchUITests`, DEBUG only) so screens settle.
+    private static var ambientMotion: Bool {
+        #if DEBUG
+        !ProcessInfo.processInfo.arguments.contains("-PerchUITests")
+        #else
+        true
+        #endif
+    }
+
     private var activeProfile: PlexActiveProfile? {
         if case .ready(let profile, _) = core.plexSignIn.snapshot.state { return profile }
         return fallbackProfile ?? HomeStore.shared.current?.home.profile
@@ -77,6 +86,7 @@ struct HomeScreen: View {
         }
         .setupRerunFlow(flow, name: activeProfile?.displayName)
         .environment(\.perchStyle, entry?.home.isKid == true ? .kids : .standard)
+        .environment(\.perchAmbientMotion, Self.ambientMotion)
         .task(id: core.plexSignIn.snapshot.state) {
             if case .ready = core.plexSignIn.snapshot.state {
                 resolving = false

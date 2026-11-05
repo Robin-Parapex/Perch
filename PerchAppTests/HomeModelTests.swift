@@ -155,7 +155,11 @@ struct HomeModelTests {
         #expect(HomeStrings.duration(ms: 112 * 60_000) == "1 h 52 min")
         var episode = Self.item("e", kind: .episode, offset: 29 * 60_000, season: 2, episode: 5)
         episode.seriesTitle = "Severance"
-        #expect(HomeStrings.heroMetadata(episode) == "Severance \u{00B7} S2 E5 \u{00B7} 31 min left")
+        #expect(HomeStrings.heroMetadata(episode) == "S2 E5 \u{00B7} Title e \u{00B7} 31 min left")
+        var unstarted = episode
+        unstarted.viewOffsetMs = nil
+        unstarted.durationMs = nil
+        #expect(HomeStrings.heroMetadata(unstarted) == "S2 E5 \u{00B7} Title e")
         #expect(HomeStrings.caption(for: episode, in: HomeRowID.continueWatching).subtitle == "S2 E5 \u{00B7} 31 min left")
         #expect(HomeStrings.caption(for: episode, in: HomeRowID.upNext).subtitle == "S2 E5 Title e")
         var film = Self.item("f")
