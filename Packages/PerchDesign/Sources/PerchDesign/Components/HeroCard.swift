@@ -94,9 +94,14 @@ enum HeroMetrics {
         ]
     }
 
-    /// The 68 pt reservation applies only when there is a synopsis; otherwise the row is absent.
-    static func reservedSynopsisHeight(for synopsis: String) -> CGFloat? {
-        synopsis.isEmpty ? nil : synopsisHeight
+    /// Two body lines at the style's font size: 68 pt at the standard 26 pt, scaled with the font (76 pt for kids).
+    static func synopsisHeight(for style: PerchStyle) -> CGFloat {
+        (synopsisHeight * PerchFont.size(PerchFont.bodySize, for: style) / PerchFont.bodySize).rounded(.up)
+    }
+
+    /// The reservation applies only when there is a synopsis; otherwise the row is absent.
+    static func reservedSynopsisHeight(for synopsis: String, style: PerchStyle = .standard) -> CGFloat? {
+        synopsis.isEmpty ? nil : synopsisHeight(for: style)
     }
 }
 
@@ -189,7 +194,7 @@ private struct HeroEntrance<Backdrop: View, Logo: View, Actions: View>: View {
                             .padding(.top, 20)
                     }
                     if !badges.isEmpty { BadgeStrip(badges).padding(.top, 16) }
-                    if let reserved = HeroMetrics.reservedSynopsisHeight(for: synopsis) {
+                    if let reserved = HeroMetrics.reservedSynopsisHeight(for: synopsis, style: style) {
                         Text(synopsis)
                             .font(PerchFont.body(style))
                             .foregroundStyle(PerchColor.textBody)

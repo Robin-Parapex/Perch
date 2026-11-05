@@ -15,6 +15,13 @@ struct HeroMetricsTests {
         #expect(HeroMetrics.reservedSynopsisHeight(for: "A story.") == 68)
     }
 
+    @Test func synopsisReservationFollowsKidsFontScale() {
+        // Kids body is 26 * 1.1 = 28.6, rounded to 29 pt: 68 * 29 / 26 = 75.8, rounded up.
+        #expect(HeroMetrics.reservedSynopsisHeight(for: "A story.", style: .standard) == 68)
+        #expect(HeroMetrics.reservedSynopsisHeight(for: "A story.", style: .kids) == 76)
+        #expect(HeroMetrics.reservedSynopsisHeight(for: "", style: .kids) == nil)
+    }
+
     @Test func bottomScrimStopsFollowTheSpec() {
         let stops = HeroMetrics.bottomScrimStops(height: 864)
         #expect(stops.count == 3)
