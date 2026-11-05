@@ -5,13 +5,14 @@ import Foundation
 public enum ArtworkSize: String, Sendable, CaseIterable, Codable {
     case poster, landscape, backdrop, logo, placeholder
 
-    /// Pixels, not points.
+    /// Pixels, not points: twice the largest point size each renders at (tvOS draws at 2x on 4K), e.g. poster
+    /// 480x720 for the 240x360 pt grid card.
     public var pixelSize: (width: Int, height: Int) {
         switch self {
-        case .poster: (300, 450)
-        case .landscape: (640, 360)
-        case .backdrop: (1920, 1080)
-        case .logo: (800, 310)
+        case .poster: (480, 720)
+        case .landscape: (672, 380)
+        case .backdrop: (3840, 2160)
+        case .logo: (1200, 464)
         case .placeholder: (64, 64)
         }
     }

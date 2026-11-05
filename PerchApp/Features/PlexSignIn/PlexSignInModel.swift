@@ -51,9 +51,13 @@ final class PlexSignInModel {
         if await session.resume() { await session.refreshFromPlexTV() }
     }
 
+    /// Set by CoreServices: clears the artwork caches straight after the tokens are gone (WP-08).
+    @ObservationIgnored var onSignedOut: (@MainActor () -> Void)?
+
     func signOut() async {
         await session.signOut()
         servers = []
+        onSignedOut?()
     }
 
     /// Plain-words text for a sign-in or connect failure.

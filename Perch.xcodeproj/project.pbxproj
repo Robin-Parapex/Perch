@@ -24,6 +24,7 @@
 		3DF3EEA72F6F90D6F28662F0 /* SetupWizardUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24058FD508AF202F5629849E /* SetupWizardUITests.swift */; };
 		41252ABD4AB177935FD5305F /* PlayerUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0515B7DA325FB2439471BC2 /* PlayerUITests.swift */; };
 		42B8A5B6784DC88C684A5826 /* LibraryDumpTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47420A664FAA3977282845F2 /* LibraryDumpTransport.swift */; };
+		4462CE2D5EC979F88262D325 /* ArtworkServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 529D88C7637EADD0D2F09F61 /* ArtworkServiceTests.swift */; };
 		46097627FE5794180AE13E8B /* NukeUI in Frameworks */ = {isa = PBXBuildFile; productRef = 090FE52D646F01BE25472CE4 /* NukeUI */; };
 		487B2E112C27D4631E1E3BA0 /* PerchUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DCA53A26933A2B3B0B4F245 /* PerchUITests.swift */; };
 		49FC74040CE062EA08425469 /* SetupFlowModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFCF9214DE208DF357C09CFF /* SetupFlowModel.swift */; };
@@ -77,6 +78,13 @@
 			remoteGlobalIDString = 960BB6CDCBBBDABFBD4AE041;
 			remoteInfo = PerchApp;
 		};
+		AEC9644645BAF6DB1ACEFD57 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 78904F42286EE3E52ED2700B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 960BB6CDCBBBDABFBD4AE041;
+			remoteInfo = PerchApp;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -110,12 +118,14 @@
 		47420A664FAA3977282845F2 /* LibraryDumpTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryDumpTransport.swift; sourceTree = "<group>"; };
 		4AE8EDB966DF6ECE15D70347 /* LibraryCheckView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryCheckView.swift; sourceTree = "<group>"; };
 		5049C881306F28A7D69171E2 /* PlayerSpikeClip.mp4 */ = {isa = PBXFileReference; path = PlayerSpikeClip.mp4; sourceTree = "<group>"; };
+		529D88C7637EADD0D2F09F61 /* ArtworkServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArtworkServiceTests.swift; sourceTree = "<group>"; };
 		578031749B01762ADB2FC507 /* ProfileSwitcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSwitcher.swift; sourceTree = "<group>"; };
 		5D91C2D2667DAAD88A077BC0 /* LibraryCheckUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryCheckUITests.swift; sourceTree = "<group>"; };
 		65B77FBA7B90AF35072DBB7E /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		6C0B3C5FC5D8A5ED71FF74CB /* SetupProfilesStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupProfilesStep.swift; sourceTree = "<group>"; };
 		72EBCD50A28455935FE5B81E /* ModuleManifest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModuleManifest.swift; sourceTree = "<group>"; };
 		733569FCF6FF7AC55BDD33F9 /* FakeHouseholdTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FakeHouseholdTransport.swift; sourceTree = "<group>"; };
+		7ABC969F5703CBFFC90C2BC6 /* PerchAppTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PerchAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		7B74E85BFB25EAF18EAAFBAA /* WP05Support.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WP05Support.swift; sourceTree = "<group>"; };
 		7DCA53A26933A2B3B0B4F245 /* PerchUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerchUITests.swift; sourceTree = "<group>"; };
 		81DCAA7AC3B9EB27244CB654 /* PerchSeerr */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PerchSeerr; path = Packages/PerchSeerr; sourceTree = SOURCE_ROOT; };
@@ -190,6 +200,14 @@
 			path = PerchTopShelf;
 			sourceTree = "<group>";
 		};
+		26F703AC355418D9B8A19BF9 /* PerchAppTests */ = {
+			isa = PBXGroup;
+			children = (
+				529D88C7637EADD0D2F09F61 /* ArtworkServiceTests.swift */,
+			);
+			path = PerchAppTests;
+			sourceTree = "<group>";
+		};
 		2F3E67284B009E2CA88625B4 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
@@ -216,6 +234,7 @@
 			isa = PBXGroup;
 			children = (
 				1FDF7616159B5794150C0A0B /* PerchApp.app */,
+				7ABC969F5703CBFFC90C2BC6 /* PerchAppTests.xctest */,
 				E970117425D5C7F16FF6DDFA /* PerchTopShelf.appex */,
 				9DEC51BF47974BCC5F748D16 /* PerchUITests.xctest */,
 			);
@@ -337,6 +356,7 @@
 			children = (
 				9D0550E96E022111AD197242 /* Packages */,
 				BCBDE1045B3C2C8C4DEFBA98 /* PerchApp */,
+				26F703AC355418D9B8A19BF9 /* PerchAppTests */,
 				22BF005B280F36CC1800122E /* PerchTopShelf */,
 				9019F5C59F8C2B93EDFCB2BE /* PerchUITests */,
 				5604ACE44E439FA92A920531 /* Products */,
@@ -354,6 +374,24 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		01BDD4ECCE3F8E49393107EA /* PerchAppTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FA48D904DC7B71CA38B0E867 /* Build configuration list for PBXNativeTarget "PerchAppTests" */;
+			buildPhases = (
+				9550795F02FBF1C514E70838 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				43341E5BE4E58A056EAC7FF1 /* PBXTargetDependency */,
+			);
+			name = PerchAppTests;
+			packageProductDependencies = (
+			);
+			productName = PerchAppTests;
+			productReference = 7ABC969F5703CBFFC90C2BC6 /* PerchAppTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		30E7B99E2AF7D80DB4037921 /* PerchTopShelf */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 433EB5BA229851C51FD45F2F /* Build configuration list for PBXNativeTarget "PerchTopShelf" */;
@@ -432,6 +470,10 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 2720;
 				TargetAttributes = {
+					01BDD4ECCE3F8E49393107EA = {
+						DevelopmentTeam = 3TWLQK4535;
+						ProvisioningStyle = Automatic;
+					};
 					30E7B99E2AF7D80DB4037921 = {
 						DevelopmentTeam = 3TWLQK4535;
 						ProvisioningStyle = Automatic;
@@ -476,6 +518,7 @@
 			targets = (
 				960BB6CDCBBBDABFBD4AE041 /* PerchApp */,
 				30E7B99E2AF7D80DB4037921 /* PerchTopShelf */,
+				01BDD4ECCE3F8E49393107EA /* PerchAppTests */,
 				9D5ECBB07DF30C831907761C /* PerchUITests */,
 			);
 		};
@@ -552,6 +595,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		9550795F02FBF1C514E70838 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4462CE2D5EC979F88262D325 /* ArtworkServiceTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		994B34302220ED9C54D00528 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -563,6 +614,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		43341E5BE4E58A056EAC7FF1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 960BB6CDCBBBDABFBD4AE041 /* PerchApp */;
+			targetProxy = AEC9644645BAF6DB1ACEFD57 /* PBXContainerItemProxy */;
+		};
 		EE6D35BE31395CE9D150EB6A /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 30E7B99E2AF7D80DB4037921 /* PerchTopShelf */;
@@ -654,6 +710,23 @@
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = 3;
 				TVOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Release;
+		};
+		50AD0D2C12BF241D2556823B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.robrolabs.perch.apptests;
+				SDKROOT = appletvos;
+				TARGETED_DEVICE_FAMILY = 3;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/PerchApp.app/PerchApp";
 			};
 			name = Release;
 		};
@@ -801,6 +874,23 @@
 			};
 			name = Debug;
 		};
+		E670483DA4148D5C86BA5185 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.robrolabs.perch.apptests;
+				SDKROOT = appletvos;
+				TARGETED_DEVICE_FAMILY = 3;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/PerchApp.app/PerchApp";
+			};
+			name = Debug;
+		};
 		E688591DEF9913571FD2AA78 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -853,6 +943,15 @@
 			buildConfigurations = (
 				99C45836D2F1D4E548E783B4 /* Debug */,
 				0F6AD60D2124FA67F1FB6499 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		FA48D904DC7B71CA38B0E867 /* Build configuration list for PBXNativeTarget "PerchAppTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E670483DA4148D5C86BA5185 /* Debug */,
+				50AD0D2C12BF241D2556823B /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

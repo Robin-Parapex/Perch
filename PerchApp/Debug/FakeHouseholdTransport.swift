@@ -205,7 +205,7 @@ struct FakeHouseholdTransport: PlexTransport {
         }
     }
 
-    /// `/photo/:/transcode?width=&height=&url=`: a distinct colour per `url`, drawn at the asked size (capped).
+    /// `/photo/:/transcode?width=&height=&url=`: a distinct test card per `url`, at the asked width (capped).
     /// `-PerchSlowArtwork` holds full-size answers for 6 s (the 64 px stand-ins come at once), so a UI test
     /// sees the placeholder state before the image.
     private func transcodedArt(_ url: URL) async -> (Data, HTTPURLResponse) {
@@ -220,21 +220,35 @@ struct FakeHouseholdTransport: PlexTransport {
         return (Self.solidPNG(key: source, width: width, height: height), response(url, 200, type: "image/png"))
     }
 
-    /// A solid colour from a stable hash of `key` with a lighter disc, so the sharp image differs from its blur.
+    /// A detailed test card per `key`: a two-hue diagonal gradient, an off-centre disc, a corner block and a
+    /// label with the item number. Always 4:3 (never the 2:3 of a poster), so crops and anchors can be judged.
     static func solidPNG(key: String, width: Int, height: Int) -> Data {
         var hash: UInt32 = 2_166_136_261
         for byte in key.utf8 { hash = (hash ^ UInt32(byte)) &* 16_777_619 }
-        let colour = UIColor(hue: CGFloat(hash % 360) / 360, saturation: 0.6, brightness: 0.7, alpha: 1)
+        let hue = CGFloat(hash % 360) / 360
+        let first = UIColor(hue: hue, saturation: 0.65, brightness: 0.8, alpha: 1)
+        let second = UIColor(hue: (hue + 0.12).truncatingRemainder(dividingBy: 1), saturation: 0.7, brightness: 0.35, alpha: 1)
+        let pixelWidth = max(width, 4)
+        let size = CGSize(width: pixelWidth, height: max(pixelWidth * 3 / 4, 3))
+        let label = key.split(separator: "/").first { Int($0) != nil }.map(String.init) ?? "art"
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
-        let size = CGSize(width: width, height: height)
         let image = UIGraphicsImageRenderer(size: size, format: format).image { context in
-            colour.setFill()
-            context.fill(CGRect(origin: .zero, size: size))
-            UIColor.white.withAlphaComponent(0.35).setFill()
-            let side = min(size.width, size.height) * 0.5
-            context.cgContext.fillEllipse(
-                in: CGRect(x: (size.width - side) / 2, y: (size.height - side) / 2, width: side, height: side))
+            let cg = context.cgContext
+            let colours = [first.cgColor, second.cgColor] as CFArray
+            if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colours, locations: [0, 1]) {
+                cg.drawLinearGradient(gradient, start: .zero, end: CGPoint(x: size.width, y: size.height), options: [])
+            }
+            let unit = min(size.width, size.height)
+            UIColor.white.withAlphaComponent(0.55).setFill()
+            cg.fillEllipse(in: CGRect(x: size.width * 0.12, y: size.height * 0.14, width: unit * 0.34, height: unit * 0.34))
+            UIColor.black.withAlphaComponent(0.45).setFill()
+            cg.fill(CGRect(x: size.width * 0.72, y: size.height * 0.66, width: size.width * 0.22, height: size.height * 0.24))
+            guard unit >= 48 else { return }
+            let attributes: [NSAttributedString.Key: Any] = [
+                .font: UIFont.systemFont(ofSize: unit * 0.16, weight: .heavy), .foregroundColor: UIColor.white,
+            ]
+            (label as NSString).draw(at: CGPoint(x: size.width * 0.5, y: size.height * 0.42), withAttributes: attributes)
         }
         return image.pngData() ?? Data()
     }

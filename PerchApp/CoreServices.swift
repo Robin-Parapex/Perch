@@ -33,6 +33,8 @@ final class CoreServices {
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-PerchResetSetup") { Self.debugReset(secrets: secrets) }
         if ProcessInfo.processInfo.arguments.contains("-PerchFakeSignedOut") { Self.debugSignOut(secrets: secrets) }
+        // `-PerchClearArtwork`: empties only the artwork caches (cold-cache checks); the sign-in stays.
+        if ProcessInfo.processInfo.arguments.contains("-PerchClearArtwork") { ArtworkService.removeDiskCache() }
         #endif
         let keyValues = UserDefaultsStore()
         self.keyValues = keyValues
@@ -59,8 +61,15 @@ final class CoreServices {
             settings: settings, adminPIN: adminPIN)
         let artwork = ArtworkService(session: session, transport: transport)
         self.artwork = artwork
-        artworkPrefetcher = ArtworkPrefetcher(service: artwork)
-        artworkTint = ArtworkTintModel(service: artwork)
+        let artworkPrefetcher = ArtworkPrefetcher(service: artwork)
+        self.artworkPrefetcher = artworkPrefetcher
+        let artworkTint = ArtworkTintModel(service: artwork)
+        self.artworkTint = artworkTint
+        // Every clear (sign-out, another server) also drops pending prefetches and the measured tints.
+        artwork.onClear = {
+            artworkPrefetcher.cancelAll()
+            artworkTint.reset()
+        }
         plexSignIn = PlexSignInModel(
             session: session, transport: transport, endpoints: endpoints, adminPIN: adminPIN, settings: settings)
         setupCompletion = SetupCompletion(store: keyValues)
@@ -85,8 +94,10 @@ final class CoreServices {
             logFileURL: PlaybackCoordinator.logFileURL(), settings: settings)
         // Once at launch: sign-out deletes the Home snapshots, a profile change clears memory.
         Task { await library.observe(session) }
-        // Sign-out clears the artwork caches (memory and disk).
-        artwork.start()
+        // Sign-out clears the artwork caches (memory and disk): directly after an in-app sign-out, and by
+        // following the session for any other way into signed out.
+        plexSignIn.onSignedOut = { artwork.signedOut() }
+        artwork.start(session: session)
     }
 
     private final class RegistryBox: Sendable {

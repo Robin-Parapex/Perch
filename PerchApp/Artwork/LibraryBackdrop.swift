@@ -8,7 +8,7 @@ import UIKit
 /// image at once and a screen never flashes flat black.
 @MainActor
 enum LibraryBackdrop {
-    static let defaultsKey = "perch.artwork.lastBackdrop"
+    nonisolated static let defaultsKey = "perch.artwork.lastBackdrop"
 
     static func cached(artwork: ArtworkService) -> UIImage? {
         guard let key = CoreServices.plexDefaults().string(forKey: defaultsKey) else { return nil }

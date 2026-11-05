@@ -57,10 +57,15 @@ final class ArtworkPrefetcher {
 
     private func start(_ requests: [ImageRequest], label: String) {
         guard !requests.isEmpty else { return }
-        let hits = requests.filter(service.isCached).count
-        ArtworkService.log.info(
-            "Artwork prefetch \(label, privacy: .public): \(requests.count, privacy: .public) images, \(hits, privacy: .public) cached"
-        )
+        // Started at once (so a later focus can cancel it); the cache count for the log runs off the main
+        // actor, since the disk check touches the file system.
         prefetcher.startPrefetching(with: requests)
+        let pipeline = service.pipeline
+        Task.detached(priority: .utility) {
+            let hits = requests.filter { pipeline.cache.containsCachedImage(for: $0, caches: .all) }.count
+            ArtworkService.log.info(
+                "Artwork prefetch \(label, privacy: .public): \(requests.count, privacy: .public) images, \(hits, privacy: .public) cached"
+            )
+        }
     }
 }

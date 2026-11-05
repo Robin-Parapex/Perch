@@ -51,8 +51,10 @@ struct ArtworkImage: View {
                 transaction: Transaction(animation: reduceMotion ? nil : .easeInOut(duration: 0.3))
             ) { state in
                 let loaded = state.image != nil
+                // The stand-in leaves the tree once the image is in (crossfading out), so nothing of it
+                // can show at the edges or through a transparent logo.
                 ZStack {
-                    if size != .placeholder { placeholder(service) }
+                    if !loaded { placeholder(service).transition(.opacity) }
                     if let image = state.image {
                         image.resizable().aspectRatio(contentMode: contentMode).transition(.opacity)
                     }
@@ -63,16 +65,24 @@ struct ArtworkImage: View {
             }
             .pipeline(service.pipeline)
         } else {
-            ArtworkPlaceholder(image: nil, tint: tint)
+            fallback
                 .accessibilityElement(children: .ignore)
                 .accessibilityIdentifier("artwork.placeholder")
                 .onAppear { onPhaseChange?(.placeholder) }
         }
     }
 
+    /// A clearLogo is transparent: never an opaque stand-in behind it, just nothing until it arrives.
+    @ViewBuilder
+    private var fallback: some View {
+        if size == .logo || size == .placeholder { Color.clear } else { ArtworkPlaceholder(image: nil, tint: tint) }
+    }
+
     @ViewBuilder
     private func placeholder(_ service: ArtworkService) -> some View {
-        if let small = service.request(path: path, size: .placeholder, priority: .veryHigh) {
+        if size == .logo || size == .placeholder {
+            Color.clear
+        } else if let small = service.request(path: path, size: .placeholder, priority: .veryHigh) {
             LazyImage(request: small) { state in
                 ArtworkPlaceholder(image: state.imageContainer?.image.cgImage, tint: tint)
             }

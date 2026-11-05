@@ -44,6 +44,17 @@
             parallelizable = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
+               BlueprintIdentifier = "01BDD4ECCE3F8E49393107EA"
+               BuildableName = "PerchAppTests.xctest"
+               BlueprintName = "PerchAppTests"
+               ReferencedContainer = "container:Perch.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
                BlueprintIdentifier = "9D5ECBB07DF30C831907761C"
                BuildableName = "PerchUITests.xctest"
                BlueprintName = "PerchUITests"

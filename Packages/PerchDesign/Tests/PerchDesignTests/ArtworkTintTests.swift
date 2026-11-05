@@ -80,3 +80,21 @@ private func makeImage(width: Int = 16, height: Int = 16, _ pixel: (Int, Int) ->
         _ = ArtworkPlaceholder(image: nil, tint: nil).body
     }
 }
+
+@Suite("Placeholder wash")
+struct PlaceholderWashTests {
+    private func luminance(_ c: ArtworkRGB) -> Double { 0.2126 * c.red + 0.7152 * c.green + 0.0722 * c.blue }
+
+    @Test func washSitsNearMidLuminanceAndIsLessSaturated() {
+        for tint in [ArtworkRGB(red: 0.9, green: 0.2, blue: 0.1), ArtworkRGB(red: 0.05, green: 0.1, blue: 0.4), ArtworkTint.neutral] {
+            let wash = ArtworkPlaceholder.wash(tint)
+            #expect(luminance(wash) > 0.45 && luminance(wash) < 0.62)
+            let spread = { (c: ArtworkRGB) in max(c.red, c.green, c.blue) - min(c.red, c.green, c.blue) }
+            #expect(spread(wash) / max(luminance(wash), 0.01) <= spread(tint) / max(luminance(tint), 0.01) + 0.0001)
+        }
+    }
+
+    @Test func blackFallsBackToGrey() {
+        #expect(ArtworkPlaceholder.wash(ArtworkRGB(red: 0, green: 0, blue: 0)) == ArtworkRGB(red: 0.55, green: 0.55, blue: 0.55))
+    }
+}

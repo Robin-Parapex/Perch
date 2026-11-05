@@ -14,6 +14,8 @@ import SwiftUI
 struct LibraryCheckView: View {
     let core: CoreServices
     @State private var model: LibraryCheckModel
+    @FocusState private var focusedCard: String?
+    @Environment(\.displayScale) private var displayScale
 
     init(core: CoreServices) {
         self.core = core
@@ -25,7 +27,8 @@ struct LibraryCheckView: View {
             VStack(alignment: .leading, spacing: 16) {
                 Text("Library check").font(.title2).accessibilityIdentifier("libraryCheck.title")
                 line(
-                    "Artwork placeholder=\(model.artworkCount(.placeholder)) loaded=\(model.artworkCount(.loaded))",
+                    "Artwork placeholder=\(model.artworkCount(.placeholder)) loaded=\(model.artworkCount(.loaded))"
+                        + " scale=\(String(format: "%.1f", displayScale))",
                     id: "libraryCheck.artwork.status")
                 if let error = model.error {
                     line("Error: \(error)", id: "libraryCheck.error")
@@ -43,7 +46,17 @@ struct LibraryCheckView: View {
         }
         .perchPageBackground()
         .environment(\.perchTint, core.artworkTint.tint)
-        .task { await model.load() }
+        .task {
+            await model.load()
+            // `-PerchFocusIndex N`: focus card N of the first row (live screenshots without a remote).
+            let arguments = ProcessInfo.processInfo.arguments
+            if let at = arguments.firstIndex(of: "-PerchFocusIndex"), arguments.indices.contains(at + 1),
+                let index = Int(arguments[at + 1]), let row = model.rows.first, row.items.indices.contains(index)
+            {
+                try? await Task.sleep(for: .milliseconds(500))
+                focusedCard = "\(row.id)#\(index)"
+            }
+        }
         .onDisappear { core.artworkPrefetcher.focus(item: nil) }
         .accessibilityIdentifier("libraryCheck.screen")
     }
@@ -88,6 +101,7 @@ struct LibraryCheckView: View {
                             model.artworkPhases[key] = phase
                         }
                     }
+                    .focused($focusedCard, equals: key)
                     .environment(\.perchFocusReporter) { focused in
                         if focused { focusMoved(to: item, rowIndex: index) }
                     }

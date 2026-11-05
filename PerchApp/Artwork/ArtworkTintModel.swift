@@ -27,7 +27,8 @@ final class ArtworkTintModel {
         guard let item, let path = item.artworkPath(for: .backdrop),
             let request = service.request(path: path, size: .placeholder)
         else { return }
-        let key = path
+        // The full cache key (server, path, size), so another server's image never lends its tint.
+        guard let key = service.cacheKey(path: path, size: .placeholder) else { return }
         let pipeline = service.pipeline
         task = Task { [weak self] in
             try? await Task.sleep(for: Self.debounce)

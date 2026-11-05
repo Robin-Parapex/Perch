@@ -7,8 +7,8 @@ import Testing
 struct ArtworkSizeTests {
     @Test func pixelSizesMatchTheSpec() {
         let expected: [ArtworkSize: (Int, Int)] = [
-            .poster: (300, 450), .landscape: (640, 360), .backdrop: (1920, 1080),
-            .logo: (800, 310), .placeholder: (64, 64),
+            .poster: (480, 720), .landscape: (672, 380), .backdrop: (3840, 2160),
+            .logo: (1200, 464), .placeholder: (64, 64),
         ]
         #expect(ArtworkSize.allCases.count == expected.count)
         for size in ArtworkSize.allCases {
