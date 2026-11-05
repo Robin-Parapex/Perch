@@ -42,11 +42,17 @@ struct HomeView: View {
             RowList {
                 heroArea
                     .id(Self.topID)
-                ForEach(Array(model.rows.enumerated()), id: \.element.id) { index, row in
-                    rowView(row, index: index)
+                // Rows arriving or leaving animate inside their own stack only. Animating the whole RowList
+                // also animated the scroll view's content size; when the focused message button left at the
+                // same moment (cached empty library, then rows), the focus engine and the animated scroll
+                // view re-laid out every frame for good: a blank screen at 100% CPU.
+                VStack(alignment: .leading, spacing: PerchSpacing.rowGap) {
+                    ForEach(Array(model.rows.enumerated()), id: \.element.id) { index, row in
+                        rowView(row, index: index)
+                    }
                 }
+                .animation(.easeOut(duration: PerchMotion.crossfadeDuration), value: model.rows.map(\.id))
             }
-            .animation(.easeOut(duration: PerchMotion.crossfadeDuration), value: model.rows.map(\.id))
             .ignoresSafeArea()
             .onChange(of: focus) { old, new in focusChanged(from: old, to: new, proxy: proxy) }
         }

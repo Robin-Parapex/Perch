@@ -45,7 +45,6 @@
 		8663EC12E187BED2B0601E65 /* ArtworkTintModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10B3E725E1759A6E6E8610DE /* ArtworkTintModel.swift */; };
 		872F476A2369612540CE18D7 /* HomeModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79FD002575B57466DA887250 /* HomeModel.swift */; };
 		93FFCFF78D87B171B9178117 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 243A1FBF501983A4028E086D /* Assets.xcassets */; };
-		9852F3937FE0FA15F011E5AD /* LibraryCheckUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D91C2D2667DAAD88A077BC0 /* LibraryCheckUITests.swift */; };
 		A50F4216A747F7CAF404ABF4 /* AppRoot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0274461E25099FBB92325409 /* AppRoot.swift */; };
 		A95C2FA7989C3E5D7E0111D2 /* Nuke in Frameworks */ = {isa = PBXBuildFile; productRef = 5C4E476B95D695AA04698AE5 /* Nuke */; };
 		B1A954E2E5DFA7D2B9301A03 /* PerchFrigate in Frameworks */ = {isa = PBXBuildFile; productRef = 17D4067A1DBC8192EF8649A5 /* PerchFrigate */; };
@@ -53,6 +52,7 @@
 		B43D5DC91E95AC408194BEF3 /* DesignGalleryUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF483B6C94B4DC73D18C4462 /* DesignGalleryUITests.swift */; };
 		B8D5B2787C3BA3A00A310831 /* PerchAI in Frameworks */ = {isa = PBXBuildFile; productRef = F656F949D78A4CE7629D0463 /* PerchAI */; };
 		B9C109B0BE8B4408148629CB /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A263C0AF61D7A62CCEAA5C3E /* HomeView.swift */; };
+		C127772127EF6B790C8943A4 /* HomeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69A47F4609C33530034C7A39 /* HomeUITests.swift */; };
 		D1B3DAA6B30566F205F9A79C /* PerchTrakt in Frameworks */ = {isa = PBXBuildFile; productRef = A709F0B77C976BE6027C7CF2 /* PerchTrakt */; };
 		D8C1571D6EFC22A8F99D79AC /* FakeArt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46EFB7000E3577048BE61940 /* FakeArt.swift */; };
 		DE8CF85EBA2C000902DEE287 /* PerchPlayer in Frameworks */ = {isa = PBXBuildFile; productRef = DCF36096C7A159128C1E58DB /* PerchPlayer */; };
@@ -125,8 +125,8 @@
 		5049C881306F28A7D69171E2 /* PlayerSpikeClip.mp4 */ = {isa = PBXFileReference; path = PlayerSpikeClip.mp4; sourceTree = "<group>"; };
 		529D88C7637EADD0D2F09F61 /* ArtworkServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArtworkServiceTests.swift; sourceTree = "<group>"; };
 		578031749B01762ADB2FC507 /* ProfileSwitcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSwitcher.swift; sourceTree = "<group>"; };
-		5D91C2D2667DAAD88A077BC0 /* LibraryCheckUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryCheckUITests.swift; sourceTree = "<group>"; };
 		65B77FBA7B90AF35072DBB7E /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		69A47F4609C33530034C7A39 /* HomeUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeUITests.swift; sourceTree = "<group>"; };
 		6C0B3C5FC5D8A5ED71FF74CB /* SetupProfilesStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupProfilesStep.swift; sourceTree = "<group>"; };
 		72EBCD50A28455935FE5B81E /* ModuleManifest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModuleManifest.swift; sourceTree = "<group>"; };
 		733569FCF6FF7AC55BDD33F9 /* FakeHouseholdTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FakeHouseholdTransport.swift; sourceTree = "<group>"; };
@@ -315,7 +315,7 @@
 			children = (
 				2DAFDA9494FF117B11D0AEEC /* ArtworkUITests.swift */,
 				FF483B6C94B4DC73D18C4462 /* DesignGalleryUITests.swift */,
-				5D91C2D2667DAAD88A077BC0 /* LibraryCheckUITests.swift */,
+				69A47F4609C33530034C7A39 /* HomeUITests.swift */,
 				7DCA53A26933A2B3B0B4F245 /* PerchUITests.swift */,
 				D9747DA535C64AC2ADD90729 /* PlayerSpikeUITests.swift */,
 				D0515B7DA325FB2439471BC2 /* PlayerUITests.swift */,
@@ -567,7 +567,7 @@
 			files = (
 				83B32AF1D751DC0B9AF4D645 /* ArtworkUITests.swift in Sources */,
 				B43D5DC91E95AC408194BEF3 /* DesignGalleryUITests.swift in Sources */,
-				9852F3937FE0FA15F011E5AD /* LibraryCheckUITests.swift in Sources */,
+				C127772127EF6B790C8943A4 /* HomeUITests.swift in Sources */,
 				487B2E112C27D4631E1E3BA0 /* PerchUITests.swift in Sources */,
 				5EA6B7B6C16EAFE9EBEF4E84 /* PlayerSpikeUITests.swift in Sources */,
 				41252ABD4AB177935FD5305F /* PlayerUITests.swift in Sources */,
