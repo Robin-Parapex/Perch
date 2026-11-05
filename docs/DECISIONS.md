@@ -435,6 +435,39 @@ Append-only log of decisions and why. Newest at the bottom. Format: date, decisi
 - Rejected: plain HTTP or raw-IP fallback (the server requires secure connections and its certificate covers only *.plex.direct names; AVPlayer cannot use a custom trust check). A local network scan (GDM) is deferred to WP-05 first-run setup; it finds the IP but does not solve the certificate issue.
 - Decided by the WP-07 lead (Claude).
 
+## 2026-11-05 Nuke 12.9.0, app target only
+- Nuke 12.9.0 is pinned exactly, in the app target only (Nuke and NukeUI). PerchDesign stays free of image libraries. 13.x exists, but 12.9.0 builds clean under Swift 6, so we stay on 12.x for now.
+- Decided by the WP-08 lead (Claude).
+
+## 2026-11-05 Sized images from Plex
+- Images are sized by Plex's photo transcoder in fixed buckets: poster 480x720, landscape 672x380, backdrop 3840x2160, logo 1200x464, placeholder 64x64 (raised for 4K on 5 Nov 2026 after the design critique; first set was poster 300x450, landscape 640x360, backdrop 1920x1080, logo 800x310). The token goes only in a header.
+- One 2x set for all devices. On a 1080p Apple TV this downloads more pixels than needed; accepted for simplicity. Same poster: 48,792 B against 419,887 B full size.
+- Decided by the WP-08 lead (Claude).
+
+## 2026-11-05 Artwork cache policy and server ID
+- `ArtworkCachePolicy` (PerchCore) keeps the last server ID in App Group defaults key `perch.artwork.serverID`, so cached art shows while the server is connecting or unreachable. It is forgotten only on sign-out. A first ready server that differs clears the artwork caches. The avatar cache key keeps the `c` query item so avatars refresh.
+- Decided by the WP-08 lead (Claude).
+
+## 2026-11-05 PerchAppTests target
+- App-target logic gets a hosted unit test target, PerchAppTests, rather than moving into a package. It is run by the existing gate through the PerchApp scheme.
+- Decided by the WP-08 lead (Claude).
+
+## 2026-11-05 Artwork cache key and disk cache
+- The key is serverID|path|size (`ArtworkCacheKey` in PerchCore), never the URL, so an address change does not miss the cache and a token can never reach a key. The disk cache is in the App Group `Library/Caches/Artwork`, 300 MB, LRU. No 7-day timer, because Plex paths carry a `?t=` version stamp.
+- Decided by the WP-08 lead (Claude).
+
+## 2026-11-05 Artwork source order
+- `ArtworkService` keeps the source order (override, fanart.tv, TMDB, Plex) as a list. Only Plex is implemented until those modules arrive.
+- Decided by the WP-08 lead (Claude).
+
+## 2026-11-05 Page tint
+- The tint is the average of the 64 px placeholder, with saturation and brightness clamped, fed into PerchStyle's page tint at 10%, with a 0.4 s fade, debounced 150 ms. None under Reduce Motion.
+- Decided by the WP-08 lead (Claude).
+
+## 2026-11-05 WP-08 debug launch arguments
+- DEBUG only: `-PerchLibraryCheck` opens the Library check (the Home stand-in until WP-09); `-PerchSlowArtwork` makes the fake household delay full images by 6 s so placeholders can be seen.
+- Decided by the WP-08 lead (Claude).
+
 ## Open decisions (resolve in the named work package)
 - Recovery when the stored Perch PIN cannot be read (Admin is locked out by design): confirm the owner through Plex, audited, then allow a new Perch PIN (WP-05).
 - Assistant name (placeholder Pip) (WP-19).
