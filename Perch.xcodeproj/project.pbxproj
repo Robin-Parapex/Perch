@@ -8,7 +8,9 @@
 
 /* Begin PBXBuildFile section */
 		05EE20E1CEDCBCB567CC7E61 /* ProfilePickerUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08393C8DD9CE37ACF64C1E97 /* ProfilePickerUITests.swift */; };
+		0880D2ECB454F4750CA61C97 /* ArtworkImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25F5BA2143841EE128D092C0 /* ArtworkImage.swift */; };
 		0E90752923D2A8DD20600D4A /* FaultInjectingTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4C5D477818723FF0622A0A1 /* FaultInjectingTransport.swift */; };
+		0EC515326803C8B1DF91DB6A /* ArtworkService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6A26F562D003FD4E2BBB99C /* ArtworkService.swift */; };
 		0EE7FF85102FEB9B6642D818 /* PerchCore in Frameworks */ = {isa = PBXBuildFile; productRef = 3A0D94F6E929D5A8D64ECE87 /* PerchCore */; };
 		13C2D6C32B8E74412EFFD95F /* ProfilePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8C9CDA7267F3A0FCDF12036 /* ProfilePickerView.swift */; };
 		14385D923BA789B87B7EA200 /* ProfileSwitcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 578031749B01762ADB2FC507 /* ProfileSwitcher.swift */; };
@@ -22,11 +24,13 @@
 		3DF3EEA72F6F90D6F28662F0 /* SetupWizardUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24058FD508AF202F5629849E /* SetupWizardUITests.swift */; };
 		41252ABD4AB177935FD5305F /* PlayerUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0515B7DA325FB2439471BC2 /* PlayerUITests.swift */; };
 		42B8A5B6784DC88C684A5826 /* LibraryDumpTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47420A664FAA3977282845F2 /* LibraryDumpTransport.swift */; };
+		4462CE2D5EC979F88262D325 /* ArtworkServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 529D88C7637EADD0D2F09F61 /* ArtworkServiceTests.swift */; };
+		46097627FE5794180AE13E8B /* NukeUI in Frameworks */ = {isa = PBXBuildFile; productRef = 090FE52D646F01BE25472CE4 /* NukeUI */; };
 		487B2E112C27D4631E1E3BA0 /* PerchUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DCA53A26933A2B3B0B4F245 /* PerchUITests.swift */; };
 		49FC74040CE062EA08425469 /* SetupFlowModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFCF9214DE208DF357C09CFF /* SetupFlowModel.swift */; };
-		4B921CDDAC347E69092ABAA5 /* ImageDiskCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B02FF9E38171AE52DBB210 /* ImageDiskCache.swift */; };
 		4FF43F306571912D3E44B717 /* PerchTautulli in Frameworks */ = {isa = PBXBuildFile; productRef = D9BB25903DF7795D7E6F6281 /* PerchTautulli */; };
 		53BE2DF0F4E4331D38A3670D /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 65B77FBA7B90AF35072DBB7E /* PrivacyInfo.xcprivacy */; };
+		59C3F6BF91B9A2C737672476 /* LibraryBackdrop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D8989D339D0C59E8568F60E /* LibraryBackdrop.swift */; };
 		5D74EC2397FB1BB60C1842D9 /* PlayerSpikeClip.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 5049C881306F28A7D69171E2 /* PlayerSpikeClip.mp4 */; };
 		5EA6B7B6C16EAFE9EBEF4E84 /* PlayerSpikeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9747DA535C64AC2ADD90729 /* PlayerSpikeUITests.swift */; };
 		642A4DBDFED68899100CA244 /* CoreServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3FD1A399EE728F4D38CCD2C /* CoreServices.swift */; };
@@ -35,10 +39,13 @@
 		737BC63B499B2034F488A938 /* SetupProfilesStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C0B3C5FC5D8A5ED71FF74CB /* SetupProfilesStep.swift */; };
 		77D857A027E5D884687C5DE2 /* PlayerSpikeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 975A43ACE2DD13C90E0B58A1 /* PlayerSpikeView.swift */; };
 		7D0F980230F0EED73C737127 /* ContentProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEC73F03519F0ABA8E1A202F /* ContentProvider.swift */; };
+		83B32AF1D751DC0B9AF4D645 /* ArtworkUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DAFDA9494FF117B11D0AEEC /* ArtworkUITests.swift */; };
+		8663EC12E187BED2B0601E65 /* ArtworkTintModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10B3E725E1759A6E6E8610DE /* ArtworkTintModel.swift */; };
 		93FFCFF78D87B171B9178117 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 243A1FBF501983A4028E086D /* Assets.xcassets */; };
 		953A049EEFA1995A05CF2C41 /* PlaceholderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D11E7EAAD6441A75FF4CD087 /* PlaceholderView.swift */; };
 		9852F3937FE0FA15F011E5AD /* LibraryCheckUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D91C2D2667DAAD88A077BC0 /* LibraryCheckUITests.swift */; };
 		A50F4216A747F7CAF404ABF4 /* AppRoot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0274461E25099FBB92325409 /* AppRoot.swift */; };
+		A95C2FA7989C3E5D7E0111D2 /* Nuke in Frameworks */ = {isa = PBXBuildFile; productRef = 5C4E476B95D695AA04698AE5 /* Nuke */; };
 		B1A954E2E5DFA7D2B9301A03 /* PerchFrigate in Frameworks */ = {isa = PBXBuildFile; productRef = 17D4067A1DBC8192EF8649A5 /* PerchFrigate */; };
 		B36BB8C248139F5F008585AE /* PerchTopShelf.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = E970117425D5C7F16FF6DDFA /* PerchTopShelf.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		B43D5DC91E95AC408194BEF3 /* DesignGalleryUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF483B6C94B4DC73D18C4462 /* DesignGalleryUITests.swift */; };
@@ -47,6 +54,7 @@
 		D8C1571D6EFC22A8F99D79AC /* FakeArt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46EFB7000E3577048BE61940 /* FakeArt.swift */; };
 		DE8CF85EBA2C000902DEE287 /* PerchPlayer in Frameworks */ = {isa = PBXBuildFile; productRef = DCF36096C7A159128C1E58DB /* PerchPlayer */; };
 		E17637F8E94A33E056B98D89 /* PerchSeerr in Frameworks */ = {isa = PBXBuildFile; productRef = 031D234884266E3D9F246CBF /* PerchSeerr */; };
+		E52673AB7D7831F1AD8DADA7 /* ArtworkPrefetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03DAA0A60E32CA770C8AEB56 /* ArtworkPrefetcher.swift */; };
 		E88B82642080560B6A1CD950 /* PerchDesign in Frameworks */ = {isa = PBXBuildFile; productRef = 2A13A1FF9EDEA28F7C994960 /* PerchDesign */; };
 		EA554CCC29B78E08008E449D /* FakeHouseholdTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 733569FCF6FF7AC55BDD33F9 /* FakeHouseholdTransport.swift */; };
 		EB703ED1F35EC501C0B06DC0 /* SetupAdminPINStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B6A2EAF62F625006D78BD53 /* SetupAdminPINStep.swift */; };
@@ -64,6 +72,13 @@
 			remoteInfo = PerchTopShelf;
 		};
 		A34A0667B4FDAD4B2464C0CF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 78904F42286EE3E52ED2700B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 960BB6CDCBBBDABFBD4AE041;
+			remoteInfo = PerchApp;
+		};
+		AEC9644645BAF6DB1ACEFD57 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 78904F42286EE3E52ED2700B /* Project object */;
 			proxyType = 1;
@@ -88,28 +103,34 @@
 
 /* Begin PBXFileReference section */
 		0274461E25099FBB92325409 /* AppRoot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRoot.swift; sourceTree = "<group>"; };
+		03DAA0A60E32CA770C8AEB56 /* ArtworkPrefetcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArtworkPrefetcher.swift; sourceTree = "<group>"; };
 		08393C8DD9CE37ACF64C1E97 /* ProfilePickerUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfilePickerUITests.swift; sourceTree = "<group>"; };
+		10B3E725E1759A6E6E8610DE /* ArtworkTintModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArtworkTintModel.swift; sourceTree = "<group>"; };
 		1FDF7616159B5794150C0A0B /* PerchApp.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = PerchApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		24058FD508AF202F5629849E /* SetupWizardUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupWizardUITests.swift; sourceTree = "<group>"; };
 		243A1FBF501983A4028E086D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		25F5BA2143841EE128D092C0 /* ArtworkImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArtworkImage.swift; sourceTree = "<group>"; };
 		26359D6962867AF8FC484B0D /* PerchPlex */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PerchPlex; path = Packages/PerchPlex; sourceTree = SOURCE_ROOT; };
+		2DAFDA9494FF117B11D0AEEC /* ArtworkUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArtworkUITests.swift; sourceTree = "<group>"; };
 		3B6A2EAF62F625006D78BD53 /* SetupAdminPINStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupAdminPINStep.swift; sourceTree = "<group>"; };
+		3D8989D339D0C59E8568F60E /* LibraryBackdrop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryBackdrop.swift; sourceTree = "<group>"; };
 		46EFB7000E3577048BE61940 /* FakeArt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FakeArt.swift; sourceTree = "<group>"; };
 		47420A664FAA3977282845F2 /* LibraryDumpTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryDumpTransport.swift; sourceTree = "<group>"; };
 		4AE8EDB966DF6ECE15D70347 /* LibraryCheckView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryCheckView.swift; sourceTree = "<group>"; };
 		5049C881306F28A7D69171E2 /* PlayerSpikeClip.mp4 */ = {isa = PBXFileReference; path = PlayerSpikeClip.mp4; sourceTree = "<group>"; };
+		529D88C7637EADD0D2F09F61 /* ArtworkServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArtworkServiceTests.swift; sourceTree = "<group>"; };
 		578031749B01762ADB2FC507 /* ProfileSwitcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSwitcher.swift; sourceTree = "<group>"; };
 		5D91C2D2667DAAD88A077BC0 /* LibraryCheckUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryCheckUITests.swift; sourceTree = "<group>"; };
 		65B77FBA7B90AF35072DBB7E /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		6C0B3C5FC5D8A5ED71FF74CB /* SetupProfilesStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupProfilesStep.swift; sourceTree = "<group>"; };
 		72EBCD50A28455935FE5B81E /* ModuleManifest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModuleManifest.swift; sourceTree = "<group>"; };
 		733569FCF6FF7AC55BDD33F9 /* FakeHouseholdTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FakeHouseholdTransport.swift; sourceTree = "<group>"; };
+		7ABC969F5703CBFFC90C2BC6 /* PerchAppTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PerchAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		7B74E85BFB25EAF18EAAFBAA /* WP05Support.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WP05Support.swift; sourceTree = "<group>"; };
 		7DCA53A26933A2B3B0B4F245 /* PerchUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerchUITests.swift; sourceTree = "<group>"; };
 		81DCAA7AC3B9EB27244CB654 /* PerchSeerr */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PerchSeerr; path = Packages/PerchSeerr; sourceTree = SOURCE_ROOT; };
 		84A9F221D541396CE0789A4C /* PlexSignInModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlexSignInModel.swift; sourceTree = "<group>"; };
 		87964497C34D39061F3402E8 /* PerchHome */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PerchHome; path = Packages/PerchHome; sourceTree = SOURCE_ROOT; };
-		90B02FF9E38171AE52DBB210 /* ImageDiskCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageDiskCache.swift; sourceTree = "<group>"; };
 		90C301A09F83201E1F03BCD0 /* PerchTautulli */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PerchTautulli; path = Packages/PerchTautulli; sourceTree = SOURCE_ROOT; };
 		975A43ACE2DD13C90E0B58A1 /* PlayerSpikeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerSpikeView.swift; sourceTree = "<group>"; };
 		9C77FB42827DCAB58DA4C110 /* PerchCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PerchCore; path = Packages/PerchCore; sourceTree = SOURCE_ROOT; };
@@ -122,6 +143,7 @@
 		BD04E58E88BA9BC35355C563 /* PerchAI */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PerchAI; path = Packages/PerchAI; sourceTree = SOURCE_ROOT; };
 		D0515B7DA325FB2439471BC2 /* PlayerUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerUITests.swift; sourceTree = "<group>"; };
 		D11E7EAAD6441A75FF4CD087 /* PlaceholderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaceholderView.swift; sourceTree = "<group>"; };
+		D6A26F562D003FD4E2BBB99C /* ArtworkService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArtworkService.swift; sourceTree = "<group>"; };
 		D9747DA535C64AC2ADD90729 /* PlayerSpikeUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerSpikeUITests.swift; sourceTree = "<group>"; };
 		DAFA42F3295D0579E36B8D6C /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		DFCF9214DE208DF357C09CFF /* SetupFlowModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupFlowModel.swift; sourceTree = "<group>"; };
@@ -152,6 +174,8 @@
 				B1A954E2E5DFA7D2B9301A03 /* PerchFrigate in Frameworks */,
 				B8D5B2787C3BA3A00A310831 /* PerchAI in Frameworks */,
 				4FF43F306571912D3E44B717 /* PerchTautulli in Frameworks */,
+				A95C2FA7989C3E5D7E0111D2 /* Nuke in Frameworks */,
+				46097627FE5794180AE13E8B /* NukeUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -174,6 +198,14 @@
 				65B77FBA7B90AF35072DBB7E /* PrivacyInfo.xcprivacy */,
 			);
 			path = PerchTopShelf;
+			sourceTree = "<group>";
+		};
+		26F703AC355418D9B8A19BF9 /* PerchAppTests */ = {
+			isa = PBXGroup;
+			children = (
+				529D88C7637EADD0D2F09F61 /* ArtworkServiceTests.swift */,
+			);
+			path = PerchAppTests;
 			sourceTree = "<group>";
 		};
 		2F3E67284B009E2CA88625B4 /* Resources */ = {
@@ -202,10 +234,23 @@
 			isa = PBXGroup;
 			children = (
 				1FDF7616159B5794150C0A0B /* PerchApp.app */,
+				7ABC969F5703CBFFC90C2BC6 /* PerchAppTests.xctest */,
 				E970117425D5C7F16FF6DDFA /* PerchTopShelf.appex */,
 				9DEC51BF47974BCC5F748D16 /* PerchUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		5B2F18AE50815CE8EF5C0428 /* Artwork */ = {
+			isa = PBXGroup;
+			children = (
+				25F5BA2143841EE128D092C0 /* ArtworkImage.swift */,
+				03DAA0A60E32CA770C8AEB56 /* ArtworkPrefetcher.swift */,
+				D6A26F562D003FD4E2BBB99C /* ArtworkService.swift */,
+				10B3E725E1759A6E6E8610DE /* ArtworkTintModel.swift */,
+				3D8989D339D0C59E8568F60E /* LibraryBackdrop.swift */,
+			);
+			path = Artwork;
 			sourceTree = "<group>";
 		};
 		73BF864FAFE4E917B2F7CF28 /* Setup */ = {
@@ -223,7 +268,6 @@
 		7BE2AAEA9B8FD98152F54513 /* Profiles */ = {
 			isa = PBXGroup;
 			children = (
-				90B02FF9E38171AE52DBB210 /* ImageDiskCache.swift */,
 				E8C9CDA7267F3A0FCDF12036 /* ProfilePickerView.swift */,
 				578031749B01762ADB2FC507 /* ProfileSwitcher.swift */,
 			);
@@ -246,6 +290,7 @@
 		9019F5C59F8C2B93EDFCB2BE /* PerchUITests */ = {
 			isa = PBXGroup;
 			children = (
+				2DAFDA9494FF117B11D0AEEC /* ArtworkUITests.swift */,
 				FF483B6C94B4DC73D18C4462 /* DesignGalleryUITests.swift */,
 				5D91C2D2667DAAD88A077BC0 /* LibraryCheckUITests.swift */,
 				7DCA53A26933A2B3B0B4F245 /* PerchUITests.swift */,
@@ -298,6 +343,7 @@
 				E3FD1A399EE728F4D38CCD2C /* CoreServices.swift */,
 				72EBCD50A28455935FE5B81E /* ModuleManifest.swift */,
 				FB144107DD23A8D0BAD69C69 /* PerchMain.swift */,
+				5B2F18AE50815CE8EF5C0428 /* Artwork */,
 				7D511CA5EE4CBA62FDB94228 /* Debug */,
 				300CB41960DEE18DE47F421E /* Features */,
 				2F3E67284B009E2CA88625B4 /* Resources */,
@@ -310,6 +356,7 @@
 			children = (
 				9D0550E96E022111AD197242 /* Packages */,
 				BCBDE1045B3C2C8C4DEFBA98 /* PerchApp */,
+				26F703AC355418D9B8A19BF9 /* PerchAppTests */,
 				22BF005B280F36CC1800122E /* PerchTopShelf */,
 				9019F5C59F8C2B93EDFCB2BE /* PerchUITests */,
 				5604ACE44E439FA92A920531 /* Products */,
@@ -327,6 +374,24 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		01BDD4ECCE3F8E49393107EA /* PerchAppTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FA48D904DC7B71CA38B0E867 /* Build configuration list for PBXNativeTarget "PerchAppTests" */;
+			buildPhases = (
+				9550795F02FBF1C514E70838 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				43341E5BE4E58A056EAC7FF1 /* PBXTargetDependency */,
+			);
+			name = PerchAppTests;
+			packageProductDependencies = (
+			);
+			productName = PerchAppTests;
+			productReference = 7ABC969F5703CBFFC90C2BC6 /* PerchAppTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		30E7B99E2AF7D80DB4037921 /* PerchTopShelf */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 433EB5BA229851C51FD45F2F /* Build configuration list for PBXNativeTarget "PerchTopShelf" */;
@@ -371,6 +436,8 @@
 				17D4067A1DBC8192EF8649A5 /* PerchFrigate */,
 				F656F949D78A4CE7629D0463 /* PerchAI */,
 				D9BB25903DF7795D7E6F6281 /* PerchTautulli */,
+				5C4E476B95D695AA04698AE5 /* Nuke */,
+				090FE52D646F01BE25472CE4 /* NukeUI */,
 			);
 			productName = PerchApp;
 			productReference = 1FDF7616159B5794150C0A0B /* PerchApp.app */;
@@ -403,6 +470,10 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 2720;
 				TargetAttributes = {
+					01BDD4ECCE3F8E49393107EA = {
+						DevelopmentTeam = 3TWLQK4535;
+						ProvisioningStyle = Automatic;
+					};
 					30E7B99E2AF7D80DB4037921 = {
 						DevelopmentTeam = 3TWLQK4535;
 						ProvisioningStyle = Automatic;
@@ -428,6 +499,7 @@
 			mainGroup = E2FE76835BB9FBCADB65C38C;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				EDE21E9E6CA0DC26AF6EE61D /* XCRemoteSwiftPackageReference "Nuke" */,
 				AA7761695E298A7AE29E51EC /* XCLocalSwiftPackageReference "Packages/PerchAI" */,
 				FDE5A7AEEB998BFC844B146B /* XCLocalSwiftPackageReference "Packages/PerchCore" */,
 				891829416477DC78AE1FD8B1 /* XCLocalSwiftPackageReference "Packages/PerchDesign" */,
@@ -446,6 +518,7 @@
 			targets = (
 				960BB6CDCBBBDABFBD4AE041 /* PerchApp */,
 				30E7B99E2AF7D80DB4037921 /* PerchTopShelf */,
+				01BDD4ECCE3F8E49393107EA /* PerchAppTests */,
 				9D5ECBB07DF30C831907761C /* PerchUITests */,
 			);
 		};
@@ -477,6 +550,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				83B32AF1D751DC0B9AF4D645 /* ArtworkUITests.swift in Sources */,
 				B43D5DC91E95AC408194BEF3 /* DesignGalleryUITests.swift in Sources */,
 				9852F3937FE0FA15F011E5AD /* LibraryCheckUITests.swift in Sources */,
 				487B2E112C27D4631E1E3BA0 /* PerchUITests.swift in Sources */,
@@ -493,11 +567,15 @@
 			buildActionMask = 2147483647;
 			files = (
 				A50F4216A747F7CAF404ABF4 /* AppRoot.swift in Sources */,
+				0880D2ECB454F4750CA61C97 /* ArtworkImage.swift in Sources */,
+				E52673AB7D7831F1AD8DADA7 /* ArtworkPrefetcher.swift in Sources */,
+				0EC515326803C8B1DF91DB6A /* ArtworkService.swift in Sources */,
+				8663EC12E187BED2B0601E65 /* ArtworkTintModel.swift in Sources */,
 				642A4DBDFED68899100CA244 /* CoreServices.swift in Sources */,
 				D8C1571D6EFC22A8F99D79AC /* FakeArt.swift in Sources */,
 				EA554CCC29B78E08008E449D /* FakeHouseholdTransport.swift in Sources */,
 				0E90752923D2A8DD20600D4A /* FaultInjectingTransport.swift in Sources */,
-				4B921CDDAC347E69092ABAA5 /* ImageDiskCache.swift in Sources */,
+				59C3F6BF91B9A2C737672476 /* LibraryBackdrop.swift in Sources */,
 				EC159442FDD235642F98A906 /* LibraryCheckView.swift in Sources */,
 				42B8A5B6784DC88C684A5826 /* LibraryDumpTransport.swift in Sources */,
 				69C7FBB43B8946F4217CBA80 /* ModuleManifest.swift in Sources */,
@@ -517,6 +595,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		9550795F02FBF1C514E70838 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4462CE2D5EC979F88262D325 /* ArtworkServiceTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		994B34302220ED9C54D00528 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -528,6 +614,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		43341E5BE4E58A056EAC7FF1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 960BB6CDCBBBDABFBD4AE041 /* PerchApp */;
+			targetProxy = AEC9644645BAF6DB1ACEFD57 /* PBXContainerItemProxy */;
+		};
 		EE6D35BE31395CE9D150EB6A /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 30E7B99E2AF7D80DB4037921 /* PerchTopShelf */;
@@ -619,6 +710,23 @@
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = 3;
 				TVOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Release;
+		};
+		50AD0D2C12BF241D2556823B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.robrolabs.perch.apptests;
+				SDKROOT = appletvos;
+				TARGETED_DEVICE_FAMILY = 3;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/PerchApp.app/PerchApp";
 			};
 			name = Release;
 		};
@@ -766,6 +874,23 @@
 			};
 			name = Debug;
 		};
+		E670483DA4148D5C86BA5185 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.robrolabs.perch.apptests;
+				SDKROOT = appletvos;
+				TARGETED_DEVICE_FAMILY = 3;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/PerchApp.app/PerchApp";
+			};
+			name = Debug;
+		};
 		E688591DEF9913571FD2AA78 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -822,6 +947,15 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
+		FA48D904DC7B71CA38B0E867 /* Build configuration list for PBXNativeTarget "PerchAppTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E670483DA4148D5C86BA5185 /* Debug */,
+				50AD0D2C12BF241D2556823B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
@@ -867,10 +1001,26 @@
 		};
 /* End XCLocalSwiftPackageReference section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		EDE21E9E6CA0DC26AF6EE61D /* XCRemoteSwiftPackageReference "Nuke" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/kean/Nuke";
+			requirement = {
+				kind = exactVersion;
+				version = 12.9.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		031D234884266E3D9F246CBF /* PerchSeerr */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = PerchSeerr;
+		};
+		090FE52D646F01BE25472CE4 /* NukeUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = EDE21E9E6CA0DC26AF6EE61D /* XCRemoteSwiftPackageReference "Nuke" */;
+			productName = NukeUI;
 		};
 		17D4067A1DBC8192EF8649A5 /* PerchFrigate */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -887,6 +1037,11 @@
 		5737B578B94A41B308C80DFD /* PerchHome */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = PerchHome;
+		};
+		5C4E476B95D695AA04698AE5 /* Nuke */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = EDE21E9E6CA0DC26AF6EE61D /* XCRemoteSwiftPackageReference "Nuke" */;
+			productName = Nuke;
 		};
 		6BF6030B83AFC8D38A73E397 /* PerchPlex */ = {
 			isa = XCSwiftPackageProductDependency;

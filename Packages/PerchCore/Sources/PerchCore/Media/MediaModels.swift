@@ -22,6 +22,8 @@ public struct MediaSummary: Codable, Sendable, Hashable, Identifiable {
     public var thumbPath: String?
     public var artPath: String?
     public var seriesThumbPath: String?
+    /// Transparent title logo (Plex clearLogo). Nil when the server has none.
+    public var logoPath: String?
     public var durationMs: Int?
     public var viewOffsetMs: Int?
     public var viewCount: Int
@@ -34,7 +36,7 @@ public struct MediaSummary: Codable, Sendable, Hashable, Identifiable {
         episodeNumber: Int? = nil, year: Int? = nil, certificate: String? = nil,
         thumbPath: String? = nil, artPath: String? = nil, seriesThumbPath: String? = nil,
         durationMs: Int? = nil, viewOffsetMs: Int? = nil, viewCount: Int = 0,
-        addedAt: Date? = nil, lastViewedAt: Date? = nil
+        addedAt: Date? = nil, lastViewedAt: Date? = nil, logoPath: String? = nil
     ) {
         self.id = id
         self.kind = kind
@@ -49,6 +51,7 @@ public struct MediaSummary: Codable, Sendable, Hashable, Identifiable {
         self.thumbPath = thumbPath
         self.artPath = artPath
         self.seriesThumbPath = seriesThumbPath
+        self.logoPath = logoPath
         self.durationMs = durationMs
         self.viewOffsetMs = viewOffsetMs
         self.viewCount = viewCount

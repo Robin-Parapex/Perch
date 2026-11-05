@@ -20,6 +20,10 @@ final class CoreServices {
     let setupCompletion: SetupCompletion
     let profileSwitcher: ProfileSwitcher
     let playback: PlaybackCoordinator
+    /// WP-08: the one image pipeline, the focus prefetcher and the page tint that follows focus.
+    let artwork: ArtworkService
+    let artworkPrefetcher: ArtworkPrefetcher
+    let artworkTint: ArtworkTintModel
     let launch = LaunchState()
     let eventBus = EventBus()
     let pollers = PollerCoordinator()
@@ -29,6 +33,8 @@ final class CoreServices {
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-PerchResetSetup") { Self.debugReset(secrets: secrets) }
         if ProcessInfo.processInfo.arguments.contains("-PerchFakeSignedOut") { Self.debugSignOut(secrets: secrets) }
+        // `-PerchClearArtwork`: empties only the artwork caches (cold-cache checks); the sign-in stays.
+        if ProcessInfo.processInfo.arguments.contains("-PerchClearArtwork") { ArtworkService.removeDiskCache() }
         #endif
         let keyValues = UserDefaultsStore()
         self.keyValues = keyValues
@@ -53,6 +59,17 @@ final class CoreServices {
         let session = PlexSession(
             transport: transport, identity: endpoints.identity, secrets: secrets, defaults: Self.plexDefaults(),
             settings: settings, adminPIN: adminPIN)
+        let artwork = ArtworkService(session: session, transport: transport)
+        self.artwork = artwork
+        let artworkPrefetcher = ArtworkPrefetcher(service: artwork)
+        self.artworkPrefetcher = artworkPrefetcher
+        let artworkTint = ArtworkTintModel(service: artwork)
+        self.artworkTint = artworkTint
+        // Every clear (sign-out, another server) also drops pending prefetches and the measured tints.
+        artwork.onClear = {
+            artworkPrefetcher.cancelAll()
+            artworkTint.reset()
+        }
         plexSignIn = PlexSignInModel(
             session: session, transport: transport, endpoints: endpoints, adminPIN: adminPIN, settings: settings)
         setupCompletion = SetupCompletion(store: keyValues)
@@ -73,10 +90,14 @@ final class CoreServices {
         self.library = library
         self.authoriser = authoriser
         playback = PlaybackCoordinator(
-            library: library, plexSession: session, modules: modules, logFileURL: PlaybackCoordinator.logFileURL(),
-            settings: settings)
+            library: library, plexSession: session, artwork: artwork, modules: modules,
+            logFileURL: PlaybackCoordinator.logFileURL(), settings: settings)
         // Once at launch: sign-out deletes the Home snapshots, a profile change clears memory.
         Task { await library.observe(session) }
+        // Sign-out clears the artwork caches (memory and disk): directly after an in-app sign-out, and by
+        // following the session for any other way into signed out.
+        plexSignIn.onSignedOut = { artwork.signedOut() }
+        artwork.start(session: session)
     }
 
     private final class RegistryBox: Sendable {
@@ -116,7 +137,7 @@ final class CoreServices {
             try? secrets.remove(.plexUserToken(PlexUserID(id)))
             try? secrets.remove(.module(ModuleID("plex"), "server.\(id)"))
         }
-        ImageDiskCache.shared.removeAll()
+        ArtworkService.removeDiskCache()
     }
 
     /// `-PerchFakeSignedOut`: forgets only the stored Plex sign-in (the owner and profile tokens, the server

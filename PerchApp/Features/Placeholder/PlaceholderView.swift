@@ -16,11 +16,17 @@ struct PlaceholderView: View {
     @State private var askingForPIN = false
     @State private var refused = false
     @State private var lockedUntil: Date?
-    @State private var backdrop: UIImage? = LibraryBackdrop.cached()
+    @State private var backdrop: UIImage?
     @State private var pin = ""
     @State private var failures = 0
     @State private var isChecking = false
     @State private var errorMessage: String?
+
+    init(core: CoreServices, onRunSetupAgain: @escaping () -> Void) {
+        self.core = core
+        self.onRunSetupAgain = onRunSetupAgain
+        _backdrop = State(initialValue: LibraryBackdrop.cached(artwork: core.artwork))
+    }
 
     private enum Route: Hashable {
         case picker
@@ -34,6 +40,8 @@ struct PlaceholderView: View {
         var path = NavigationPath()
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-PerchDesignGallery") { path.append(Route.gallery) }
+        // `-PerchLibraryCheck`: straight to the DEBUG Library check (WP-08 live artwork checks).
+        if ProcessInfo.processInfo.arguments.contains("-PerchLibraryCheck") { path.append(Route.libraryCheck) }
         #endif
         return path
     }
@@ -72,7 +80,7 @@ struct PlaceholderView: View {
         }
         .task(id: snapshot.state) {
             profile = await core.plexSignIn.session.currentProfile()
-            if backdrop == nil { backdrop = await LibraryBackdrop.fetch(session: core.plexSignIn.session) }
+            if backdrop == nil { backdrop = await LibraryBackdrop.fetch(session: core.plexSignIn.session, artwork: core.artwork) }
         }
     }
 

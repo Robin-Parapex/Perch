@@ -1,15 +1,21 @@
 #if DEBUG
 import Observation
+import OSLog
 import PerchCore
+import PerchDesign
 import PerchPlex
 import SwiftUI
 
 /// DEBUG-only "Library check" (WP-06): what the Plex library returns for the current profile, shown as
 /// plain text so the live checks V3 to V5 and the fake-household UI test can read it. Not a product screen,
-/// so service names and raw identifiers are fine here.
+/// so service names and raw identifiers are fine here. WP-08: each row also shows as poster cards with
+/// sized, cached artwork; focus prefetches the next row and the focused item's backdrop, and tints the page
+/// (the stand-in for Home until WP-09).
 struct LibraryCheckView: View {
     let core: CoreServices
     @State private var model: LibraryCheckModel
+    @FocusState private var focusedCard: String?
+    @Environment(\.displayScale) private var displayScale
 
     init(core: CoreServices) {
         self.core = core
@@ -20,6 +26,10 @@ struct LibraryCheckView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 Text("Library check").font(.title2).accessibilityIdentifier("libraryCheck.title")
+                line(
+                    "Artwork placeholder=\(model.artworkCount(.placeholder)) loaded=\(model.artworkCount(.loaded))"
+                        + " scale=\(String(format: "%.1f", displayScale))",
+                    id: "libraryCheck.artwork.status")
                 if let error = model.error {
                     line("Error: \(error)", id: "libraryCheck.error")
                 }
@@ -34,7 +44,20 @@ struct LibraryCheckView: View {
             .padding(60)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .task { await model.load() }
+        .perchPageBackground()
+        .environment(\.perchTint, core.artworkTint.tint)
+        .task {
+            await model.load()
+            // `-PerchFocusIndex N`: focus card N of the first row (live screenshots without a remote).
+            let arguments = ProcessInfo.processInfo.arguments
+            if let at = arguments.firstIndex(of: "-PerchFocusIndex"), arguments.indices.contains(at + 1),
+                let index = Int(arguments[at + 1]), let row = model.rows.first, row.items.indices.contains(index)
+            {
+                try? await Task.sleep(for: .milliseconds(500))
+                focusedCard = "\(row.id)#\(index)"
+            }
+        }
+        .onDisappear { core.artworkPrefetcher.focus(item: nil) }
         .accessibilityIdentifier("libraryCheck.screen")
     }
 
@@ -54,13 +77,47 @@ struct LibraryCheckView: View {
 
     private var rowsBlock: some View {
         VStack(alignment: .leading, spacing: 8) {
-            ForEach(model.rows, id: \.id) { row in
+            ForEach(Array(model.rows.enumerated()), id: \.element.id) { index, row in
                 Text(row.title).font(.headline)
                 line("\(row.items.count)", id: "libraryCheck.count.\(row.id)")
                 line(
                     row.items.prefix(3).map(\.title).joined(separator: ", "),
                     id: "libraryCheck.first.\(row.id)")
+                posterRow(row, index: index)
             }
+        }
+    }
+
+    /// The row as poster cards (WP-08): focus prefetches the next row and the item's backdrop, and tints the page.
+    private func posterRow(_ row: MediaRow, index: Int) -> some View {
+        ScrollView(.horizontal) {
+            LazyHStack(alignment: .top, spacing: 40) {
+                ForEach(Array(row.items.enumerated()), id: \.offset) { offset, item in
+                    let key = "\(row.id)#\(offset)"
+                    PosterCard(title: item.title, subtitle: item.kind == .episode ? item.seriesTitle : nil) {
+                        if item.kind == .film || item.kind == .episode { core.playback.play(item) }
+                    } artwork: {
+                        ArtworkImage(path: item.artworkPath(for: .poster), size: .poster) { phase in
+                            model.artworkPhases[key] = phase
+                        }
+                    }
+                    .focused($focusedCard, equals: key)
+                    .environment(\.perchFocusReporter) { focused in
+                        if focused { focusMoved(to: item, rowIndex: index) }
+                    }
+                    .onDisappear { model.artworkPhases[key] = nil }
+                }
+            }
+            .padding(.vertical, 30)
+        }
+        .scrollClipDisabled()
+    }
+
+    private func focusMoved(to item: MediaSummary, rowIndex: Int) {
+        core.artworkPrefetcher.focus(item: item)
+        core.artworkTint.focus(item)
+        if model.rows.indices.contains(rowIndex + 1) {
+            core.artworkPrefetcher.prefetch(row: model.rows[rowIndex + 1].items, size: .poster)
         }
     }
 
@@ -157,6 +214,10 @@ final class LibraryCheckModel {
     var detailSource = ""
     var error: String?
     var finished = false
+    /// WP-08: each visible card's artwork state, for the status line the UI test reads.
+    var artworkPhases: [String: ArtworkImage.Phase] = [:]
+
+    func artworkCount(_ phase: ArtworkImage.Phase) -> Int { artworkPhases.values.filter { $0 == phase }.count }
 
     // Write check
     var results: [StepResult] = []
@@ -185,6 +246,8 @@ final class LibraryCheckModel {
                 fetched.append(try await ModuleRegistry.refreshRow(provider, in: context))
             }
             rows = fetched
+            if let first = rows.first { core.artworkPrefetcher.prefetch(row: first.items, size: .poster) }
+            Task { await logArtworkBytes() }
             hubs = try await core.library.hubs()
             // `-PerchLibraryCheckItem <rating key>` shows that title's detail (read-only live check).
             let arguments = ProcessInfo.processInfo.arguments
@@ -202,6 +265,16 @@ final class LibraryCheckModel {
         } catch {
             self.error = String(describing: error)
         }
+    }
+
+    /// WP-08 live check: bytes for one poster, sized request versus the full-size `imageData`. Counts only.
+    private func logArtworkBytes() async {
+        guard let path = items.lazy.compactMap({ $0.artworkPath(for: .poster) }).first else { return }
+        async let sized = core.artwork.data(path: path, size: .poster)
+        async let full = try? core.plexSignIn.session.imageData(for: path)
+        let (sizedBytes, fullBytes) = await (sized?.count ?? -1, full?.count ?? -1)
+        ArtworkService.log.info(
+            "Library check poster bytes: sized \(sizedBytes, privacy: .public), imageData \(fullBytes, privacy: .public)")
     }
 
     /// Shows the picked item's detail (markers, chapters, extras, versions) in the detail section.

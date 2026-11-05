@@ -38,6 +38,10 @@ packages:
     path: Packages/PerchAI
   PerchTautulli:
     path: Packages/PerchTautulli
+  # WP-08: images (DECISIONS.md, approved dependency). App target only; PerchDesign never imports it.
+  Nuke:
+    url: https://github.com/kean/Nuke
+    exactVersion: 12.9.0
 
 targets:
   PerchApp:
@@ -85,6 +89,10 @@ targets:
       - package: PerchFrigate
       - package: PerchAI
       - package: PerchTautulli
+      - package: Nuke
+        products:
+          - Nuke
+          - NukeUI
       - target: PerchTopShelf
         embed: true
 
@@ -104,6 +112,19 @@ targets:
         GENERATE_INFOPLIST_FILE: NO
         CODE_SIGN_ENTITLEMENTS: PerchTopShelf/PerchTopShelf.entitlements
         APPLICATION_EXTENSION_API_ONLY: YES
+
+  # WP-08 review: app-target logic that needs the app's types (ArtworkService); hosted in PerchApp.
+  PerchAppTests:
+    type: bundle.unit-test
+    platform: tvOS
+    sources:
+      - path: PerchAppTests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.robrolabs.perch.apptests
+        GENERATE_INFOPLIST_FILE: YES
+    dependencies:
+      - target: PerchApp
 
   PerchUITests:
     type: bundle.ui-testing
@@ -125,6 +146,7 @@ schemes:
     test:
       config: Debug
       targets:
+        - PerchAppTests
         - PerchUITests
     run:
       config: Debug

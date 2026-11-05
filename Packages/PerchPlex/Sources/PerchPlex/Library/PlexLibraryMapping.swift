@@ -81,7 +81,8 @@ enum PlexLibraryMapping {
             certificate: item.contentRating, thumbPath: item.thumb, artPath: item.art,
             durationMs: durationMs(item), viewOffsetMs: item.viewOffset,
             viewCount: item.viewCount ?? 0, addedAt: date(seconds: item.addedAt),
-            lastViewedAt: date(seconds: item.lastViewedAt))
+            lastViewedAt: date(seconds: item.lastViewedAt),
+            logoPath: item.image?.first(where: { $0.type == "clearLogo" })?.url)
         switch kind {
         case .episode:
             summary.seriesID = item.grandparentRatingKey

@@ -16,6 +16,8 @@ struct PlayerOverlayContent: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var shown = false
     @FocusState private var primaryFocused: Bool
+    /// True once the primary button has held focus; after that a move to another button is the user's.
+    @State private var primaryEverFocused = false
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -47,6 +49,16 @@ struct PlayerOverlayContent: View {
         .onAppear {
             primaryFocused = true
             withAnimation(.easeOut(duration: reduceMotion ? 0.25 : PlayerChrome.fadeIn)) { shown = true }
+        }
+        .onChange(of: primaryFocused) { _, focused in if focused { primaryEverFocused = true } }
+        .task {
+            // The first request can be lost while the overlay window is still becoming key (seen as an
+            // intermittent "Back should have focus" in PlayerUITests); ask again until it lands once.
+            for delay in [0.3, 0.6, 1.2] {
+                try? await Task.sleep(for: .seconds(delay))
+                guard !primaryEverFocused else { return }
+                primaryFocused = true
+            }
         }
     }
 

@@ -1,3 +1,4 @@
+import Nuke
 import PerchCore
 import PerchDesign
 import PerchPlex
@@ -182,34 +183,24 @@ struct ProfilePickerView: View {
         await artwork
     }
 
-    /// Cached bytes first so nothing pops in when offline, then a fresh fetch (C7).
+    /// Cached images first so nothing pops in when offline (C7), then the pipeline (WP-08 ArtworkService):
+    /// a server path goes through the server with the token in a header, a plex.tv address is fetched plainly.
     private func loadAvatars() async {
-        let cache = ImageDiskCache.shared
+        var requests: [String: ImageRequest] = [:]
         for user in users {
-            let key = "avatar-\(user.id)"
-            if avatars[user.id] == nil, let data = cache.data(for: key), let image = UIImage(data: data) {
-                avatars[user.id] = image
-            }
+            guard let request = await core.artwork.avatarRequest(thumb: user.thumb) else { continue }
+            requests[user.id] = request
+            if avatars[user.id] == nil, let image = core.artwork.cachedImage(request) { avatars[user.id] = image }
         }
         for user in users {
-            guard let thumb = user.thumb, !thumb.isEmpty, let data = await fetchAvatar(thumb),
-                let image = UIImage(data: data)
-            else { continue }
-            ImageDiskCache.shared.store(data, for: "avatar-\(user.id)")
+            guard avatars[user.id] == nil, let image = await core.artwork.image(requests[user.id]) else { continue }
             avatars[user.id] = image
         }
     }
 
-    /// A server path goes through the session (token in a header); a plex.tv avatar address is fetched plainly.
-    private func fetchAvatar(_ thumb: String) async -> Data? {
-        if thumb.hasPrefix("/") { return try? await session.imageData(for: thumb) }
-        guard let url = URL(string: thumb), url.scheme == "https" else { return nil }
-        return try? await URLSession.shared.data(from: url).0
-    }
-
     private func loadBackdrop() async {
-        if let image = LibraryBackdrop.cached() { backdrop = image }
-        if let image = await LibraryBackdrop.fetch(session: session) { backdrop = image }
+        if let image = LibraryBackdrop.cached(artwork: core.artwork) { backdrop = image }
+        if let image = await LibraryBackdrop.fetch(session: session, artwork: core.artwork) { backdrop = image }
     }
 
     private func retry() async {

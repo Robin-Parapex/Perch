@@ -54,8 +54,18 @@ All notable changes to Perch. Format follows Keep a Changelog; versions follow `
 - WP-07 App: "Are you still watching?" and "Couldn't play this" overlays. Try Again is for parents only.
 - WP-07 App: DEBUG Play buttons in Library check, `-PerchPlayItem`, `-PerchStartMs`, `-PerchForceOverlay`, `-PerchPolicy`, `-PerchChainStartMs`, the player status probe, and the fake household episode chain with a bundled 60 s clip.
 - WP-07 Scripts and docs: `scripts/make-fixtures.sh` and `docs/howto/fixtures-library.md`.
+- WP-08 Artwork pipeline: sized images from the server (a poster went from 420 KB to 26 KB), blurred placeholders that crossfade to the full image (never a grey box), next-row and focused-item prefetch, page tint from the focused artwork, and a 300 MB on-disk artwork cache that survives relaunch and clears on sign-out and reset.
+- WP-08 PerchPlex: clear logos read from Plex for the Home hero.
+- WP-08: cached artwork shows while the server is connecting or unreachable (the last server ID is kept until sign-out); a different first ready server clears the artwork caches.
+- WP-08: sign-out clears the memory and disk artwork caches, cancels prefetches, resets the tint and removes the remembered picker backdrop; loads that finish after a clear are dropped.
+- WP-08: hosted unit test target PerchAppTests (ArtworkServiceTests, 7 tests), run by the gate.
+- WP-08: size buckets raised for 4K (poster 480x720, backdrop 3840x2160); a poster is 48,792 B against 419,887 B full size.
+- WP-08: the fallback gradient is a calm vertical wash instead of a spotlight.
 - Project document pack (README, CLAUDE.md, spec, roadmap with numbered work packages, modules, architecture, design, integrations, permissions, references, decisions, glossary).
 - Decisions through 1 November 2026: name Perch; build from scratch referencing Dusk and Swiftfin; app only with no proxy or hub; Plex PINs for profiles and an Admin PIN; provider-agnostic bring-your-own-key AI with permission levels and no free chat; setup wizard, welcome guide and feedback; Seerr-only polling and user-controlled Plex library refresh.
+
+### Changed
+- WP-08: avatars and the profile picker backdrop use the new artwork cache; the old image cache is removed.
 
 ### Fixed
 - WP-07 PerchPlex: Perch now prefers the server's home-network address. A remembered public address no longer wins without checking local addresses, and when the app starts on a public address it looks for a local one in the background without delaying launch.

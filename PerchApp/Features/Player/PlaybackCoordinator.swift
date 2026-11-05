@@ -18,6 +18,7 @@ final class PlaybackCoordinator {
 
     @ObservationIgnored private let library: PlexLibrary
     @ObservationIgnored private let plexSession: PlexSession
+    @ObservationIgnored private let artwork: ArtworkService
     @ObservationIgnored private let modules: ModuleRegistry
     @ObservationIgnored private let log: PlaybackLog
     /// Stored roles (Admin can change them); nil falls back to the Plex Home defaults for the profile.
@@ -25,11 +26,12 @@ final class PlaybackCoordinator {
     @ObservationIgnored private var starting = false
 
     init(
-        library: PlexLibrary, plexSession: PlexSession, modules: ModuleRegistry, logFileURL: URL,
-        settings: SettingsStore? = nil
+        library: PlexLibrary, plexSession: PlexSession, artwork: ArtworkService, modules: ModuleRegistry,
+        logFileURL: URL, settings: SettingsStore? = nil
     ) {
         self.library = library
         self.plexSession = plexSession
+        self.artwork = artwork
         self.modules = modules
         self.settings = settings
         log = PlaybackLog(fileURL: logFileURL)
@@ -108,8 +110,9 @@ final class PlaybackCoordinator {
         let sessionID = UUID().uuidString
         let artwork = ArtworkBox()
         if let path = item.thumbPath {
-            let plexSession = plexSession
-            artwork.task = Task { @MainActor in artwork.data = try? await plexSession.imageData(for: path) }
+            // Sized and cached (WP-08): the poster-size copy, from memory or disk when it is there.
+            let service = self.artwork
+            artwork.task = Task { @MainActor in artwork.data = await service.data(path: path, size: .poster) }
         }
         var source = try await library.playbackSource(
             for: item.id, startMs: startMs, subtitleStreamID: nil, sessionID: sessionID)
@@ -207,7 +210,7 @@ final class PlaybackCoordinator {
 
     private func proposal(for item: MediaSummary) async -> UpNextProposal {
         var image: Data?
-        if let path = item.thumbPath { image = try? await plexSession.imageData(for: path) }
+        if let path = item.thumbPath { image = await artwork.data(path: path, size: .landscape) }
         return UpNextProposal(
             title: Self.displayTitle(for: item), subtitle: Self.displaySubtitle(for: item), previewImageData: image,
             ratingKey: item.id)
