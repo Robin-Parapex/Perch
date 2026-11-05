@@ -512,6 +512,22 @@ Append-only log of decisions and why. Newest at the bottom. Format: date, decisi
 - The DEBUG Library check screen and `-PerchLibraryCheck` are gone, as the 2026-11-03 entry said. ArtworkUITests now run against Home.
 - Decided by the WP-09 lead (Claude).
 
+## 2026-11-05 Home renders while the session connects
+- AppRoot routes `.connecting` to Home when a last profile is remembered. Home draws the snapshot and starts its refresh only when connecting ends, so a good launch never shows the offline notice.
+- Decided by the WP-09 lead (Claude) after the offline capture showed a 3 s black screen.
+
+## 2026-11-05 Artwork loads wait for the session
+- `ArtworkService` has a ready gate. A load that starts while the session is connecting waits up to 20 s for `.ready` and retries once, instead of failing for good (NukeUI never retries a failed load).
+- Found on the live simulator: the episode hero had no backdrop or logo. Decided by the WP-09 lead (Claude).
+
+## 2026-11-05 Stale launch profile never renders
+- `HomeScreen.activeProfile` uses the ready profile, else the store's current profile, else the launch fallback only when it equals `plex.lastProfileID`. A failed parent-to-kid switch shows nothing rather than the parent's rows.
+- From the Opus review of WP-09.
+
+## 2026-11-05 Targeted checks before a PR during active development
+- Run the package tests for the packages touched, PerchAppTests when the app changed, and the UI suites covering the changed screens. Do not run the full `scripts/gate.sh` before every PR; the full gate returns near public release. `pr.sh open --gate-done` records that the targeted checks stood in.
+- Decided by Robin, 5 Nov 2026.
+
 ## Open decisions (resolve in the named work package)
 - Recovery when the stored Perch PIN cannot be read (Admin is locked out by design): confirm the owner through Plex, audited, then allow a new Perch PIN (WP-05).
 - Assistant name (placeholder Pip) (WP-19).

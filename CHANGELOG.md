@@ -75,6 +75,9 @@ All notable changes to Perch. Format follows Keep a Changelog; versions follow `
 ### Fixed
 - WP-07 PerchPlex: Perch now prefers the server's home-network address. A remembered public address no longer wins without checking local addresses, and when the app starts on a public address it looks for a local one in the background without delaying launch.
 
+- WP-09: artwork loads started while the session connects now wait for it instead of failing.
+- WP-09: Home draws from the cached snapshot while the session is still connecting.
+
 ### Removed
 - WP-05: the WP-04 debug sign-in screens, replaced by the wizard.
 - WP-09: the placeholder home, the DEBUG Library check screen and `-PerchLibraryCheck`.
