@@ -83,3 +83,40 @@ struct ModuleRegistryTests {
         #expect(registry.policy(for: "nodot") == nil)
     }
 }
+
+private struct OrderedRow: RowProvider {
+    let id: String
+    let placement: RowPlacement
+    var title: String { id }
+    func cachedRow(in context: RowContext) -> MediaRow? { nil }
+    func refreshRow(in context: RowContext) async throws -> MediaRow {
+        MediaRow(id: id, title: title, items: [])
+    }
+}
+
+@MainActor
+private final class HomeRowsModule: Module {
+    static let id: ModuleID = "homerows"
+    let status = ModuleStatus.ok
+    func settings() -> AnyView { AnyView(EmptyView()) }
+    func testConnection() async -> TestResult { .success(nil) }
+    func contributions() -> [Contribution] {
+        [
+            .row(OrderedRow(id: "c", placement: .home(order: 2))),
+            .row(OrderedRow(id: "title", placement: .titlePage)),
+            .row(OrderedRow(id: "b", placement: .home(order: 1))),
+            .row(OrderedRow(id: "a", placement: .home(order: 1))),
+            .row(OrderedRow(id: "person", placement: .personPage)),
+        ]
+    }
+    func policy(for action: ActionID) -> ActionPolicy? { nil }
+}
+
+@MainActor
+struct HomeRowProviderTests {
+    @Test func homeRowProvidersSortByOrderThenIDAndExcludeOtherPlacements() {
+        let registry = ModuleRegistry(modules: [HomeRowsModule()])
+        #expect(registry.homeRowProviders.map(\.id) == ["a", "b", "c"])
+        #expect(registry.rowProviders.count == 5)
+    }
+}

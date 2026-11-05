@@ -177,9 +177,16 @@ struct FakeHouseholdTransport: PlexTransport {
         case "/library/recentlyAdded":
             let items = (1...5).map { ["art": "/library/metadata/\($0)/art/1", "contentRating": "U"] }
             return try json(["MediaContainer": ["size": items.count, "Metadata": items]], url)
-        case "/hubs/continueWatching": return raw(Self.continueWatchingJSON, url)
-        case "/hubs": return raw(Self.hubsJSON, url)
-        case "/library/onDeck": return raw(Self.onDeckJSON, url)
+        // `-PerchFakeEmptyLibrary`: sections stay, every row comes back empty (Home empty-state tests).
+        case "/hubs/continueWatching", "/hubs", "/library/onDeck":
+            if ProcessInfo.processInfo.arguments.contains("-PerchFakeEmptyLibrary") {
+                return raw(#"{"MediaContainer": {"size": 0}}"#, url)
+            }
+            switch path {
+            case "/hubs": return raw(Self.hubsJSON, url)
+            case "/library/onDeck": return raw(Self.onDeckJSON, url)
+            default: return raw(Self.continueWatchingJSON, url)
+            }
         // The next episodes for the player (WP-07): the fake series has E3 to E6, each playing the bundled clip.
         case "/library/metadata/2000/allLeaves": return raw(Self.allLeavesJSON, url)
         // A transcode decision (the fake file is 4K DV): accepted. The coordinator plays the bundled clip anyway.
@@ -217,7 +224,30 @@ struct FakeHouseholdTransport: PlexTransport {
         if width > 64, ProcessInfo.processInfo.arguments.contains("-PerchSlowArtwork") {
             try? await Task.sleep(for: .seconds(6))
         }
+        if source.contains("/clearLogo/") {
+            return (Self.logoPNG(title: "Harbour Lights", width: width), response(url, 200, type: "image/png"))
+        }
         return (Self.solidPNG(key: source, width: width, height: height), response(url, 200, type: "image/png"))
+    }
+
+    /// A transparent PNG with the title in white, standing in for a clearLogo.
+    static func logoPNG(title: String, width: Int) -> Data {
+        let pixelWidth = max(width, 8)
+        let size = CGSize(width: pixelWidth, height: max(pixelWidth / 3, 4))
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = false
+        let image = UIGraphicsImageRenderer(size: size, format: format).image { _ in
+            let attributes: [NSAttributedString.Key: Any] = [
+                .font: UIFont.systemFont(ofSize: size.height * 0.4, weight: .heavy), .foregroundColor: UIColor.white,
+            ]
+            let text = title as NSString
+            let textSize = text.size(withAttributes: attributes)
+            text.draw(
+                at: CGPoint(x: (size.width - textSize.width) / 2, y: (size.height - textSize.height) / 2),
+                withAttributes: attributes)
+        }
+        return image.pngData() ?? Data()
     }
 
     /// A detailed test card per `key`: a two-hue diagonal gradient, an off-centre disc, a corner block and a
@@ -266,7 +296,7 @@ struct FakeHouseholdTransport: PlexTransport {
         {"MediaContainer": {"size": 1, "Hub": [
           {"hubIdentifier": "home.continue", "title": "Continue Watching", "type": "mixed", "key": "/hubs/continueWatching/items", "size": 4, "Metadata": [
             {"ratingKey": "2101", "key": "/library/metadata/2101", "type": "episode", "title": "Salt and Signal", "grandparentRatingKey": "2000", "grandparentTitle": "The Lantern Keepers", "grandparentThumb": "/library/metadata/2000/thumb/1", "parentRatingKey": "2100", "parentIndex": 1, "index": 3, "contentRating": "TV-14", "duration": 60000, "viewOffset": 20000, "viewCount": 0, "thumb": "/library/metadata/2101/thumb/1", "addedAt": 1700000100, "lastViewedAt": 1790000500},
-            {"ratingKey": "1001", "key": "/library/metadata/1001", "type": "movie", "title": "Harbour Lights", "year": 2019, "contentRating": "PG", "duration": 7200000, "viewOffset": 2400000, "viewCount": 0, "thumb": "/library/metadata/1001/thumb/1", "art": "/library/metadata/1001/art/1", "addedAt": 1700000000, "lastViewedAt": 1790000000},
+            {"ratingKey": "1001", "key": "/library/metadata/1001", "type": "movie", "title": "Harbour Lights", "year": 2019, "contentRating": "PG", "duration": 7200000, "viewOffset": 2400000, "viewCount": 0, "thumb": "/library/metadata/1001/thumb/1", "art": "/library/metadata/1001/art/1", "Image": [{"alt": "Harbour Lights", "type": "clearLogo", "url": "/library/metadata/1001/clearLogo/1"}], "addedAt": 1700000000, "lastViewedAt": 1790000000},
             {"ratingKey": "3102", "key": "/library/metadata/3102", "type": "episode", "title": "The Second Folder", "grandparentRatingKey": "3000", "grandparentTitle": "Cold Harbour Files", "grandparentThumb": "/library/metadata/3000/thumb/1", "parentRatingKey": "3100", "parentIndex": 2, "index": 2, "contentRating": "TV-14", "duration": 3000000, "viewCount": 0, "thumb": "/library/metadata/3102/thumb/1", "addedAt": 1700000300}
           ]}
         ]}}

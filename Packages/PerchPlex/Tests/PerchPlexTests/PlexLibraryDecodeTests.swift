@@ -384,3 +384,28 @@ struct PlexLibraryLeniencyTests {
         }
     }
 }
+
+@Suite("Summary mapping")
+struct PlexSummaryMappingTests {
+    @Test func fixtureSummaryMaps() throws {
+        let item = try #require(try container("lib-continue-watching").items.first)
+        #expect(PlexLibraryMapping.summary(item)?.summary == "A lighthouse keeper's last winter.")
+    }
+
+    @Test func longSummaryIsCutAtTheLastSpaceBefore300WithAnEllipsis() throws {
+        let long = Array(repeating: "word", count: 100).joined(separator: " ")
+        let c = try container(
+            json: #"{"MediaContainer":{"Metadata":[{"ratingKey":"1","type":"movie","title":"T","summary":"  \#(long)  "}]}}"#)
+        let text = try #require(PlexLibraryMapping.summary(c.items[0])?.summary)
+        #expect(text.hasSuffix("…"))
+        #expect(text.count <= 301)
+        #expect(!text.dropLast().hasSuffix(" "))
+        #expect(long.hasPrefix(String(text.dropLast())))
+    }
+
+    @Test func blankSummaryIsNil() throws {
+        let c = try container(
+            json: #"{"MediaContainer":{"Metadata":[{"ratingKey":"1","type":"movie","title":"T","summary":"   "}]}}"#)
+        #expect(PlexLibraryMapping.summary(c.items[0])?.summary == nil)
+    }
+}
