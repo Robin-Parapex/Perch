@@ -4,6 +4,9 @@ import SwiftUI
 /// Approach after the tvOS TV app highlight style; see docs/notes/reference-review.md
 public struct PerchCardButton<Artwork: View, Caption: View>: View {
     @Environment(\.perchStyle) private var style
+    /// 12 pt at rest plus room for the highlight's growth (about 10% of a 190 pt card, half per side).
+    static var captionGap: CGFloat { 28 }
+
     private let action: () -> Void
     private let artwork: Artwork
     private let caption: Caption
@@ -20,9 +23,11 @@ public struct PerchCardButton<Artwork: View, Caption: View>: View {
 
     public var body: some View {
         Button(action: action) {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 0) {
                 FocusAwareArtwork(radius: PerchRadius.card(for: style)) { artwork }
-                caption
+                // The highlight scales the artwork about its centre; the extra top space keeps
+                // the lifted bottom edge clear of the caption.
+                caption.padding(.top, Self.captionGap)
             }
         }
         .buttonStyle(.borderless)
