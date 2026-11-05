@@ -38,6 +38,10 @@ packages:
     path: Packages/PerchAI
   PerchTautulli:
     path: Packages/PerchTautulli
+  # WP-08: images (DECISIONS.md, approved dependency). App target only; PerchDesign never imports it.
+  Nuke:
+    url: https://github.com/kean/Nuke
+    exactVersion: 12.9.0
 
 targets:
   PerchApp:
@@ -85,6 +89,10 @@ targets:
       - package: PerchFrigate
       - package: PerchAI
       - package: PerchTautulli
+      - package: Nuke
+        products:
+          - Nuke
+          - NukeUI
       - target: PerchTopShelf
         embed: true
 

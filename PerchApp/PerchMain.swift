@@ -7,6 +7,7 @@ struct PerchMain: App {
     var body: some Scene {
         WindowGroup {
             AppRoot(core: core)
+                .environment(core.artwork)
                 .task {
                     // Try the saved profile first (the root waits for this), then ask plex.tv once.
                     let session = core.plexSignIn.session

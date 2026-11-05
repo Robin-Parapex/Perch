@@ -91,8 +91,9 @@ extension XCTestCase {
             let dy = target.frame.midY - current.frame.midY
             // Rows first: vertical while the target is on another row, then horizontal along the row.
             var direction: XCUIRemote.Button = abs(dy) > 40 ? (dy > 0 ? .down : .up) : (dx > 0 ? .right : .left)
-            // If the same press from the same place did nothing before, try the other axis.
-            let key = "\(Int(current.frame.midX)),\(Int(current.frame.midY))-\(direction.rawValue)"
+            // If the same press from the same place did nothing before, try the other axis. The label is part of
+            // the key: in a scrolling page, cards of different rows can sit at the same place on screen (WP-08).
+            let key = "\(current.label)|\(Int(current.frame.midX)),\(Int(current.frame.midY))-\(direction.rawValue)"
             if tried.contains(key) {
                 direction = abs(dy) > 40 ? (dx > 0 ? .right : .left) : (dy > 0 ? .down : .up)
             }

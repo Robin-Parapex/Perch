@@ -358,20 +358,9 @@ final class SetupFlowModel {
         }
         guard let owner = users.first(where: { $0.admin }) else { return }
         adminName = owner.displayName
-        let cache = ImageDiskCache.shared
-        let key = "avatar-\(owner.id)"
-        if adminAvatar == nil, let data = cache.data(for: key), let image = UIImage(data: data) { adminAvatar = image }
-        guard let thumb = owner.thumb, !thumb.isEmpty else { return }
-        var data: Data?
-        if thumb.hasPrefix("/") {
-            data = try? await plex.session.imageData(for: thumb)
-        } else if let url = URL(string: thumb), url.scheme == "https" {
-            data = try? await URLSession.shared.data(from: url).0
-        }
-        if let data, let image = UIImage(data: data) {
-            cache.store(data, for: key)
-            adminAvatar = image
-        }
+        guard let request = await core.artwork.avatarRequest(thumb: owner.thumb) else { return }
+        if adminAvatar == nil, let image = core.artwork.cachedImage(request) { adminAvatar = image }
+        if adminAvatar == nil, let image = await core.artwork.image(request) { adminAvatar = image }
     }
 
     private func lockedMessage(_ until: Date) -> String {
@@ -607,8 +596,7 @@ final class SetupFlowModel {
         backdropLoading = true
         defer { backdropLoading = false }
         guard let path = try? await plex.session.libraryArt(limit: 6).first,
-            let data = try? await plex.session.imageData(for: path),
-            let image = UIImage(data: data)
+            let image = await core.artwork.image(await core.artwork.resolvedRequest(path: path, size: .backdrop))
         else { return }
         backdrop = image
     }

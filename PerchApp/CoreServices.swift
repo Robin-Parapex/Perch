@@ -20,6 +20,10 @@ final class CoreServices {
     let setupCompletion: SetupCompletion
     let profileSwitcher: ProfileSwitcher
     let playback: PlaybackCoordinator
+    /// WP-08: the one image pipeline, the focus prefetcher and the page tint that follows focus.
+    let artwork: ArtworkService
+    let artworkPrefetcher: ArtworkPrefetcher
+    let artworkTint: ArtworkTintModel
     let launch = LaunchState()
     let eventBus = EventBus()
     let pollers = PollerCoordinator()
@@ -53,6 +57,10 @@ final class CoreServices {
         let session = PlexSession(
             transport: transport, identity: endpoints.identity, secrets: secrets, defaults: Self.plexDefaults(),
             settings: settings, adminPIN: adminPIN)
+        let artwork = ArtworkService(session: session, transport: transport)
+        self.artwork = artwork
+        artworkPrefetcher = ArtworkPrefetcher(service: artwork)
+        artworkTint = ArtworkTintModel(service: artwork)
         plexSignIn = PlexSignInModel(
             session: session, transport: transport, endpoints: endpoints, adminPIN: adminPIN, settings: settings)
         setupCompletion = SetupCompletion(store: keyValues)
@@ -73,10 +81,12 @@ final class CoreServices {
         self.library = library
         self.authoriser = authoriser
         playback = PlaybackCoordinator(
-            library: library, plexSession: session, modules: modules, logFileURL: PlaybackCoordinator.logFileURL(),
-            settings: settings)
+            library: library, plexSession: session, artwork: artwork, modules: modules,
+            logFileURL: PlaybackCoordinator.logFileURL(), settings: settings)
         // Once at launch: sign-out deletes the Home snapshots, a profile change clears memory.
         Task { await library.observe(session) }
+        // Sign-out clears the artwork caches (memory and disk).
+        artwork.start()
     }
 
     private final class RegistryBox: Sendable {
@@ -116,7 +126,7 @@ final class CoreServices {
             try? secrets.remove(.plexUserToken(PlexUserID(id)))
             try? secrets.remove(.module(ModuleID("plex"), "server.\(id)"))
         }
-        ImageDiskCache.shared.removeAll()
+        ArtworkService.removeDiskCache()
     }
 
     /// `-PerchFakeSignedOut`: forgets only the stored Plex sign-in (the owner and profile tokens, the server

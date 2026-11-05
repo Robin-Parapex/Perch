@@ -2,6 +2,7 @@
 import Foundation
 import PerchPlex
 import Synchronization
+import UIKit
 
 /// DEBUG-only canned plex.tv and server answers (WP-05 decision 12, change C1), so the whole first run,
 /// the picker and the PIN rules run in UI tests and screenshots without a real account.
@@ -184,6 +185,8 @@ struct FakeHouseholdTransport: PlexTransport {
         // A transcode decision (the fake file is 4K DV): accepted. The coordinator plays the bundled clip anyway.
         case "/video/:/transcode/universal/decision":
             return raw(#"{"MediaContainer": {"generalDecisionCode": 1000, "transcodeDecisionCode": 1000}}"#, url)
+        // Sized artwork (WP-08): a small solid-colour PNG per image path.
+        case "/photo/:/transcode": return await transcodedArt(url)
         // Watch-state and timeline writes: accepted, nothing kept.
         case "/:/timeline", "/:/scrobble", "/:/unscrobble", "/:/progress":
             return (Data(), response(url, 200))
@@ -200,6 +203,40 @@ struct FakeHouseholdTransport: PlexTransport {
             }
             return (Data(), response(url, 404))
         }
+    }
+
+    /// `/photo/:/transcode?width=&height=&url=`: a distinct colour per `url`, drawn at the asked size (capped).
+    /// `-PerchSlowArtwork` holds full-size answers for 6 s (the 64 px stand-ins come at once), so a UI test
+    /// sees the placeholder state before the image.
+    private func transcodedArt(_ url: URL) async -> (Data, HTTPURLResponse) {
+        let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        func value(_ name: String) -> String? { items.first { $0.name == name }?.value }
+        guard let source = value("url"), source.hasPrefix("/") else { return (Data(), response(url, 400)) }
+        let width = min(max(Int(value("width") ?? "") ?? 64, 1), 960)
+        let height = min(max(Int(value("height") ?? "") ?? 64, 1), 960)
+        if width > 64, ProcessInfo.processInfo.arguments.contains("-PerchSlowArtwork") {
+            try? await Task.sleep(for: .seconds(6))
+        }
+        return (Self.solidPNG(key: source, width: width, height: height), response(url, 200, type: "image/png"))
+    }
+
+    /// A solid colour from a stable hash of `key` with a lighter disc, so the sharp image differs from its blur.
+    static func solidPNG(key: String, width: Int, height: Int) -> Data {
+        var hash: UInt32 = 2_166_136_261
+        for byte in key.utf8 { hash = (hash ^ UInt32(byte)) &* 16_777_619 }
+        let colour = UIColor(hue: CGFloat(hash % 360) / 360, saturation: 0.6, brightness: 0.7, alpha: 1)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let size = CGSize(width: width, height: height)
+        let image = UIGraphicsImageRenderer(size: size, format: format).image { context in
+            colour.setFill()
+            context.fill(CGRect(origin: .zero, size: size))
+            UIColor.white.withAlphaComponent(0.35).setFill()
+            let side = min(size.width, size.height) * 0.5
+            context.cgContext.fillEllipse(
+                in: CGRect(x: (size.width - side) / 2, y: (size.height - side) / 2, width: side, height: side))
+        }
+        return image.pngData() ?? Data()
     }
 
     private func art(_ number: Int) async -> Data {
