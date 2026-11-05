@@ -177,9 +177,16 @@ struct FakeHouseholdTransport: PlexTransport {
         case "/library/recentlyAdded":
             let items = (1...5).map { ["art": "/library/metadata/\($0)/art/1", "contentRating": "U"] }
             return try json(["MediaContainer": ["size": items.count, "Metadata": items]], url)
-        case "/hubs/continueWatching": return raw(Self.continueWatchingJSON, url)
-        case "/hubs": return raw(Self.hubsJSON, url)
-        case "/library/onDeck": return raw(Self.onDeckJSON, url)
+        // `-PerchFakeEmptyLibrary`: sections stay, every row comes back empty (Home empty-state tests).
+        case "/hubs/continueWatching", "/hubs", "/library/onDeck":
+            if ProcessInfo.processInfo.arguments.contains("-PerchFakeEmptyLibrary") {
+                return raw(#"{"MediaContainer": {"size": 0}}"#, url)
+            }
+            switch path {
+            case "/hubs": return raw(Self.hubsJSON, url)
+            case "/library/onDeck": return raw(Self.onDeckJSON, url)
+            default: return raw(Self.continueWatchingJSON, url)
+            }
         // The next episodes for the player (WP-07): the fake series has E3 to E6, each playing the bundled clip.
         case "/library/metadata/2000/allLeaves": return raw(Self.allLeavesJSON, url)
         // A transcode decision (the fake file is 4K DV): accepted. The coordinator plays the bundled clip anyway.
@@ -217,7 +224,30 @@ struct FakeHouseholdTransport: PlexTransport {
         if width > 64, ProcessInfo.processInfo.arguments.contains("-PerchSlowArtwork") {
             try? await Task.sleep(for: .seconds(6))
         }
+        if source.contains("/clearLogo/") {
+            return (Self.logoPNG(title: "Harbour Lights", width: width), response(url, 200, type: "image/png"))
+        }
         return (Self.solidPNG(key: source, width: width, height: height), response(url, 200, type: "image/png"))
+    }
+
+    /// A transparent PNG with the title in white, standing in for a clearLogo.
+    static func logoPNG(title: String, width: Int) -> Data {
+        let pixelWidth = max(width, 8)
+        let size = CGSize(width: pixelWidth, height: max(pixelWidth / 3, 4))
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = false
+        let image = UIGraphicsImageRenderer(size: size, format: format).image { _ in
+            let attributes: [NSAttributedString.Key: Any] = [
+                .font: UIFont.systemFont(ofSize: size.height * 0.4, weight: .heavy), .foregroundColor: UIColor.white,
+            ]
+            let text = title as NSString
+            let textSize = text.size(withAttributes: attributes)
+            text.draw(
+                at: CGPoint(x: (size.width - textSize.width) / 2, y: (size.height - textSize.height) / 2),
+                withAttributes: attributes)
+        }
+        return image.pngData() ?? Data()
     }
 
     /// A detailed test card per `key`: a two-hue diagonal gradient, an off-centre disc, a corner block and a
@@ -265,37 +295,37 @@ struct FakeHouseholdTransport: PlexTransport {
     private static let continueWatchingJSON = """
         {"MediaContainer": {"size": 1, "Hub": [
           {"hubIdentifier": "home.continue", "title": "Continue Watching", "type": "mixed", "key": "/hubs/continueWatching/items", "size": 4, "Metadata": [
-            {"ratingKey": "2101", "key": "/library/metadata/2101", "type": "episode", "title": "Salt and Signal", "grandparentRatingKey": "2000", "grandparentTitle": "The Lantern Keepers", "grandparentThumb": "/library/metadata/2000/thumb/1", "parentRatingKey": "2100", "parentIndex": 1, "index": 3, "contentRating": "TV-14", "duration": 60000, "viewOffset": 20000, "viewCount": 0, "thumb": "/library/metadata/2101/thumb/1", "addedAt": 1700000100, "lastViewedAt": 1790000500},
-            {"ratingKey": "1001", "key": "/library/metadata/1001", "type": "movie", "title": "Harbour Lights", "year": 2019, "contentRating": "PG", "duration": 7200000, "viewOffset": 2400000, "viewCount": 0, "thumb": "/library/metadata/1001/thumb/1", "art": "/library/metadata/1001/art/1", "addedAt": 1700000000, "lastViewedAt": 1790000000},
-            {"ratingKey": "3102", "key": "/library/metadata/3102", "type": "episode", "title": "The Second Folder", "grandparentRatingKey": "3000", "grandparentTitle": "Cold Harbour Files", "grandparentThumb": "/library/metadata/3000/thumb/1", "parentRatingKey": "3100", "parentIndex": 2, "index": 2, "contentRating": "TV-14", "duration": 3000000, "viewCount": 0, "thumb": "/library/metadata/3102/thumb/1", "addedAt": 1700000300}
+            {"ratingKey": "2101", "key": "/library/metadata/2101", "type": "episode", "title": "Salt and Signal", "summary": "A storm cuts the island off from the mainland on the keepers' third night. Mara has to decide whether to trust the stranger who rowed in with the tide.", "grandparentRatingKey": "2000", "grandparentTitle": "The Lantern Keepers", "grandparentThumb": "/library/metadata/2000/thumb/1", "parentRatingKey": "2100", "parentIndex": 1, "index": 3, "contentRating": "TV-14", "duration": 60000, "viewOffset": 20000, "viewCount": 0, "thumb": "/library/metadata/2101/thumb/1", "addedAt": 1700000100, "lastViewedAt": 1790000500},
+            {"ratingKey": "1001", "key": "/library/metadata/1001", "type": "movie", "title": "Harbour Lights", "summary": "A retired ferry captain returns to his home port for one last crossing. Along the way he reunites a divided town and a daughter who stopped writing years ago.", "year": 2019, "contentRating": "PG", "duration": 7200000, "viewOffset": 2400000, "viewCount": 0, "thumb": "/library/metadata/1001/thumb/1", "art": "/library/metadata/1001/art/1", "Image": [{"alt": "Harbour Lights", "type": "clearLogo", "url": "/library/metadata/1001/clearLogo/1"}], "addedAt": 1700000000, "lastViewedAt": 1790000000},
+            {"ratingKey": "3102", "key": "/library/metadata/3102", "type": "episode", "title": "The Second Folder", "summary": "A cold case file arrives with half its pages missing. The team starts at the harbour office, where nobody remembers the year it was closed.", "grandparentRatingKey": "3000", "grandparentTitle": "Cold Harbour Files", "grandparentThumb": "/library/metadata/3000/thumb/1", "parentRatingKey": "3100", "parentIndex": 2, "index": 2, "contentRating": "TV-14", "duration": 3000000, "viewCount": 0, "thumb": "/library/metadata/3102/thumb/1", "addedAt": 1700000300}
           ]}
         ]}}
         """
 
     private static let allLeavesJSON = """
         {"MediaContainer": {"size": 4, "Metadata": [
-          {"ratingKey": "2101", "key": "/library/metadata/2101", "type": "episode", "title": "Salt and Signal", "grandparentRatingKey": "2000", "grandparentTitle": "The Lantern Keepers", "parentRatingKey": "2100", "parentIndex": 1, "index": 3, "duration": 60000, "viewCount": 0, "thumb": "/library/metadata/2101/thumb/1", "addedAt": 1700000100},
-          {"ratingKey": "2102", "key": "/library/metadata/2102", "type": "episode", "title": "The Long Watch", "grandparentRatingKey": "2000", "grandparentTitle": "The Lantern Keepers", "parentRatingKey": "2100", "parentIndex": 1, "index": 4, "duration": 60000, "viewCount": 0, "thumb": "/library/metadata/2102/thumb/1", "addedAt": 1700000200},
-          {"ratingKey": "2104", "key": "/library/metadata/2104", "type": "episode", "title": "Slack Water", "grandparentRatingKey": "2000", "grandparentTitle": "The Lantern Keepers", "parentRatingKey": "2100", "parentIndex": 1, "index": 5, "duration": 60000, "viewCount": 0, "thumb": "/library/metadata/2104/thumb/1", "addedAt": 1790000200},
-          {"ratingKey": "2105", "key": "/library/metadata/2105", "type": "episode", "title": "First Light", "grandparentRatingKey": "2000", "grandparentTitle": "The Lantern Keepers", "parentRatingKey": "2100", "parentIndex": 1, "index": 6, "duration": 60000, "viewCount": 0, "thumb": "/library/metadata/2105/thumb/1", "addedAt": 1790000250}
+          {"ratingKey": "2101", "key": "/library/metadata/2101", "type": "episode", "title": "Salt and Signal", "summary": "A storm cuts the island off from the mainland on the keepers' third night. Mara has to decide whether to trust the stranger who rowed in with the tide.", "grandparentRatingKey": "2000", "grandparentTitle": "The Lantern Keepers", "parentRatingKey": "2100", "parentIndex": 1, "index": 3, "duration": 60000, "viewCount": 0, "thumb": "/library/metadata/2101/thumb/1", "addedAt": 1700000100},
+          {"ratingKey": "2102", "key": "/library/metadata/2102", "type": "episode", "title": "The Long Watch", "summary": "Supplies run low and tempers run shorter as the fog settles in. A signal lamp starts flashing from a rock nobody has ever landed on.", "grandparentRatingKey": "2000", "grandparentTitle": "The Lantern Keepers", "parentRatingKey": "2100", "parentIndex": 1, "index": 4, "duration": 60000, "viewCount": 0, "thumb": "/library/metadata/2102/thumb/1", "addedAt": 1700000200},
+          {"ratingKey": "2104", "key": "/library/metadata/2104", "type": "episode", "title": "Slack Water", "summary": "For one quiet hour the tide stands still and the keepers finally compare notes. What they find in the logbook changes how they see the lighthouse.", "grandparentRatingKey": "2000", "grandparentTitle": "The Lantern Keepers", "parentRatingKey": "2100", "parentIndex": 1, "index": 5, "duration": 60000, "viewCount": 0, "thumb": "/library/metadata/2104/thumb/1", "addedAt": 1790000200},
+          {"ratingKey": "2105", "key": "/library/metadata/2105", "type": "episode", "title": "First Light", "summary": "At dawn the keepers row out to the rock and find it is not empty. The season finale asks what they owe the people the lamp was built to guide home.", "grandparentRatingKey": "2000", "grandparentTitle": "The Lantern Keepers", "parentRatingKey": "2100", "parentIndex": 1, "index": 6, "duration": 60000, "viewCount": 0, "thumb": "/library/metadata/2105/thumb/1", "addedAt": 1790000250}
         ]}}
         """
 
     private static let hubsJSON = """
         {"MediaContainer": {"size": 2, "Hub": [
           {"hubIdentifier": "movie.recentlyadded.1", "title": "Recently Added Movies", "type": "movie", "key": "/hubs/sections/1/recentlyAdded?type=1", "size": 2, "Metadata": [
-            {"ratingKey": "1003", "type": "movie", "title": "Paper Boats", "year": 2024, "contentRating": "PG", "thumb": "/library/metadata/1003/thumb/1", "addedAt": 1790000300},
-            {"ratingKey": "1002", "type": "movie", "title": "The Quiet Orchard", "year": 2023, "contentRating": "PG", "thumb": "/library/metadata/1002/thumb/1", "addedAt": 1790000100}
+            {"ratingKey": "1003", "type": "movie", "title": "Paper Boats", "summary": "Two children fold a fleet of paper boats and race them down a flooded street. Their small game slowly pulls the whole neighbourhood out onto the pavement.", "year": 2024, "contentRating": "PG", "thumb": "/library/metadata/1003/thumb/1", "addedAt": 1790000300},
+            {"ratingKey": "1002", "type": "movie", "title": "The Quiet Orchard", "summary": "A young botanist inherits a failing apple orchard and a notebook full of riddles. Each harvest brings her a little closer to why her grandmother never left.", "year": 2023, "contentRating": "PG", "thumb": "/library/metadata/1002/thumb/1", "addedAt": 1790000100}
           ]},
           {"hubIdentifier": "tv.recentlyadded.2", "title": "Recently Added TV", "type": "episode", "key": "/hubs/sections/2/recentlyAdded?type=4", "size": 1, "Metadata": [
-            {"ratingKey": "2104", "type": "episode", "title": "Slack Water", "grandparentRatingKey": "2000", "grandparentTitle": "The Lantern Keepers", "parentRatingKey": "2100", "parentIndex": 1, "index": 5, "contentRating": "TV-14", "thumb": "/library/metadata/2104/thumb/1", "addedAt": 1790000200}
+            {"ratingKey": "2104", "type": "episode", "title": "Slack Water", "summary": "For one quiet hour the tide stands still and the keepers finally compare notes. What they find in the logbook changes how they see the lighthouse.", "grandparentRatingKey": "2000", "grandparentTitle": "The Lantern Keepers", "parentRatingKey": "2100", "parentIndex": 1, "index": 5, "contentRating": "TV-14", "thumb": "/library/metadata/2104/thumb/1", "addedAt": 1790000200}
           ]}
         ]}}
         """
 
     private static let onDeckJSON = """
         {"MediaContainer": {"size": 1, "Metadata": [
-          {"ratingKey": "3102", "key": "/library/metadata/3102", "type": "episode", "title": "The Second Folder", "grandparentRatingKey": "3000", "grandparentTitle": "Cold Harbour Files", "parentRatingKey": "3100", "parentIndex": 2, "index": 2, "contentRating": "TV-14", "duration": 3000000, "viewCount": 0, "thumb": "/library/metadata/3102/thumb/1", "addedAt": 1700000300}
+          {"ratingKey": "3102", "key": "/library/metadata/3102", "type": "episode", "title": "The Second Folder", "summary": "A cold case file arrives with half its pages missing. The team starts at the harbour office, where nobody remembers the year it was closed.", "grandparentRatingKey": "3000", "grandparentTitle": "Cold Harbour Files", "parentRatingKey": "3100", "parentIndex": 2, "index": 2, "contentRating": "TV-14", "duration": 3000000, "viewCount": 0, "thumb": "/library/metadata/3102/thumb/1", "addedAt": 1700000300}
         ]}}
         """
 

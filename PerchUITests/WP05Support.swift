@@ -14,12 +14,13 @@ extension XCTestCase {
 
     @MainActor
     func launchApp(
-        _ household: Household, reset: Bool = true, plexTVDown: Bool = false
+        _ household: Household, reset: Bool = true, plexTVDown: Bool = false, extraArguments: [String] = []
     ) -> XCUIApplication {
         let app = XCUIApplication()
         var arguments = ["-PerchFakeHousehold", household.rawValue]
         if reset { arguments.append("-PerchResetSetup") }
         if plexTVDown { arguments.append("-PerchFakePlexTVDown") }
+        arguments += extraArguments
         app.launchArguments = arguments
         app.launch()
         return app
@@ -218,8 +219,20 @@ extension XCTestCase {
     @MainActor
     func reachPicker(_ app: XCUIApplication) {
         XCTAssertTrue(waitUntil(20) { self.element(app, "root.home").exists || self.element(app, "root.picker").exists })
-        if element(app, "home.switchProfile").exists { tap("home.switchProfile", in: app) }
+        if element(app, "home.profileMenu").exists { openProfileMenuItem("home.switchProfile", app) }
         waitFor(element(app, "picker.title"))
+    }
+
+    /// WP-09 Home: opens the profile menu (top-right button, then its top sheet) unless it is open, and selects
+    /// the item with this id (`home.switchProfile`, `home.runSetup`).
+    @MainActor
+    func openProfileMenuItem(_ id: String, _ app: XCUIApplication) {
+        if !element(app, id).exists {
+            waitFor(element(app, "home.profileMenu"), timeout: 15)
+            tap("home.profileMenu", in: app)
+            waitFor(element(app, id), timeout: 10)
+        }
+        tap(id, in: app)
     }
 
     /// The whole wizard without screenshots. Admin PIN: the fake Plex PIN, or a Perch PIN "1111" when none.
@@ -252,10 +265,11 @@ extension XCTestCase {
 
     /// Relaunches the app without wiping state.
     @MainActor
-    func relaunch(_ app: XCUIApplication, plexTVDown: Bool = false) -> XCUIApplication {
+    func relaunch(_ app: XCUIApplication, plexTVDown: Bool = false, extraArguments: [String] = []) -> XCUIApplication {
         app.terminate()
         var arguments = app.launchArguments.filter { $0 != "-PerchResetSetup" && $0 != "-PerchFakePlexTVDown" }
         if plexTVDown { arguments.append("-PerchFakePlexTVDown") }
+        arguments += extraArguments
         app.launchArguments = arguments
         app.launch()
         return app

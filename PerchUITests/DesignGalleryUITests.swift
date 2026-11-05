@@ -4,7 +4,7 @@ final class DesignGalleryUITests: XCTestCase {
     @MainActor
     func testOverlaysReturnFocusToTheirButton() {
         let app = XCUIApplication()
-        app.launchArguments = ["-PerchDesignGallery"]
+        app.launchArguments = ["-PerchDesignGallery", "-PerchUITests"]
         app.launch()
         let remote = XCUIRemote.shared
 
@@ -33,13 +33,13 @@ final class DesignGalleryUITests: XCTestCase {
         XCTAssertTrue(waitForFocus(topSheetButton), "topSheetButton should have focus")
 
         remote.press(.menu)
-        XCTAssertTrue(app.staticTexts["Perch"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["home.root"].waitForExistence(timeout: 5), "Back from the gallery returns to Home")
     }
 
     @MainActor
     func testCornerPillTakesAndReturnsFocus() {
         let app = XCUIApplication()
-        app.launchArguments = ["-PerchDesignGallery"]
+        app.launchArguments = ["-PerchDesignGallery", "-PerchUITests"]
         app.launch()
         let remote = XCUIRemote.shared
 
@@ -59,13 +59,13 @@ final class DesignGalleryUITests: XCTestCase {
         XCTAssertTrue(waitForFocus(pillButton), "pillButton should have focus")
 
         remote.press(.menu)
-        XCTAssertTrue(app.staticTexts["Perch"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["home.root"].waitForExistence(timeout: 5), "Back from the gallery returns to Home")
     }
 
     @MainActor
     func testGalleryFillsTheScreen() {
         let app = XCUIApplication()
-        app.launchArguments = ["-PerchDesignGallery"]
+        app.launchArguments = ["-PerchDesignGallery", "-PerchUITests"]
         app.launch()
         let remote = XCUIRemote.shared
 

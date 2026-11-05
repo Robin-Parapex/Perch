@@ -27,6 +27,16 @@ public final class ModuleRegistry {
         contributions().compactMap { if case .row(let v) = $0 { v } else { nil } }
     }
 
+    /// Providers placed on Home, ordered by their order then id.
+    public var homeRowProviders: [any RowProvider] {
+        rowProviders.compactMap { provider -> (Int, any RowProvider)? in
+            if case .home(let order) = provider.placement { return (order, provider) }
+            return nil
+        }
+        .sorted { ($0.0, $0.1.id) < ($1.0, $1.1.id) }
+        .map(\.1)
+    }
+
     /// A provider's cached row with the profile's ceiling applied. Every row goes through here
     /// so no module filters on its own.
     public nonisolated static func cachedRow(

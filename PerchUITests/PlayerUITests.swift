@@ -15,7 +15,7 @@ final class PlayerUITests: XCTestCase {
     /// Completes setup once (signed in, owner profile), then relaunches with `extra` and no reset.
     @MainActor
     private func signedIn(_ extra: [String] = []) throws -> XCUIApplication {
-        let app = launchApp(.noPINs)
+        let app = launchApp(.noPINs, extraArguments: ["-PerchUITests"])
         try completeWizard(app, .noPINs)
         if element(app, "root.picker").exists { pickProfile(1001, app) }
         waitFor(element(app, "home.profileName"), timeout: 20)
@@ -37,10 +37,17 @@ final class PlayerUITests: XCTestCase {
         XCTAssertTrue(waitUntil(timeout) { self.status(app).contains(part) }, "\(why): status was '\(status(app))'")
     }
 
+    /// Home: focus starts on the hero action; Down reaches the first Continue watching card, Select plays it.
     @MainActor
-    private func openLibraryCheck(_ app: XCUIApplication) {
-        tap("placeholder.libraryCheck", in: app)
-        waitFor(element(app, "libraryCheck.title"))
+    private func playFirstContinueCard(_ app: XCUIApplication) {
+        let hero = element(app, "home.hero.action")
+        waitFor(hero, timeout: 20)
+        XCTAssertTrue(waitUntil(8) { hero.hasFocus }, "focus starts on the hero action")
+        XCUIRemote.shared.press(.down)
+        let card = element(app, "home.card.\(episode)")
+        waitFor(card)
+        XCTAssertTrue(waitUntil(5) { card.hasFocus }, "Down lands on the first Continue watching card")
+        XCUIRemote.shared.press(.select)
     }
 
     /// Presses Menu until the player closes (at most 4) and asserts it took exactly `presses`. A screenshot
@@ -70,18 +77,17 @@ final class PlayerUITests: XCTestCase {
     }
 
     @MainActor
-    func testPlayFromLibraryCheckAndMenuReturnsToPlayButton() throws {
+    func testPlayFromHomeCardAndMenuReturnsFocusToTheCard() throws {
         let app = try signedIn()
-        openLibraryCheck(app)
-        let play = element(app, "libraryCheck.play.\(episode)")
-        tap("libraryCheck.play.\(episode)", in: app)
+        let card = element(app, "home.card.\(episode)")
+        playFirstContinueCard(app)
         waitFor(element(app, "player.status"), timeout: 20)
         expectStatus(app, contains: "playing", "episode should start")
         // AVKit shows its title and transport bar when an item starts; with no input it hides them again.
         // Resumed at 20 s, so by 32 s (past the intro, before the credits) no chrome shows: one Menu leaves.
         XCTAssertTrue(waitUntil(20) { self.position(app) >= 32 }, "should play past 32 s, status '\(status(app))'")
         leaveWithMenu(app, presses: 1, "no-chrome")
-        XCTAssertTrue(waitUntil(8) { play.hasFocus }, "focus should return to the Play button")
+        XCTAssertTrue(waitUntil(8) { card.hasFocus }, "focus should return to the Home card")
     }
 
     @MainActor
@@ -191,20 +197,21 @@ final class PlayerUITests: XCTestCase {
     /// again is for parents). The episode is rated U for this run so the kid may play it.
     @MainActor
     func testCouldntPlayAsKidOffersBackOnly() throws {
-        let app = launchApp(.noPINs)
+        let app = launchApp(.noPINs, extraArguments: ["-PerchUITests"])
         try completeWizard(app, .noPINs)
         reachPicker(app)
         pickProfile(1003, app)
         waitFor(element(app, "home.profileName"), timeout: 20)
         app.terminate()
         app.launchArguments = app.launchArguments.filter { $0 != "-PerchResetSetup" }
-            + ["-PerchFakeRatingU", "-PerchPlayItem", episode, "-PerchForceOverlay", "failed"]
+            + ["-PerchFakeRatingU", "-PerchForceOverlay", "failed"]
         app.launch()
-        if waitUntil(15, { self.element(app, "root.picker").exists || self.element(app, "player.status").exists }),
+        if waitUntil(15, { self.element(app, "root.picker").exists || self.element(app, "home.root").exists }),
             element(app, "root.picker").exists
         {
             pickProfile(1003, app)
         }
+        playFirstContinueCard(app)
         let back = element(app, "player.failed.back")
         waitFor(back, timeout: 40)
         XCTAssertFalse(element(app, "player.failed.retry").exists, "no Try Again for a kid")

@@ -46,6 +46,7 @@ final class ArtworkService {
     nonisolated let pipeline: ImagePipeline
     nonisolated private let sources: [any ArtworkSource]
     nonisolated private let generation = Generation()
+    nonisolated private let readyGate = ReadyGate()
     @ObservationIgnored private let dataCache: DataCache?
     @ObservationIgnored private let defaults: UserDefaults
     @ObservationIgnored private let currentServerID: @Sendable () async -> String?
@@ -67,6 +68,55 @@ final class ArtworkService {
         private let value = Mutex(0)
         var current: Int { value.withLock { $0 } }
         func bump() { value.withLock { $0 += 1 } }
+    }
+
+    /// How long a load started while the session connects waits for it before failing.
+    nonisolated static let connectWait: Duration = .seconds(20)
+
+    /// Open while the session is ready. Home renders from the snapshot while the session is still connecting;
+    /// a load that finds no server then waits here (bounded) instead of failing, since a failed `LazyImage`
+    /// never retries and its card would stay a blank stand-in for good.
+    final class ReadyGate: Sendable {
+        private struct State {
+            var isOpen = false
+            var waiters: [UUID: CheckedContinuation<Bool, Never>] = [:]
+        }
+        private let state = Mutex(State())
+
+        func open() {
+            let waiters = state.withLock { state in
+                state.isOpen = true
+                defer { state.waiters = [:] }
+                return Array(state.waiters.values)
+            }
+            for waiter in waiters { waiter.resume(returning: true) }
+        }
+
+        func close() { state.withLock { $0.isOpen = false } }
+
+        /// True once the gate opens, false after the timeout.
+        func wait(timeout: Duration) async -> Bool {
+            let id = UUID()
+            return await withCheckedContinuation { continuation in
+                let isOpen = state.withLock { state in
+                    if state.isOpen { return true }
+                    state.waiters[id] = continuation
+                    return false
+                }
+                if isOpen {
+                    continuation.resume(returning: true)
+                    return
+                }
+                Task {
+                    try? await Task.sleep(for: timeout)
+                    self.expire(id)
+                }
+            }
+        }
+
+        private func expire(_ id: UUID) {
+            state.withLock { $0.waiters.removeValue(forKey: id) }?.resume(returning: false)
+        }
     }
 
     /// The app's service: the Plex source, the App Group disk cache, the shared App Group defaults.
@@ -112,7 +162,8 @@ final class ArtworkService {
     func request(path: String?, size: ArtworkSize, priority: ImageRequest.Priority = .normal) -> ImageRequest? {
         guard let path, !path.isEmpty, let serverID else { return nil }
         return Self.serverRequest(
-            serverID: serverID, path: path, size: size, sources: sources, generation: generation, priority: priority)
+            serverID: serverID, path: path, size: size, sources: sources, generation: generation,
+            readyGate: readyGate, priority: priority)
     }
 
     /// The cache key a request for this path and size would use (the tint cache keys by it too).
@@ -143,14 +194,23 @@ final class ArtworkService {
 
     nonisolated private static func serverRequest(
         serverID: String, path: String, size: ArtworkSize, sources: [any ArtworkSource], generation: Generation,
-        priority: ImageRequest.Priority
+        readyGate: ReadyGate, priority: ImageRequest.Priority
     ) -> ImageRequest {
         ImageRequest(
             id: ArtworkCacheKey.server(serverID: serverID, path: path, size: size),
             data: {
                 let started = generation.current
                 for source in sources {
-                    guard let data = try await source.data(path: path, size: size) else { continue }
+                    let loaded: Data?
+                    do {
+                        loaded = try await source.data(path: path, size: size)
+                    } catch ArtworkError.notConnected {
+                        // Started while the session connects (a warm launch shows Home from the snapshot):
+                        // wait for it once, then try again.
+                        guard await readyGate.wait(timeout: connectWait) else { throw ArtworkError.notConnected }
+                        loaded = try await source.data(path: path, size: size)
+                    }
+                    guard let data = loaded else { continue }
                     // A clear while this was in flight: drop it, so nothing reaches the emptied caches.
                     guard generation.current == started else { throw ArtworkError.cleared }
                     log.info(
@@ -242,11 +302,13 @@ final class ArtworkService {
             Self.log.info("Artwork caches cleared (sign-out or another server)")
         }
         setServerID(policy.serverID)
+        if case .ready = state { readyGate.open() } else { readyGate.close() }
     }
 
     /// An explicit sign-out from the app (PlexSignInModel), straight after the session forgot its tokens.
     func signedOut() {
         policy.signedOut()
+        readyGate.close()
         removeAll()
         setServerID(nil)
         Self.log.info("Artwork caches cleared after sign-out")

@@ -29,6 +29,8 @@ public struct MediaSummary: Codable, Sendable, Hashable, Identifiable {
     public var viewCount: Int
     public var addedAt: Date?
     public var lastViewedAt: Date?
+    /// Short synopsis for the Home hero. Optional so older snapshot files still decode.
+    public var summary: String?
 
     public init(
         id: String, kind: MediaKind, title: String, seriesID: String? = nil,
@@ -36,8 +38,10 @@ public struct MediaSummary: Codable, Sendable, Hashable, Identifiable {
         episodeNumber: Int? = nil, year: Int? = nil, certificate: String? = nil,
         thumbPath: String? = nil, artPath: String? = nil, seriesThumbPath: String? = nil,
         durationMs: Int? = nil, viewOffsetMs: Int? = nil, viewCount: Int = 0,
-        addedAt: Date? = nil, lastViewedAt: Date? = nil, logoPath: String? = nil
+        addedAt: Date? = nil, lastViewedAt: Date? = nil, logoPath: String? = nil,
+        summary: String? = nil
     ) {
+        self.summary = summary
         self.id = id
         self.kind = kind
         self.title = title

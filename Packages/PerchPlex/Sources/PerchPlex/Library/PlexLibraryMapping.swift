@@ -82,7 +82,8 @@ enum PlexLibraryMapping {
             durationMs: durationMs(item), viewOffsetMs: item.viewOffset,
             viewCount: item.viewCount ?? 0, addedAt: date(seconds: item.addedAt),
             lastViewedAt: date(seconds: item.lastViewedAt),
-            logoPath: item.image?.first(where: { $0.type == "clearLogo" })?.url)
+            logoPath: item.image?.first(where: { $0.type == "clearLogo" })?.url,
+            summary: shortSummary(item.summary))
         switch kind {
         case .episode:
             summary.seriesID = item.grandparentRatingKey
@@ -222,6 +223,17 @@ enum PlexLibraryMapping {
     }
 
     // MARK: helpers
+
+    /// Trimmed, nil when empty, capped at 300 characters (cut at the last space, then "…").
+    static func shortSummary(_ text: String?) -> String? {
+        guard let trimmed = text?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty
+        else { return nil }
+        guard trimmed.count > 300 else { return trimmed }
+        let head = trimmed.prefix(300)
+        let cut = head.lastIndex(of: " ").map { head[..<$0] } ?? head
+        let text = cut.trimmingCharacters(in: .whitespacesAndNewlines)
+        return text + "…"
+    }
 
     /// The first part's duration is the file's, so it wins over the item's.
     private static func durationMs(_ item: PlexWireMetadata) -> Int? {

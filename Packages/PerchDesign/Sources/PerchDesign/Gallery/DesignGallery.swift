@@ -29,6 +29,7 @@ public struct DesignGallery: View {
                 buttonsSection
                 pillsSection
                 heroSection
+                homeSection.id("home")
                 rowsSection
                 setupSection.id("setup")
                 kidsSection
@@ -148,6 +149,69 @@ public struct DesignGallery: View {
                     }
                 Button("Replay") { replay += 1 }.buttonStyle(.perchSecondary)
                     .perchPageMargins(.horizontal)
+            }
+        }
+    }
+
+    /// Hero, rows and the profile menu composed as the WP-09 Home screen would show them.
+    private var homeSection: some View {
+        section("Home", fullWidth: true) {
+            VStack(alignment: .leading, spacing: 48) {
+                ZStack(alignment: .topTrailing) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        HeroCard(
+                            title: "Dune: Part Two",
+                            synopsis: "Paul Atreides unites with the Fremen while seeking revenge against those who destroyed his family.",
+                            metadata: "Series title \u{00B7} S2 E5 \u{00B7} 31 min left",
+                            backdrop: { Self.art(0, "film") },
+                            actions: {
+                                Button { } label: { Label("Resume", systemImage: "play.fill") }
+                                    .buttonStyle(.perchPrimary)
+                            })
+                        RowList {
+                            Row(title: "Continue watching") {
+                                ForEach(0..<5, id: \.self) { index in
+                                    LandscapeCard(
+                                        title: "Title \(index + 1)", subtitle: "S2 E\(index + 1) \u{00B7} 31 min left",
+                                        progress: 0.2 + Double(index) * 0.15, action: {}
+                                    ) { Self.art(index + 1, "play.rectangle") }
+                                }
+                            }
+                            Row(title: "Up next in your series") {
+                                ForEach(0..<5, id: \.self) { index in
+                                    LandscapeCard(title: "Series \(index + 1)", subtitle: "S1 E\(index + 2) Episode title", action: {}) {
+                                        Self.art(index + 2, "tv")
+                                    }
+                                }
+                            }
+                            Row(title: "Recently added") {
+                                ForEach(0..<9, id: \.self) { index in
+                                    PosterCard(title: "Title \(index + 1)", subtitle: "2024", action: {}) { Self.art(index, "film") }
+                                }
+                            }
+                        }
+                        .frame(height: 1100)
+                    }
+                    ProfileMenuButton(name: "Sam", action: {}) { Self.sampleArt(.indigo, "person.fill") }
+                        .padding(.top, PerchSpacing.topMargin)
+                        .padding(.trailing, PerchSpacing.horizontalMargin)
+                        .accessibilityIdentifier("gallery.profileMenu")
+                }
+                .accessibilityIdentifier("gallery.home")
+                // Text fallback: no logo artwork, title in the hero font.
+                HeroCard(
+                    title: "A Film With No Logo Artwork",
+                    synopsis: "",
+                    metadata: "2024 \u{00B7} 1 h 52 min \u{00B7} 15",
+                    backdrop: { Self.art(3, "film") },
+                    actions: { Button("Play") {}.buttonStyle(.perchPrimary) })
+                // Empty state wording from the WP-09 spec, section 10.
+                HeroMessage(
+                    title: "Nothing to watch yet",
+                    message: "Films and series you add to your media server will show up here.",
+                    secondary: .init("Check again", identifier: "gallery.heroMessage.secondary") {}
+                )
+                .background(Color.black.opacity(0.2))
             }
         }
     }

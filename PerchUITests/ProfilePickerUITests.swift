@@ -16,13 +16,13 @@ final class ProfilePickerUITests: XCTestCase {
     private func waitForHome(_ app: XCUIApplication, as name: String) {
         let label = element(app, "home.profileName")
         waitFor(label, timeout: 15)
-        XCTAssertTrue(waitUntil(10) { self.text(label) == "Watching as \(name)" }, "home shows \(name), got '\(text(label))'")
+        XCTAssertTrue(waitUntil(10) { self.text(label) == name }, "home shows \(name), got '\(text(label))'")
     }
 
     /// A protected profile asks for its PIN: wrong stays with an error, right switches.
     @MainActor
     func testProtectedProfileAsksForItsPIN() throws {
-        let app = launchApp(.withPINs)
+        let app = launchApp(.withPINs, extraArguments: ["-PerchUITests"])
         try completeWizard(app, .withPINs)
         openPicker(app)
         shot("20-picker")
@@ -45,7 +45,7 @@ final class ProfilePickerUITests: XCTestCase {
     /// Back from the PIN screen returns to the picker, nothing switched.
     @MainActor
     func testBackFromPINScreenReturnsToPicker() throws {
-        let app = launchApp(.withPINs)
+        let app = launchApp(.withPINs, extraArguments: ["-PerchUITests"])
         try completeWizard(app, .withPINs)
         openPicker(app)
         tap("profile.1002", in: app)
@@ -62,7 +62,7 @@ final class ProfilePickerUITests: XCTestCase {
     /// Five wrong PINs on a protected profile lock it.
     @MainActor
     func testFiveWrongProfilePINsLock() throws {
-        let app = launchApp(.withPINs)
+        let app = launchApp(.withPINs, extraArguments: ["-PerchUITests"])
         try completeWizard(app, .withPINs)
         openPicker(app)
         tap("profile.1002", in: app)
@@ -84,12 +84,12 @@ final class ProfilePickerUITests: XCTestCase {
     /// Back on the picker opened from home returns home (never drops the user elsewhere).
     @MainActor
     func testBackOnPickerOpenedFromHomeReturnsHome() throws {
-        let app = launchApp(.noPINs)
+        let app = launchApp(.noPINs, extraArguments: ["-PerchUITests"])
         try completeWizard(app, .noPINs)
         openPicker(app)
         tap("profile.1001", in: app)
         waitForHome(app, as: "Robin")
-        tap("home.switchProfile", in: app)
+        openProfileMenuItem("home.switchProfile", app)
         let title = element(app, "picker.title")
         waitFor(title)
         let first = element(app, "profile.1001")
@@ -103,7 +103,7 @@ final class ProfilePickerUITests: XCTestCase {
     /// After five wrong PINs, leaving and reopening the PIN screen shows the locked state at once.
     @MainActor
     func testLockoutShowsAtOnceWhenPINScreenReopens() throws {
-        let app = launchApp(.withPINs)
+        let app = launchApp(.withPINs, extraArguments: ["-PerchUITests"])
         try completeWizard(app, .withPINs)
         openPicker(app)
         tap("profile.1002", in: app)
@@ -132,7 +132,7 @@ final class ProfilePickerUITests: XCTestCase {
     /// Leaving a kid profile asks for the Admin PIN even when the adult has no Plex PIN.
     @MainActor
     func testLeavingAKidProfileAsksForTheAdminPIN() throws {
-        let app = launchApp(.noPINs)
+        let app = launchApp(.noPINs, extraArguments: ["-PerchUITests"])
         try completeWizard(app, .noPINs)
         openPicker(app)
 
@@ -140,7 +140,7 @@ final class ProfilePickerUITests: XCTestCase {
         waitForHome(app, as: "Sam")
         shot("25-home-as-sam")
 
-        tap("home.switchProfile", in: app)
+        openProfileMenuItem("home.switchProfile", app)
         waitFor(element(app, "picker.title"))
         shot("26-picker-as-sam")
 
@@ -150,7 +150,7 @@ final class ProfilePickerUITests: XCTestCase {
         XCTAssertFalse(element(app, "pinPad.1").exists)
 
         // Robin has no Plex PIN, but leaving a kid asks for the Admin PIN.
-        tap("home.switchProfile", in: app)
+        openProfileMenuItem("home.switchProfile", app)
         waitFor(element(app, "picker.title"))
         tap("profile.1001", in: app)
         waitFor(element(app, "pinPad.1"))
@@ -167,34 +167,37 @@ final class ProfilePickerUITests: XCTestCase {
     /// A kid session cannot re-run setup, whatever PIN is typed.
     @MainActor
     func testKidCannotRunSetupAgain() throws {
-        let app = launchApp(.noPINs)
+        let app = launchApp(.noPINs, extraArguments: ["-PerchUITests"])
         try completeWizard(app, .noPINs)
         openPicker(app)
         tap("profile.1003", in: app)
         waitForHome(app, as: "Sam")
 
-        tap("home.runSetup", in: app)
+        // A kid's profile menu has no setup button, only the reason.
+        tap("home.profileMenu", in: app)
         let refusal = element(app, "home.setupRefused")
         waitFor(refusal)
         XCTAssertEqual(text(refusal), "Ask a parent to change setup")
+        XCTAssertFalse(element(app, "home.runSetup").exists, "a kid is not offered setup")
         XCTAssertFalse(element(app, "pinPad.1").exists, "a kid is not offered a keypad")
         XCTAssertFalse(element(app, "root.rerun").exists, "setup did not open")
         shot("28-kid-refused-setup")
-        tap("home.setupRefused.ok", in: app)
+        back()
+        XCTAssertTrue(waitForGone(refusal), "Back closes the menu")
         waitForHome(app, as: "Sam")
     }
 
     /// A parent can re-run setup with the Admin PIN (the other half of the gate).
     @MainActor
     func testParentRunsSetupAgainWithTheAdminPIN() throws {
-        let app = launchApp(.noPINs)
+        let app = launchApp(.noPINs, extraArguments: ["-PerchUITests"])
         try completeWizard(app, .noPINs)
         // The wizard ends on the picker; choosing the current profile (Robin) goes home with no PIN.
         openPicker(app)
         tap("profile.1001", in: app)
         XCTAssertFalse(element(app, "pinPad.1").exists)
         waitForHome(app, as: "Robin")
-        tap("home.runSetup", in: app)
+        openProfileMenuItem("home.runSetup", app)
         waitFor(element(app, "home.setupPIN"))
         shot("29-rerun-admin-pin")
         enterPIN(adminPerchPIN, in: app)
@@ -205,12 +208,12 @@ final class ProfilePickerUITests: XCTestCase {
     /// With plex.tv unreachable the picker still shows the household, says it cannot switch, and keeps the profile.
     @MainActor
     func testOfflinePickerShowsProfilesAndCannotSwitch() throws {
-        var app = launchApp(.withPINs)
+        var app = launchApp(.withPINs, extraArguments: ["-PerchUITests"])
         try completeWizard(app, .withPINs)
 
         app = relaunch(app, plexTVDown: true)
         waitForHome(app, as: "Robin")
-        tap("home.switchProfile", in: app)
+        openProfileMenuItem("home.switchProfile", app)
         waitFor(element(app, "picker.title"))
         for id in ["profile.1001", "profile.1002", "profile.1003"] {
             XCTAssertTrue(element(app, id).waitForExistence(timeout: 10), "\(id) shown from the cache")
