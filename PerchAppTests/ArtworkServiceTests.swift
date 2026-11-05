@@ -1,5 +1,6 @@
 import Foundation
 import PerchCore
+import Synchronization
 import Testing
 import UIKit
 
@@ -18,6 +19,19 @@ private struct DrawingSource: ArtworkSource {
             UIColor.orange.setFill()
             context.fill(CGRect(x: 0, y: 0, width: 8, height: 12))
         }.pngData()
+    }
+}
+
+/// Not connected (as `PlexArtworkSource` before the session is ready) until `connect()`.
+private final class ConnectingSource: ArtworkSource, Sendable {
+    private let connected = Mutex(false)
+    var name: String { "connecting" }
+
+    func connect() { connected.withLock { $0 = true } }
+
+    func data(path: String, size: ArtworkSize) async throws -> Data? {
+        guard connected.withLock({ $0 }) else { throw ArtworkError.notConnected }
+        return try await DrawingSource(delay: .zero).data(path: path, size: size)
     }
 }
 
@@ -91,6 +105,24 @@ struct ArtworkServiceTests {
         #expect(f.service.serverID == "A")
         #expect(f.service.cacheKey(path: "/x", size: .poster) == "A|/x|poster")
         #expect(await f.service.load(path: "/x", size: .poster) != nil)
+    }
+
+    /// WP-09 live finding: Home shows the snapshot while the session connects; a load started then must wait
+    /// for the server instead of failing, or its card stays a blank stand-in for good.
+    @Test func loadStartedWhileConnectingWaitsForReady() async {
+        let source = ConnectingSource()
+        let defaults = UserDefaults(suiteName: "test.artwork.\(UUID().uuidString)")!
+        defaults.set("A", forKey: ArtworkService.serverIDKey)
+        let service = ArtworkService(
+            sources: [source], diskDirectory: FileManager.default.temporaryDirectory.appending(
+                path: "artwork-\(UUID().uuidString)", directoryHint: .isDirectory),
+            defaults: defaults, currentServerID: { nil }, becomesShared: false)
+        service.observe(.connecting)
+        let load = Task { await service.load(path: "/library/metadata/1/thumb/1", size: .poster) }
+        try? await Task.sleep(for: .milliseconds(300))
+        source.connect()
+        service.observe(.ready(serverID: "A"))
+        #expect(await load.value != nil)
     }
 
     @Test func anotherServerClears() async {
