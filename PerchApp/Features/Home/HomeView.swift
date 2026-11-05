@@ -36,6 +36,7 @@ struct HomeView: View {
     private var profileID: String { home?.profile.id.rawValue ?? "" }
     private var playerActive: Bool { core.playback.activeSession != nil }
     private var serverUnreachable: Bool { core.plexSignIn.snapshot.state == .serverUnreachable }
+    private var connecting: Bool { core.plexSignIn.snapshot.state == .connecting }
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -70,9 +71,11 @@ struct HomeView: View {
         .task { await start() }
         .task(id: home?.profile.id) { await loadAvatar() }
         .onChange(of: playerActive) { _, active in if !active { returnedFromPlayer() } }
-        .onChange(of: serverUnreachable) { _, unreachable in
-            model.serverStateChanged(unreachable: unreachable)
-            if !unreachable { Task { await model.refresh() } }
+        .onChange(of: serverUnreachable) { _, unreachable in model.serverStateChanged(unreachable: unreachable) }
+        // Refresh once the server question is settled: ready fetches, unreachable fails and raises the notice.
+        // A refresh while still connecting would fail and show the notice on a good launch.
+        .onChange(of: connecting) { was, now in
+            if was && !now { Task { await model.refresh() } }
         }
         .onChange(of: model.heroItem?.id) { _, _ in
             core.artworkPrefetcher.focus(item: model.heroItem)
@@ -105,12 +108,14 @@ struct HomeView: View {
         started = true
         for row in model.rows.dropFirst() { Self.prefetch(row, with: core) }
         if model.state == .firstLaunch, serverUnreachable { model.serverStateChanged(unreachable: true) }
-        async let refresh: Void = model.refresh()
+        // While the session is still connecting (Home shown from the snapshot at launch), `connecting` ending
+        // starts the refresh instead.
+        let refreshing = connecting ? nil : Task { await model.refresh() }
         if model.state == .firstLaunch {
             try? await Task.sleep(for: HomeModel.firstLaunchTimeout)
             model.firstLaunchTimedOut()
         }
-        await refresh
+        await refreshing?.value
     }
 
     private func returnedFromPlayer() {

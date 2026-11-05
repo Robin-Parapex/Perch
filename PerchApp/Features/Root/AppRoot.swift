@@ -77,7 +77,12 @@ struct AppRoot: View {
         if Self.opensGallery { return .home }
         if isRerun { return .rerun }
         if !setupComplete { return .setup }
-        if !core.launch.resumeFinished { return .loading }
+        if !core.launch.resumeFinished {
+            // WP-09: the saved profile is known (the session only reports connecting once it has it), so Home
+            // renders from its snapshot while the server is tried, instead of a blank screen until the probe ends.
+            if core.plexSignIn.snapshot.state == .connecting { return .home }
+            return .loading
+        }
         if reconnecting || hasNoStoredSignIn { return .reconnect }
         switch core.plexSignIn.snapshot.state {
         case .ready: return choosingAfterSetup ? .picker : .home
