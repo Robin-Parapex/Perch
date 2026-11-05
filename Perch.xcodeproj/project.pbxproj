@@ -7,8 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		04DCCC6DCE8E3C1459E8E94E /* HomeStrings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D37078550E36B160CD26940 /* HomeStrings.swift */; };
 		05EE20E1CEDCBCB567CC7E61 /* ProfilePickerUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08393C8DD9CE37ACF64C1E97 /* ProfilePickerUITests.swift */; };
 		0880D2ECB454F4750CA61C97 /* ArtworkImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25F5BA2143841EE128D092C0 /* ArtworkImage.swift */; };
+		0E71F9B361B5195E99EE0A84 /* HomeScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B11E5EC0799A7F9E812E060 /* HomeScreen.swift */; };
 		0E90752923D2A8DD20600D4A /* FaultInjectingTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4C5D477818723FF0622A0A1 /* FaultInjectingTransport.swift */; };
 		0EC515326803C8B1DF91DB6A /* ArtworkService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6A26F562D003FD4E2BBB99C /* ArtworkService.swift */; };
 		0EE7FF85102FEB9B6642D818 /* PerchCore in Frameworks */ = {isa = PBXBuildFile; productRef = 3A0D94F6E929D5A8D64ECE87 /* PerchCore */; };
@@ -41,8 +43,8 @@
 		7D0F980230F0EED73C737127 /* ContentProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEC73F03519F0ABA8E1A202F /* ContentProvider.swift */; };
 		83B32AF1D751DC0B9AF4D645 /* ArtworkUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DAFDA9494FF117B11D0AEEC /* ArtworkUITests.swift */; };
 		8663EC12E187BED2B0601E65 /* ArtworkTintModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10B3E725E1759A6E6E8610DE /* ArtworkTintModel.swift */; };
+		872F476A2369612540CE18D7 /* HomeModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79FD002575B57466DA887250 /* HomeModel.swift */; };
 		93FFCFF78D87B171B9178117 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 243A1FBF501983A4028E086D /* Assets.xcassets */; };
-		953A049EEFA1995A05CF2C41 /* PlaceholderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D11E7EAAD6441A75FF4CD087 /* PlaceholderView.swift */; };
 		9852F3937FE0FA15F011E5AD /* LibraryCheckUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D91C2D2667DAAD88A077BC0 /* LibraryCheckUITests.swift */; };
 		A50F4216A747F7CAF404ABF4 /* AppRoot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0274461E25099FBB92325409 /* AppRoot.swift */; };
 		A95C2FA7989C3E5D7E0111D2 /* Nuke in Frameworks */ = {isa = PBXBuildFile; productRef = 5C4E476B95D695AA04698AE5 /* Nuke */; };
@@ -50,15 +52,18 @@
 		B36BB8C248139F5F008585AE /* PerchTopShelf.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = E970117425D5C7F16FF6DDFA /* PerchTopShelf.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		B43D5DC91E95AC408194BEF3 /* DesignGalleryUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF483B6C94B4DC73D18C4462 /* DesignGalleryUITests.swift */; };
 		B8D5B2787C3BA3A00A310831 /* PerchAI in Frameworks */ = {isa = PBXBuildFile; productRef = F656F949D78A4CE7629D0463 /* PerchAI */; };
+		B9C109B0BE8B4408148629CB /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A263C0AF61D7A62CCEAA5C3E /* HomeView.swift */; };
 		D1B3DAA6B30566F205F9A79C /* PerchTrakt in Frameworks */ = {isa = PBXBuildFile; productRef = A709F0B77C976BE6027C7CF2 /* PerchTrakt */; };
 		D8C1571D6EFC22A8F99D79AC /* FakeArt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46EFB7000E3577048BE61940 /* FakeArt.swift */; };
 		DE8CF85EBA2C000902DEE287 /* PerchPlayer in Frameworks */ = {isa = PBXBuildFile; productRef = DCF36096C7A159128C1E58DB /* PerchPlayer */; };
 		E17637F8E94A33E056B98D89 /* PerchSeerr in Frameworks */ = {isa = PBXBuildFile; productRef = 031D234884266E3D9F246CBF /* PerchSeerr */; };
+		E50868931329326A3B73ABF8 /* SetupRerunFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1358B0875316D46C6F370 /* SetupRerunFlow.swift */; };
 		E52673AB7D7831F1AD8DADA7 /* ArtworkPrefetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03DAA0A60E32CA770C8AEB56 /* ArtworkPrefetcher.swift */; };
 		E88B82642080560B6A1CD950 /* PerchDesign in Frameworks */ = {isa = PBXBuildFile; productRef = 2A13A1FF9EDEA28F7C994960 /* PerchDesign */; };
 		EA554CCC29B78E08008E449D /* FakeHouseholdTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 733569FCF6FF7AC55BDD33F9 /* FakeHouseholdTransport.swift */; };
+		EB11B17A82D3138ABD7060B0 /* HomeContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B6DB24BF7EC9A5E5BAB1CAF /* HomeContext.swift */; };
 		EB703ED1F35EC501C0B06DC0 /* SetupAdminPINStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B6A2EAF62F625006D78BD53 /* SetupAdminPINStep.swift */; };
-		EC159442FDD235642F98A906 /* LibraryCheckView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AE8EDB966DF6ECE15D70347 /* LibraryCheckView.swift */; };
+		F17A4CF87B5F387537B49983 /* HomeModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA91AA52FBB0CCEF5F0BCAB4 /* HomeModelTests.swift */; };
 		FA8EAC7E606D5F11E7839CD5 /* PlayerOverlayContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA3D00610520725A20C7FCA1 /* PlayerOverlayContent.swift */; };
 		FBEAED2DA37B878394938DCF /* PerchHome in Frameworks */ = {isa = PBXBuildFile; productRef = 5737B578B94A41B308C80DFD /* PerchHome */; };
 /* End PBXBuildFile section */
@@ -111,12 +116,12 @@
 		243A1FBF501983A4028E086D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		25F5BA2143841EE128D092C0 /* ArtworkImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArtworkImage.swift; sourceTree = "<group>"; };
 		26359D6962867AF8FC484B0D /* PerchPlex */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PerchPlex; path = Packages/PerchPlex; sourceTree = SOURCE_ROOT; };
+		2D37078550E36B160CD26940 /* HomeStrings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeStrings.swift; sourceTree = "<group>"; };
 		2DAFDA9494FF117B11D0AEEC /* ArtworkUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArtworkUITests.swift; sourceTree = "<group>"; };
 		3B6A2EAF62F625006D78BD53 /* SetupAdminPINStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupAdminPINStep.swift; sourceTree = "<group>"; };
 		3D8989D339D0C59E8568F60E /* LibraryBackdrop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryBackdrop.swift; sourceTree = "<group>"; };
 		46EFB7000E3577048BE61940 /* FakeArt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FakeArt.swift; sourceTree = "<group>"; };
 		47420A664FAA3977282845F2 /* LibraryDumpTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryDumpTransport.swift; sourceTree = "<group>"; };
-		4AE8EDB966DF6ECE15D70347 /* LibraryCheckView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryCheckView.swift; sourceTree = "<group>"; };
 		5049C881306F28A7D69171E2 /* PlayerSpikeClip.mp4 */ = {isa = PBXFileReference; path = PlayerSpikeClip.mp4; sourceTree = "<group>"; };
 		529D88C7637EADD0D2F09F61 /* ArtworkServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArtworkServiceTests.swift; sourceTree = "<group>"; };
 		578031749B01762ADB2FC507 /* ProfileSwitcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSwitcher.swift; sourceTree = "<group>"; };
@@ -125,25 +130,30 @@
 		6C0B3C5FC5D8A5ED71FF74CB /* SetupProfilesStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupProfilesStep.swift; sourceTree = "<group>"; };
 		72EBCD50A28455935FE5B81E /* ModuleManifest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModuleManifest.swift; sourceTree = "<group>"; };
 		733569FCF6FF7AC55BDD33F9 /* FakeHouseholdTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FakeHouseholdTransport.swift; sourceTree = "<group>"; };
+		79FD002575B57466DA887250 /* HomeModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeModel.swift; sourceTree = "<group>"; };
 		7ABC969F5703CBFFC90C2BC6 /* PerchAppTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PerchAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		7B11E5EC0799A7F9E812E060 /* HomeScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeScreen.swift; sourceTree = "<group>"; };
 		7B74E85BFB25EAF18EAAFBAA /* WP05Support.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WP05Support.swift; sourceTree = "<group>"; };
 		7DCA53A26933A2B3B0B4F245 /* PerchUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerchUITests.swift; sourceTree = "<group>"; };
 		81DCAA7AC3B9EB27244CB654 /* PerchSeerr */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PerchSeerr; path = Packages/PerchSeerr; sourceTree = SOURCE_ROOT; };
 		84A9F221D541396CE0789A4C /* PlexSignInModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlexSignInModel.swift; sourceTree = "<group>"; };
 		87964497C34D39061F3402E8 /* PerchHome */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PerchHome; path = Packages/PerchHome; sourceTree = SOURCE_ROOT; };
+		8B6DB24BF7EC9A5E5BAB1CAF /* HomeContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeContext.swift; sourceTree = "<group>"; };
 		90C301A09F83201E1F03BCD0 /* PerchTautulli */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PerchTautulli; path = Packages/PerchTautulli; sourceTree = SOURCE_ROOT; };
 		975A43ACE2DD13C90E0B58A1 /* PlayerSpikeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerSpikeView.swift; sourceTree = "<group>"; };
 		9C77FB42827DCAB58DA4C110 /* PerchCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PerchCore; path = Packages/PerchCore; sourceTree = SOURCE_ROOT; };
 		9DEC51BF47974BCC5F748D16 /* PerchUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PerchUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9F61457CD2103D9581212D8C /* PerchDesign */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PerchDesign; path = Packages/PerchDesign; sourceTree = SOURCE_ROOT; };
+		A263C0AF61D7A62CCEAA5C3E /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		A33697F100E1EEE84F8DA0BE /* PerchPlayer */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PerchPlayer; path = Packages/PerchPlayer; sourceTree = SOURCE_ROOT; };
 		AE0A60A56E3483E4EDE906B0 /* PerchFrigate */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PerchFrigate; path = Packages/PerchFrigate; sourceTree = SOURCE_ROOT; };
 		B4E088AAD12B918F3014DDE1 /* SetupFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupFlowView.swift; sourceTree = "<group>"; };
 		BA3D00610520725A20C7FCA1 /* PlayerOverlayContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerOverlayContent.swift; sourceTree = "<group>"; };
 		BD04E58E88BA9BC35355C563 /* PerchAI */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PerchAI; path = Packages/PerchAI; sourceTree = SOURCE_ROOT; };
+		CA91AA52FBB0CCEF5F0BCAB4 /* HomeModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeModelTests.swift; sourceTree = "<group>"; };
 		D0515B7DA325FB2439471BC2 /* PlayerUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerUITests.swift; sourceTree = "<group>"; };
-		D11E7EAAD6441A75FF4CD087 /* PlaceholderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaceholderView.swift; sourceTree = "<group>"; };
 		D6A26F562D003FD4E2BBB99C /* ArtworkService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArtworkService.swift; sourceTree = "<group>"; };
+		D8A1358B0875316D46C6F370 /* SetupRerunFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupRerunFlow.swift; sourceTree = "<group>"; };
 		D9747DA535C64AC2ADD90729 /* PlayerSpikeUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerSpikeUITests.swift; sourceTree = "<group>"; };
 		DAFA42F3295D0579E36B8D6C /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		DFCF9214DE208DF357C09CFF /* SetupFlowModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupFlowModel.swift; sourceTree = "<group>"; };
@@ -204,6 +214,7 @@
 			isa = PBXGroup;
 			children = (
 				529D88C7637EADD0D2F09F61 /* ArtworkServiceTests.swift */,
+				CA91AA52FBB0CCEF5F0BCAB4 /* HomeModelTests.swift */,
 			);
 			path = PerchAppTests;
 			sourceTree = "<group>";
@@ -220,7 +231,7 @@
 		300CB41960DEE18DE47F421E /* Features */ = {
 			isa = PBXGroup;
 			children = (
-				B956201D89DBC48508D1EC94 /* Placeholder */,
+				44932EEBE14B96A36401A5C4 /* Home */,
 				0D8EDFBD0DC76D28DC56F443 /* Player */,
 				9D9986DF05F45C9003E895A1 /* PlexSignIn */,
 				7BE2AAEA9B8FD98152F54513 /* Profiles */,
@@ -228,6 +239,19 @@
 				73BF864FAFE4E917B2F7CF28 /* Setup */,
 			);
 			path = Features;
+			sourceTree = "<group>";
+		};
+		44932EEBE14B96A36401A5C4 /* Home */ = {
+			isa = PBXGroup;
+			children = (
+				8B6DB24BF7EC9A5E5BAB1CAF /* HomeContext.swift */,
+				79FD002575B57466DA887250 /* HomeModel.swift */,
+				7B11E5EC0799A7F9E812E060 /* HomeScreen.swift */,
+				2D37078550E36B160CD26940 /* HomeStrings.swift */,
+				A263C0AF61D7A62CCEAA5C3E /* HomeView.swift */,
+				D8A1358B0875316D46C6F370 /* SetupRerunFlow.swift */,
+			);
+			path = Home;
 			sourceTree = "<group>";
 		};
 		5604ACE44E439FA92A920531 /* Products */ = {
@@ -279,7 +303,6 @@
 			children = (
 				46EFB7000E3577048BE61940 /* FakeArt.swift */,
 				733569FCF6FF7AC55BDD33F9 /* FakeHouseholdTransport.swift */,
-				4AE8EDB966DF6ECE15D70347 /* LibraryCheckView.swift */,
 				47420A664FAA3977282845F2 /* LibraryDumpTransport.swift */,
 				5049C881306F28A7D69171E2 /* PlayerSpikeClip.mp4 */,
 				975A43ACE2DD13C90E0B58A1 /* PlayerSpikeView.swift */,
@@ -327,14 +350,6 @@
 				84A9F221D541396CE0789A4C /* PlexSignInModel.swift */,
 			);
 			path = PlexSignIn;
-			sourceTree = "<group>";
-		};
-		B956201D89DBC48508D1EC94 /* Placeholder */ = {
-			isa = PBXGroup;
-			children = (
-				D11E7EAAD6441A75FF4CD087 /* PlaceholderView.swift */,
-			);
-			path = Placeholder;
 			sourceTree = "<group>";
 		};
 		BCBDE1045B3C2C8C4DEFBA98 /* PerchApp */ = {
@@ -575,12 +590,15 @@
 				D8C1571D6EFC22A8F99D79AC /* FakeArt.swift in Sources */,
 				EA554CCC29B78E08008E449D /* FakeHouseholdTransport.swift in Sources */,
 				0E90752923D2A8DD20600D4A /* FaultInjectingTransport.swift in Sources */,
+				EB11B17A82D3138ABD7060B0 /* HomeContext.swift in Sources */,
+				872F476A2369612540CE18D7 /* HomeModel.swift in Sources */,
+				0E71F9B361B5195E99EE0A84 /* HomeScreen.swift in Sources */,
+				04DCCC6DCE8E3C1459E8E94E /* HomeStrings.swift in Sources */,
+				B9C109B0BE8B4408148629CB /* HomeView.swift in Sources */,
 				59C3F6BF91B9A2C737672476 /* LibraryBackdrop.swift in Sources */,
-				EC159442FDD235642F98A906 /* LibraryCheckView.swift in Sources */,
 				42B8A5B6784DC88C684A5826 /* LibraryDumpTransport.swift in Sources */,
 				69C7FBB43B8946F4217CBA80 /* ModuleManifest.swift in Sources */,
 				34E73F508EA639C0CB7DFB51 /* PerchMain.swift in Sources */,
-				953A049EEFA1995A05CF2C41 /* PlaceholderView.swift in Sources */,
 				3AED5929C41FE85286198AC7 /* PlaybackCoordinator.swift in Sources */,
 				FA8EAC7E606D5F11E7839CD5 /* PlayerOverlayContent.swift in Sources */,
 				77D857A027E5D884687C5DE2 /* PlayerSpikeView.swift in Sources */,
@@ -592,6 +610,7 @@
 				49FC74040CE062EA08425469 /* SetupFlowModel.swift in Sources */,
 				37996216A7C85B009A559C32 /* SetupFlowView.swift in Sources */,
 				737BC63B499B2034F488A938 /* SetupProfilesStep.swift in Sources */,
+				E50868931329326A3B73ABF8 /* SetupRerunFlow.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -600,6 +619,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4462CE2D5EC979F88262D325 /* ArtworkServiceTests.swift in Sources */,
+				F17A4CF87B5F387537B49983 /* HomeModelTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
