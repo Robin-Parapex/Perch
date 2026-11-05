@@ -468,6 +468,50 @@ Append-only log of decisions and why. Newest at the bottom. Format: date, decisi
 - DEBUG only: `-PerchLibraryCheck` opens the Library check (the Home stand-in until WP-09); `-PerchSlowArtwork` makes the fake household delay full images by 6 s so placeholders can be seen.
 - Decided by the WP-08 lead (Claude).
 
+## 2026-11-05 Hero item on Home
+- The hero is the first Continue watching item, else the newest Recently added film or series, else a message state. It is deliberately also in row 1 so resume is one click. A rotating or focus-following hero is 1.0.
+- Rejected: a Recently added pick as the hero.
+- Decided by the WP-09 lead (Claude).
+
+## 2026-11-05 Select on Home cards in 0.2
+- Continue watching resumes. Up next plays from the start. A Recently added film plays from the start; a series plays its first unwatched episode, else S1 E1, using the library's episode list. The title page replaces this in WP-11. Long-press does nothing until WP-11.
+- Decided by the WP-09 lead (Claude).
+
+## 2026-11-05 Back on Home
+- Back on a card returns focus to the hero (the top of the screen). Back at the hero is left to tvOS, which leaves the app, as the Apple TV app does.
+- Rejected: swallowing Back at the hero (the spec said "does nothing"; the platform convention wins).
+- Decided by the WP-09 lead (Claude).
+
+## 2026-11-05 Hero synopsis comes from the snapshot
+- `MediaSummary.summary`, trimmed and capped at 300 characters, is a light field in the snapshot. Old snapshot files still decode (the field is optional).
+- Rejected: fetching the detail after the first frame (a late text arrival would move the block).
+- Decided by the WP-09 lead (Claude).
+
+## 2026-11-05 Home reads settings synchronously for the first frame
+- The role and ceiling override are decoded from the `perch.settings.v1` key the way `SettingsStore` does, because the store is an actor and the first frame cannot await. Kids' style applies only when the role is explicitly kid.
+- Decided by the WP-09 lead (Claude).
+
+## 2026-11-05 Profile menu until the sidebar
+- A top-right ProfileMenuButton opens a top sheet with Switch profile and Run setup again (the Authoriser and PIN flow moved from the placeholder into `SetupRerunFlow`). A kid sees "Ask a parent to change setup". It goes when WP-13 and WP-18 land. The DEBUG design gallery is reachable from the sheet.
+- Decided by the WP-09 lead (Claude).
+
+## 2026-11-05 Ambient motion switch
+- `perchAmbientMotion` (environment, default true) turns off the hero's 20 s pan. The app sets it false under the DEBUG `-PerchUITests` argument so XCUITest queries do not wait on it. The pan itself is one-shot (20 s, then holds), as the design spec says.
+- Rejected: `repeatForever` (never quiescent, and against the spec).
+- Decided by the WP-09 lead (Claude).
+
+## 2026-11-05 Row animation scoped to the rows stack
+- An `.animation(value: rowIDs)` on the whole RowList made SwiftUI re-lay out every frame when rows arrived over a cached empty library (100% CPU, blank screen). The animation now sits on the rows' own VStack.
+- Found by the WP-09 solver (Claude) through HomeUITests.
+
+## 2026-11-05 Certificate inline in the hero metadata
+- The certificate is text in the metadata line, not a Pill, because HeroCard puts badges on their own line. Format badges on the hero arrive in 1.2.
+- Decided by the WP-09 lead (Claude).
+
+## 2026-11-05 Library check removed
+- The DEBUG Library check screen and `-PerchLibraryCheck` are gone, as the 2026-11-03 entry said. ArtworkUITests now run against Home.
+- Decided by the WP-09 lead (Claude).
+
 ## Open decisions (resolve in the named work package)
 - Recovery when the stored Perch PIN cannot be read (Admin is locked out by design): confirm the owner through Plex, audited, then allow a new Perch PIN (WP-05).
 - Assistant name (placeholder Pip) (WP-19).

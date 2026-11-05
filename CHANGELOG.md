@@ -61,6 +61,11 @@ All notable changes to Perch. Format follows Keep a Changelog; versions follow `
 - WP-08: hosted unit test target PerchAppTests (ArtworkServiceTests, 7 tests), run by the gate.
 - WP-08: size buckets raised for 4K (poster 480x720, backdrop 3840x2160); a poster is 48,792 B against 419,887 B full size.
 - WP-08: the fallback gradient is a calm vertical wash instead of a spotlight.
+- WP-09 Home screen: hero with logo or text fallback, metadata line and synopsis; Continue watching, Up next in your series and Recently added rows; first frame rendered from the cached snapshot with no spinner; refresh in place; empty, offline and first-launch states with centred messages; profile menu (Switch profile, Run setup again) top-right until the sidebar lands; kids' style from the profile role; page tint from the hero backdrop; staged entrance animation with Reduce Motion variants; focus memory per row and Back from the player returning to the card.
+- WP-09 PerchDesign: HeroCard metadata line, spec scrims that end in the page colour, one-shot 20 s Ken Burns, collapsing synopsis row, `titleIdentifier`; new HeroMessage and ProfileMenuButton; card captions clear the focus lift; composed Home section in the design gallery; `perchAmbientMotion` environment value.
+- WP-09 PerchCore and PerchPlex: `MediaSummary.summary` (capped at 300 characters) mapped from Plex; `ModuleRegistry.homeRowProviders` sorted by order then id.
+- WP-09 DEBUG: fake household gains summaries, a clearLogo on film 1001 and `-PerchFakeEmptyLibrary`; `-PerchUITests` turns off ambient motion for UI tests.
+- WP-09 tests: HomeModelTests (hosted), HomeUITests (focus, Back, two-click resume, cached render with no spinner, empty library, offline, profile menu); ArtworkUITests rewired to Home.
 - Project document pack (README, CLAUDE.md, spec, roadmap with numbered work packages, modules, architecture, design, integrations, permissions, references, decisions, glossary).
 - Decisions through 1 November 2026: name Perch; build from scratch referencing Dusk and Swiftfin; app only with no proxy or hub; Plex PINs for profiles and an Admin PIN; provider-agnostic bring-your-own-key AI with permission levels and no free chat; setup wizard, welcome guide and feedback; Seerr-only polling and user-controlled Plex library refresh.
 
@@ -72,3 +77,4 @@ All notable changes to Perch. Format follows Keep a Changelog; versions follow `
 
 ### Removed
 - WP-05: the WP-04 debug sign-in screens, replaced by the wizard.
+- WP-09: the placeholder home, the DEBUG Library check screen and `-PerchLibraryCheck`.
