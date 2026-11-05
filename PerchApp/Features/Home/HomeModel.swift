@@ -116,7 +116,8 @@ final class HomeModel {
                     apply(row, for: id)
                     if row.items.isEmpty { emptyCount += 1 }
                 case .failure(let error):
-                    // A profile switch mid-flight cancels; that is not the server being away.
+                    // The Plex provider throws CancellationError when the fetched rows belong to another profile
+                    // (a switch landed mid-flight; nothing cancels this refresh). That is not the server being away.
                     if !(error is CancellationError) { failed = true }
                 }
             }

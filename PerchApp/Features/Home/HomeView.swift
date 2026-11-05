@@ -66,7 +66,8 @@ struct HomeView: View {
         }
         .perchTopSheet(isPresented: $menuShown) { menuSheet }
         // On a card, Back goes to the hero (as the TV app does); at the hero the system's Back applies.
-        .onExitCommand(perform: focus?.rowID != nil ? { focus = .hero } : nil)
+        // With no hero (rows but no pick) the menu is the target, so Back is never swallowed.
+        .onExitCommand(perform: focus?.rowID != nil ? { focus = model.heroItem != nil ? .hero : .profileMenu } : nil)
         .onAppear { appeared() }
         .task { await start() }
         .task(id: home?.profile.id) { await loadAvatar() }
@@ -112,7 +113,8 @@ struct HomeView: View {
         // starts the refresh instead.
         let refreshing = connecting ? nil : Task { await model.refresh() }
         if model.state == .firstLaunch {
-            try? await Task.sleep(for: HomeModel.firstLaunchTimeout)
+            // Home going away cancels the wait; it must not resolve the state early.
+            do { try await Task.sleep(for: HomeModel.firstLaunchTimeout) } catch { return }
             model.firstLaunchTimedOut()
         }
         await refreshing?.value
@@ -401,7 +403,10 @@ struct HomeView: View {
     private func select(_ item: MediaSummary, row: String, origin: HomeFocus) {
         playbackOrigin = origin
         if item.kind == .series {
-            Task { await playSeries(item) }
+            Task { await playSeries(item.id) }
+        } else if item.kind == .season, let seriesID = item.seriesID {
+            // A season has no media of its own: its first unwatched episode, through the series path.
+            Task { await playSeries(seriesID, season: item.id) }
         } else if row == HomeRowID.continueWatching {
             core.playback.play(item)
         } else {
@@ -409,18 +414,19 @@ struct HomeView: View {
         }
     }
 
-    private func playSeries(_ series: MediaSummary) async {
-        let episodes = (try? await core.library.allEpisodes(ofSeries: series.id)) ?? []
-        if let episode = HomeModel.episodeToPlay(in: episodes) {
+    private func playSeries(_ seriesID: String, season seasonID: String? = nil) async {
+        let episodes = (try? await core.library.allEpisodes(ofSeries: seriesID)) ?? []
+        let inSeason = seasonID.map { id in episodes.filter { $0.seasonID == id } } ?? []
+        if let episode = HomeModel.episodeToPlay(in: inSeason) ?? HomeModel.episodeToPlay(in: episodes) {
             core.playback.play(episode)
             return
         }
         // No episode list: the series' Up next episode, when there is one.
-        let upNext = model.rows.first { $0.id == HomeRowID.upNext }?.items.first { $0.seriesID == series.id }
+        let upNext = model.rows.first { $0.id == HomeRowID.upNext }?.items.first { $0.seriesID == seriesID }
         if let upNext {
             core.playback.play(upNext, startMs: 0)
         } else {
-            Self.log.notice("Home: no episode to play for series \(series.id, privacy: .public)")
+            Self.log.notice("Home: no episode to play for series \(seriesID, privacy: .public)")
         }
     }
 }

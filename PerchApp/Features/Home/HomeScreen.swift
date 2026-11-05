@@ -17,18 +17,15 @@ struct HomeScreen: View {
     let core: CoreServices
     @State private var flow: SetupRerunFlow
     @State private var path = HomeScreen.initialPath()
-    /// The profile when the session state carries none (server unreachable), read once from the session.
+    /// The session's profile as last read from it (every state change), for states that carry none.
     @State private var fallbackProfile: PlexActiveProfile?
-    @State private var resolving: Bool
+    /// The session state the last read answered for; until it matches, a state without a usable profile
+    /// shows nothing rather than the wrong Home.
+    @State private var resolvedFor: PlexSessionState?
 
     init(core: CoreServices, onRunSetupAgain: @escaping () -> Void) {
         self.core = core
         _flow = State(initialValue: SetupRerunFlow(core: core, onRunSetupAgain: onRunSetupAgain))
-        if case .ready = core.plexSignIn.snapshot.state {
-            _resolving = State(initialValue: false)
-        } else {
-            _resolving = State(initialValue: HomeStore.shared.current == nil)
-        }
     }
 
     private static func initialPath() -> NavigationPath {
@@ -48,9 +45,16 @@ struct HomeScreen: View {
         #endif
     }
 
+    /// Ready carries the profile. Otherwise (connecting, server unreachable) the session's profile is the one it
+    /// last committed: `plex.lastProfileID` is written before the profile and before any state that carries it
+    /// (`PlexSession.activate` and `resume`). A remembered profile is used only when it is that one, so a switch
+    /// from a parent to a kid that fails half way never shows the parent's rows, not even for a frame.
     private var activeProfile: PlexActiveProfile? {
         if case .ready(let profile, _) = core.plexSignIn.snapshot.state { return profile }
-        return fallbackProfile ?? HomeStore.shared.current?.home.profile
+        let lastID = CoreServices.plexDefaults().string(forKey: PlexSession.DefaultsKey.lastProfileID)
+        guard let lastID else { return nil }
+        return [HomeStore.shared.current?.home.profile, fallbackProfile].compactMap { $0 }
+            .first { $0.id.rawValue == lastID }
     }
 
     var body: some View {
@@ -65,7 +69,7 @@ struct HomeScreen: View {
                         onGallery: galleryAction
                     )
                     .id(entry.home.profile.id)
-                } else if resolving {
+                } else if resolvedFor != core.plexSignIn.snapshot.state {
                     Color.clear
                 } else {
                     HomeView(
@@ -88,12 +92,15 @@ struct HomeScreen: View {
         .environment(\.perchStyle, entry?.home.isKid == true ? .kids : .standard)
         .environment(\.perchAmbientMotion, Self.ambientMotion)
         .task(id: core.plexSignIn.snapshot.state) {
-            if case .ready = core.plexSignIn.snapshot.state {
-                resolving = false
-                return
+            let state = core.plexSignIn.snapshot.state
+            if case .ready(let profile, _) = state {
+                fallbackProfile = profile
+            } else {
+                let profile = await core.plexSignIn.session.currentProfile()
+                guard !Task.isCancelled else { return }  // a newer state's read owns the answer
+                fallbackProfile = profile
             }
-            if let profile = await core.plexSignIn.session.currentProfile() { fallbackProfile = profile }
-            resolving = false
+            resolvedFor = state
         }
     }
 

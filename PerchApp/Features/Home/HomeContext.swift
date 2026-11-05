@@ -7,8 +7,8 @@ import PerchPlex
 /// Who Home is for, resolved without an await so the first frame can read the cached rows.
 struct HomeProfile: Equatable {
     let profile: PlexActiveProfile
-    /// Nil when the settings document has no entry for this profile yet.
-    let role: Role?
+    /// The stored role, else the Plex Home default (restricted users are kids), as `PlaybackCoordinator` reads it.
+    let role: Role
     let context: RowContext
 
     var isKid: Bool { role == .kid }
@@ -19,7 +19,13 @@ struct HomeProfile: Equatable {
         let context = RowContext(
             profileID: profile.id.rawValue, serviceCeiling: RatingCeiling(plex: profile.restriction),
             ceiling: RatingCeiling.effective(plex: profile.restriction, adminOverride: settings?.ceilingOverride))
-        return HomeProfile(profile: profile, role: settings?.role, context: context)
+        let role =
+            settings?.role
+            ?? ProfileSettings.defaults(
+                plexUserID: profile.id, displayName: profile.displayName, isOwner: profile.isOwner,
+                restriction: profile.restriction
+            ).role
+        return HomeProfile(profile: profile, role: role, context: context)
     }
 
     /// The same read as `SettingsStore.document` (its default key, ISO 8601 dates, an empty document when the
