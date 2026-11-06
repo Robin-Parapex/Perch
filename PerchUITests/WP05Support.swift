@@ -119,6 +119,14 @@ extension XCTestCase {
         }
     }
 
+    /// Focus the element and press select.
+    @MainActor
+    func tap(_ target: XCUIElement, in app: XCUIApplication, file: StaticString = #filePath, line: UInt = #line) {
+        if focus(target, in: app, file: file, line: line) {
+            XCUIRemote.shared.press(.select)
+        }
+    }
+
     /// Select a button by its title or id.
     @MainActor
     func tapButton(_ title: String, in app: XCUIApplication, file: StaticString = #filePath, line: UInt = #line) {
@@ -215,24 +223,77 @@ extension XCTestCase {
         waitFor(summary, timeout: 5)
     }
 
-    /// After the wizard: waits for home or the picker; from home opens "Switch profile".
+    /// After the wizard: waits for home or the picker; from home opens the picker from the sidebar's avatar.
     @MainActor
     func reachPicker(_ app: XCUIApplication) {
         XCTAssertTrue(waitUntil(20) { self.element(app, "root.home").exists || self.element(app, "root.picker").exists })
-        if element(app, "home.profileMenu").exists { openProfileMenuItem("home.switchProfile", app) }
+        if element(app, "root.home").exists, !element(app, "picker.title").exists { openPickerFromSidebar(app) }
         waitFor(element(app, "picker.title"))
     }
 
-    /// WP-09 Home: opens the profile menu (top-right button, then its top sheet) unless it is open, and selects
-    /// the item with this id (`home.switchProfile`, `home.runSetup`).
+    // MARK: Sidebar (WP-13)
+
+    /// Focus is on a sidebar item: one of the tabs or the profile avatar.
+    func sidebarHasFocus(_ app: XCUIApplication) -> Bool {
+        if element(app, "sidebar.profile").hasFocus { return true }
+        // The sidebar's tabs are list cells at the left edge (their tab identifiers do not reach the cells).
+        let cells = app.cells.matching(NSPredicate(format: "hasFocus == true")).allElementsBoundByIndex
+        return cells.contains { $0.frame.minX < 20 && $0.frame.width < 500 }
+    }
+
+    /// The sidebar's tabs in order (MainTab).
+    static var sidebarTabLabels: [String] { ["Home", "Films", "Series", "Search", "Settings"] }
+
+    /// A sidebar tab by its label ("Films"). The cells carry neither the tab's identifier nor a label, so the tab
+    /// is the cell holding that text, or else the cell at its place in the order (the sidebar's 374 pt wide cells
+    /// at the left edge, top to bottom). Call it while the sidebar is open.
+    func sidebarTab(_ app: XCUIApplication, _ label: String) -> XCUIElement {
+        let cells = app.cells.allElementsBoundByIndex
+            .filter { $0.frame.minX < 20 && $0.frame.width > 200 && $0.frame.width < 500 && $0.frame.height > 30 }
+            .sorted { $0.frame.minY < $1.frame.minY }
+        if let match = cells.first(where: { $0.staticTexts[label].exists }) { return match }
+        if let index = Self.sidebarTabLabels.firstIndex(of: label), index < cells.count { return cells[index] }
+        return app.cells.containing(NSPredicate(format: "label == %@", label)).firstMatch
+    }
+
+    /// tvOS 27 gives the sidebar the first focus when the shell comes up and ignores focus requests while it holds
+    /// it (WP-13, accepted): Right enters the content, where Home's default focus is the hero.
     @MainActor
-    func openProfileMenuItem(_ id: String, _ app: XCUIApplication) {
-        if !element(app, id).exists {
-            waitFor(element(app, "home.profileMenu"), timeout: 15)
-            tap("home.profileMenu", in: app)
-            waitFor(element(app, id), timeout: 10)
+    func enterContentIfSidebarFocused(_ app: XCUIApplication) {
+        guard waitUntil(2, { self.sidebarHasFocus(app) }) else { return }
+        XCUIRemote.shared.press(.right)
+        RunLoop.current.run(until: Date().addingTimeInterval(0.6))
+    }
+
+    /// Back until focus is in the sidebar (at most three presses, spaced so two never make a double tap).
+    @MainActor
+    func openSidebar(_ app: XCUIApplication, file: StaticString = #filePath, line: UInt = #line) {
+        for _ in 0..<3 {
+            if waitUntil(1, { self.sidebarHasFocus(app) }) { return }
+            back()
+            RunLoop.current.run(until: Date().addingTimeInterval(0.6))
         }
-        tap(id, in: app)
+        XCTAssertTrue(waitUntil(3) { self.sidebarHasFocus(app) }, "focus reaches the sidebar", file: file, line: line)
+    }
+
+    /// The profile picker from the avatar at the top of the sidebar.
+    @MainActor
+    func openPickerFromSidebar(_ app: XCUIApplication, file: StaticString = #filePath, line: UInt = #line) {
+        waitFor(element(app, "home.root"), timeout: 15, file: file, line: line)
+        openSidebar(app, file: file, line: line)
+        tap("sidebar.profile", in: app, file: file, line: line)
+        waitFor(element(app, "picker.title"), file: file, line: line)
+    }
+
+    /// The Settings tab from the sidebar.
+    @MainActor
+    func openSettings(_ app: XCUIApplication, file: StaticString = #filePath, line: UInt = #line) {
+        openSidebar(app, file: file, line: line)
+        // Select on a tab moves focus into its content (Settings: Switch profile).
+        tap(sidebarTab(app, "Settings"), in: app, file: file, line: line)
+        waitFor(element(app, "settings.root"), file: file, line: line)
+        RunLoop.current.run(until: Date().addingTimeInterval(0.6))
+        enterContentIfSidebarFocused(app)
     }
 
     /// The whole wizard without screenshots. Admin PIN: the fake Plex PIN, or a Perch PIN "1111" when none.

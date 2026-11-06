@@ -11,6 +11,8 @@ final class DesignGalleryUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["designGallery"].waitForExistence(timeout: 10))
         let sidePanelButton = app.buttons["gallery.showSidePanel"]
         XCTAssertTrue(sidePanelButton.waitForExistence(timeout: 5))
+        // The gallery sits on Home's stack in the sidebar shell, which takes the first focus (WP-13).
+        enterContentIfSidebarFocused(app)
         XCTAssertTrue(waitForFocus(sidePanelButton), "sidePanelButton should have focus")
 
         remote.press(.select)
@@ -45,6 +47,7 @@ final class DesignGalleryUITests: XCTestCase {
 
         let sidePanelButton = app.buttons["gallery.showSidePanel"]
         XCTAssertTrue(sidePanelButton.waitForExistence(timeout: 10))
+        enterContentIfSidebarFocused(app)
         XCTAssertTrue(waitForFocus(sidePanelButton), "sidePanelButton should have focus")
         let pillButton = app.buttons["gallery.showCornerPill"]
         for _ in 0..<3 { remote.press(.right) }

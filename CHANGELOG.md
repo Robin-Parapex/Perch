@@ -66,6 +66,10 @@ All notable changes to Perch. Format follows Keep a Changelog; versions follow `
 - WP-09 PerchCore and PerchPlex: `MediaSummary.summary` (capped at 300 characters) mapped from Plex; `ModuleRegistry.homeRowProviders` sorted by order then id.
 - WP-09 DEBUG: fake household gains summaries, a clearLogo on film 1001 and `-PerchFakeEmptyLibrary`; `-PerchUITests` turns off ambient motion for UI tests.
 - WP-09 tests: HomeModelTests (hosted), HomeUITests (focus, Back, two-click resume, cached render with no spinner, empty library, offline, profile menu); ArtworkUITests rewired to Home.
+- WP-13 Sidebar shell: Home, Films, Series, Search and Settings tabs, a navigation stack per tab, per-profile focus memory, and the profile avatar in the sidebar header opening the picker. Films, Series and Search are empty pages until WP-10, WP-12 and WP-11.
+- WP-13 Settings: switch profile and run setup again (behind the Admin PIN); a kid sees "Ask a parent".
+- WP-13 Back: pops within a tab, then moves focus to the sidebar; from the sidebar, Back twice within 2 s leaves the app; double Back from content returns to Home.
+- WP-13 Home: the profile menu is removed (the sidebar avatar replaces it), and the hero text fades while the sidebar has focus.
 - Project document pack (README, CLAUDE.md, spec, roadmap with numbered work packages, modules, architecture, design, integrations, permissions, references, decisions, glossary).
 - Decisions through 1 November 2026: name Perch; build from scratch referencing Dusk and Swiftfin; app only with no proxy or hub; Plex PINs for profiles and an Admin PIN; provider-agnostic bring-your-own-key AI with permission levels and no free chat; setup wizard, welcome guide and feedback; Seerr-only polling and user-controlled Plex library refresh.
 

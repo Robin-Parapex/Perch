@@ -89,7 +89,7 @@ final class ProfilePickerUITests: XCTestCase {
         openPicker(app)
         tap("profile.1001", in: app)
         waitForHome(app, as: "Robin")
-        openProfileMenuItem("home.switchProfile", app)
+        openPickerFromSidebar(app)
         let title = element(app, "picker.title")
         waitFor(title)
         let first = element(app, "profile.1001")
@@ -140,7 +140,7 @@ final class ProfilePickerUITests: XCTestCase {
         waitForHome(app, as: "Sam")
         shot("25-home-as-sam")
 
-        openProfileMenuItem("home.switchProfile", app)
+        openPickerFromSidebar(app)
         waitFor(element(app, "picker.title"))
         shot("26-picker-as-sam")
 
@@ -150,7 +150,7 @@ final class ProfilePickerUITests: XCTestCase {
         XCTAssertFalse(element(app, "pinPad.1").exists)
 
         // Robin has no Plex PIN, but leaving a kid asks for the Admin PIN.
-        openProfileMenuItem("home.switchProfile", app)
+        openPickerFromSidebar(app)
         waitFor(element(app, "picker.title"))
         tap("profile.1001", in: app)
         waitFor(element(app, "pinPad.1"))
@@ -173,18 +173,15 @@ final class ProfilePickerUITests: XCTestCase {
         tap("profile.1003", in: app)
         waitForHome(app, as: "Sam")
 
-        // A kid's profile menu has no setup button, only the reason.
-        tap("home.profileMenu", in: app)
-        let refusal = element(app, "home.setupRefused")
+        // A kid's Settings has no setup button, only the reason (WP-13: moved from the profile menu).
+        openSettings(app)
+        let refusal = element(app, "settings.setupRefused")
         waitFor(refusal)
         XCTAssertEqual(text(refusal), "Ask a parent to change setup")
-        XCTAssertFalse(element(app, "home.runSetup").exists, "a kid is not offered setup")
+        XCTAssertFalse(element(app, "settings.runSetup").exists, "a kid is not offered setup")
         XCTAssertFalse(element(app, "pinPad.1").exists, "a kid is not offered a keypad")
         XCTAssertFalse(element(app, "root.rerun").exists, "setup did not open")
         shot("28-kid-refused-setup")
-        back()
-        XCTAssertTrue(waitForGone(refusal), "Back closes the menu")
-        waitForHome(app, as: "Sam")
     }
 
     /// A parent can re-run setup with the Admin PIN (the other half of the gate).
@@ -197,7 +194,8 @@ final class ProfilePickerUITests: XCTestCase {
         tap("profile.1001", in: app)
         XCTAssertFalse(element(app, "pinPad.1").exists)
         waitForHome(app, as: "Robin")
-        openProfileMenuItem("home.runSetup", app)
+        openSettings(app)
+        tap("settings.runSetup", in: app)
         waitFor(element(app, "home.setupPIN"))
         shot("29-rerun-admin-pin")
         enterPIN(adminPerchPIN, in: app)
@@ -213,7 +211,7 @@ final class ProfilePickerUITests: XCTestCase {
 
         app = relaunch(app, plexTVDown: true)
         waitForHome(app, as: "Robin")
-        openProfileMenuItem("home.switchProfile", app)
+        openPickerFromSidebar(app)
         waitFor(element(app, "picker.title"))
         for id in ["profile.1001", "profile.1002", "profile.1003"] {
             XCTAssertTrue(element(app, id).waitForExistence(timeout: 10), "\(id) shown from the cache")

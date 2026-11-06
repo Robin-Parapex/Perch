@@ -1,40 +1,45 @@
 import SwiftUI
 
-/// Translucent pill with the profile avatar and name; the Home entry point for switching profile until Settings exists.
-public struct ProfileMenuButton<Avatar: View>: View {
+/// The profile avatar and name at the top of the sidebar (DESIGN: "profile avatar at the top"); selecting it opens
+/// the profile picker. Glass at rest, a white pill with the system lift when focused. Kids get a larger avatar
+/// and the kids type scale. Was WP-09's top-right ProfileMenuButton; moved into the sidebar in WP-13.
+public struct SidebarProfileButton<Avatar: View>: View {
     @Environment(\.perchStyle) private var style
 
-    static var avatarSize: CGFloat { 44 }
+    public static func avatarSize(_ style: PerchStyle) -> CGFloat { style == .kids ? 56 : 48 }
 
     private let name: String
+    private let nameIdentifier: String?
     private let action: () -> Void
     private let avatar: Avatar
 
-    public init(name: String, action: @escaping () -> Void, @ViewBuilder avatar: () -> Avatar) {
+    /// `nameIdentifier` labels the name for UI tests (the app passes its own id; the package names none).
+    public init(name: String, nameIdentifier: String? = nil, action: @escaping () -> Void, @ViewBuilder avatar: () -> Avatar) {
         self.name = name
+        self.nameIdentifier = nameIdentifier
         self.action = action
         self.avatar = avatar()
     }
 
     public var body: some View {
         Button(action: action) {
-            HStack(spacing: 12) {
+            HStack(spacing: 16) {
                 avatar
-                    .frame(width: Self.avatarSize, height: Self.avatarSize)
+                    .frame(width: Self.avatarSize(style), height: Self.avatarSize(style))
                     .clipShape(Circle())
                 Text(name)
-                    .font(PerchFont.metadata(style))
+                    .font(PerchFont.metadata(style).weight(.semibold))
                     .lineLimit(1)
-                    .accessibilityIdentifier("home.profileName")
+                    .accessibilityIdentifier(nameIdentifier ?? "")
             }
-            .padding(.leading, 12)
+            .padding(.leading, 10)
             .padding(.trailing, 24)
         }
-        .buttonStyle(ProfileMenuButtonStyle())
+        .buttonStyle(SidebarProfileButtonStyle())
     }
 }
 
-private struct ProfileMenuButtonStyle: ButtonStyle {
+private struct SidebarProfileButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         Focused(configuration: configuration)
     }
@@ -63,6 +68,6 @@ private struct ProfileMenuButtonStyle: ButtonStyle {
 }
 
 #Preview {
-    ProfileMenuButton(name: "Sam", action: {}) { Color.indigo }
+    SidebarProfileButton(name: "Sam", action: {}) { Color.indigo }
         .perchPageBackground()
 }

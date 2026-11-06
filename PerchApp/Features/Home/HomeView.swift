@@ -4,7 +4,6 @@ import PerchCore
 import PerchDesign
 import PerchPlex
 import SwiftUI
-import UIKit
 
 /// The Home screen (docs/design/wp-09-home.md): the hero, then up to three rows, from the cached rows in the
 /// first frame and refreshed in place. Never a spinner.
@@ -13,8 +12,8 @@ struct HomeView: View {
     let home: HomeProfile?
     @Bindable var model: HomeModel
     let onSwitchProfile: () -> Void
-    let onRunSetup: () -> Void
-    let onGallery: (() -> Void)?
+    /// Bumped by the shell when double-tap Back returns to Home's root: focus goes to the hero, the page to the top.
+    var rootRequest = 0
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.perchStyle) private var style
@@ -22,8 +21,6 @@ struct HomeView: View {
     /// False in the first frame: rows sit at opacity 0 and fade up in turn (spec 7).
     @State private var revealed = false
     @State private var started = false
-    @State private var menuShown = false
-    @State private var avatar: UIImage?
     /// The card or button that started playback, so Back from the player lands on it.
     @State private var playbackOrigin: HomeFocus?
 
@@ -32,8 +29,13 @@ struct HomeView: View {
     /// Brings a row's header to the 60 pt top margin when one of its cards takes focus (spec 3.2).
     private static let rowAnchor = UnitPoint(x: 0.5, y: PerchSpacing.topMargin / 1080)
 
-    private var memory: HomeFocusMemory { .shared }
-    private var profileID: String { home?.profile.id.rawValue ?? "" }
+    private var memory: FocusMemory { .shared }
+    private var scope: FocusMemory.Scope { .init(profileID: home?.profile.id.rawValue ?? "", screen: HomeFocus.screen) }
+    /// Where focus lands when it comes back into Home from the sidebar: the last focused card or the hero (WP-13).
+    private var restoredFocus: HomeFocus {
+        if let last = memory.lastFocus(HomeFocus.self, in: scope), isPresent(last) { return last }
+        return .hero
+    }
     private var playerActive: Bool { core.playback.activeSession != nil }
     private var serverUnreachable: Bool { core.plexSignIn.snapshot.state == .serverUnreachable }
     private var connecting: Bool { core.plexSignIn.snapshot.state == .connecting }
@@ -57,20 +59,20 @@ struct HomeView: View {
             .ignoresSafeArea()
             .onChange(of: focus) { old, new in focusChanged(from: old, to: new, proxy: proxy) }
         }
-        .defaultFocus($focus, .hero)
+        // Focus coming back from the sidebar (a tab switch, Back at the root) lands where it was (WP-13).
+        .defaultFocus($focus, restoredFocus, priority: .userInitiated)
         .perchCornerNotice(isPresented: $model.offlineNotice, autoDismissAfter: .seconds(6)) {
             Text(HomeStrings.offlineCached)
                 .font(PerchFont.body(style))
                 .foregroundStyle(PerchColor.textPrimary)
                 .accessibilityIdentifier("home.serverDown")
         }
-        .perchTopSheet(isPresented: $menuShown) { menuSheet }
-        // On a card, Back goes to the hero (as the TV app does); at the hero the system's Back applies.
-        // With no hero (rows but no pick) the menu is the target, so Back is never swallowed.
-        .onExitCommand(perform: focus?.rowID != nil ? { focus = model.heroItem != nil ? .hero : .profileMenu } : nil)
+        // On a card, Back goes to the hero (as the TV app does); at the hero (or with no hero) the shell's Back
+        // applies, which moves focus to the sidebar (WP-13).
+        .onExitCommand(perform: focus?.rowID != nil && model.heroItem != nil ? { focus = .hero } : nil)
         .onAppear { appeared() }
         .task { await start() }
-        .task(id: home?.profile.id) { await loadAvatar() }
+        .onChange(of: rootRequest) { _, _ in returnToRoot() }
         .onChange(of: playerActive) { _, active in if !active { returnedFromPlayer() } }
         .onChange(of: serverUnreachable) { _, unreachable in model.serverStateChanged(unreachable: unreachable) }
         // Refresh once the server question is settled: ready fetches, unreachable fails and raises the notice.
@@ -93,7 +95,10 @@ struct HomeView: View {
         LaunchSignpost.homeFirstFrame()
         #endif
         guard !revealed else { return }
-        if model.heroItem != nil { focus = .hero }
+        if model.heroItem != nil {
+            focus = .hero
+
+        }
         if model.state == .content {
             revealed = true  // each row's own delayed animation runs the stagger
         } else {
@@ -132,16 +137,22 @@ struct HomeView: View {
         }
     }
 
-    private func loadAvatar() async {
-        guard let home else { return }
-        let users = await core.plexSignIn.session.cachedHomeUsers()
-        guard let user = users.first(where: { $0.id == home.profile.id.rawValue }),
-            let request = await core.artwork.avatarRequest(thumb: user.thumb)
-        else { return }
-        if let image = core.artwork.cachedImage(request) {
-            avatar = image
-        } else {
-            avatar = await core.artwork.image(request)
+    /// Double-tap Back: the hero (or the first card when there is none), the page at the top.
+    private func returnToRoot() {
+        let first = model.rows.first?.items.first.map { HomeFocus.card(row: model.rows[0].id, item: $0.id) }
+        Task {
+            // After the tab switch has settled, so the focus engine takes the request.
+            try? await Task.sleep(for: .milliseconds(150))
+            focus = model.heroItem != nil ? .hero : first
+        }
+    }
+
+    /// The focus target still exists on the page.
+    private func isPresent(_ target: HomeFocus) -> Bool {
+        switch target {
+        case .hero: model.heroItem != nil
+        case .card(let row, let item):
+            model.rows.first(where: { $0.id == row })?.items.contains(where: { $0.id == item }) == true
         }
     }
 
@@ -149,20 +160,16 @@ struct HomeView: View {
 
     private func focusChanged(from old: HomeFocus?, to new: HomeFocus?, proxy: ScrollViewProxy) {
         guard let new else { return }
-        // Up from a row lands on the hero button, never on the profile menu above it (spec 5).
-        if new == .profileMenu, old?.rowID != nil, model.heroItem != nil {
-            focus = .hero
-            return
-        }
-        // Entering a row from elsewhere: its remembered card, when that card is still there.
-        if case .card(let row, let item) = new, old?.rowID != row,
-            let remembered = memory.rememberedItem(row: row, profileID: profileID), remembered != item,
+        // Entering a row from another row or the hero: its remembered card, when that card is still there.
+        // Coming in from the sidebar (old is nil) the default focus has already chosen the remembered place.
+        if case .card(let row, let item) = new, old != nil, old?.rowID != row,
+            let remembered = memory.rememberedItem(group: row, in: scope), remembered != item,
             model.rows.first(where: { $0.id == row })?.items.contains(where: { $0.id == remembered }) == true
         {
             focus = .card(row: row, item: remembered)
             return
         }
-        memory.record(new, profileID: profileID)
+        memory.record(new, in: scope, group: new.rowID, item: new.itemID)
         withAnimation(PerchMotion.spring) {
             if let row = new.rowID {
                 proxy.scrollTo(Self.anchorID(row), anchor: Self.rowAnchor)
@@ -227,7 +234,10 @@ struct HomeView: View {
         }
         // The whole hero width is one focus section, so Up from any card in row 1 reaches the hero button.
         .focusSection()
-        .overlay(alignment: .topTrailing) { profileMenu }
+        // With a hero up and nothing on Home focused, focus is in the sidebar: the expanded panel's glass would
+        // show the 96 pt title through it, cut at its edge, so the hero text fades back (WP-13). The system's
+        // own dimming of unfocused content still applies.
+        .environment(\.perchHeroDimmed, focus == nil && model.heroItem != nil)
         .transition(.opacity)
         .animation(.easeInOut(duration: PerchMotion.crossfadeDuration), value: model.state)
     }
@@ -273,62 +283,6 @@ struct HomeView: View {
         .buttonStyle(.perchPrimary)
         .focused($focus, equals: .hero)
         .accessibilityIdentifier("home.hero.action")
-    }
-
-    /// Top-right, scrolls with the hero; its column is a focus section so Right from the hero button reaches it.
-    private var profileMenu: some View {
-        let name = home?.profile.displayName ?? ""
-        return VStack {
-            ProfileMenuButton(name: name, action: { menuShown = true }) {
-                ProfileAvatarImage(name: name, size: 44, image: avatar.map { Image(uiImage: $0).resizable() })
-            }
-            .focused($focus, equals: .profileMenu)
-            .accessibilityIdentifier("home.profileMenu")
-            Spacer(minLength: 0)
-        }
-        .padding(.top, PerchSpacing.topMargin)
-        .padding(.trailing, PerchSpacing.horizontalMargin)
-        .frame(maxHeight: .infinity, alignment: .top)
-        .focusSection()
-    }
-
-    private var menuSheet: some View {
-        VStack(alignment: .leading, spacing: 32) {
-            Text(home?.profile.displayName ?? "")
-                .font(PerchFont.section(style))
-                .foregroundStyle(PerchColor.textPrimary)
-            HStack(spacing: 24) {
-                Button(HomeStrings.switchProfile) {
-                    menuShown = false
-                    onSwitchProfile()
-                }
-                .buttonStyle(.perchPrimary)
-                .accessibilityIdentifier("home.switchProfile")
-                if home?.isKid == true {
-                    // A kid sees why there is no setup control (spec 6, kid profile).
-                    Text(HomeStrings.askParent)
-                        .font(PerchFont.body(style))
-                        .foregroundStyle(PerchColor.textSecondary)
-                        .accessibilityIdentifier("home.setupRefused")
-                } else {
-                    Button(HomeStrings.runSetup) {
-                        menuShown = false
-                        onRunSetup()
-                    }
-                    .buttonStyle(.perchSecondary)
-                    .accessibilityIdentifier("home.runSetup")
-                }
-                if let onGallery {
-                    Button("Design gallery") {
-                        menuShown = false
-                        onGallery()
-                    }
-                    .buttonStyle(.perchSecondary)
-                    .accessibilityIdentifier("placeholder.gallery")
-                }
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: Rows

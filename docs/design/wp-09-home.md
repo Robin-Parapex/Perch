@@ -43,7 +43,7 @@ Not in 0.2: sidebar (WP-13; Home uses the full width and the 80 pt margins, whic
   5. Metadata line, 22 pt `textSecondary`, items separated by a middle dot with 12 pt either side: film "2024 · 1 h 52 min · 15"; series "Series · 2024 · 12"; episode "Series title · S2 E5 · 31 min left" (drop "min left" when `remainingMs` is nil). The certificate is a thin outlined `Pill` 18 pt, the only badge on the hero in 0.2.
   6. 20 pt gap.
   7. Logo box 600 x 140, image fitted and bottom-left aligned (`logoPath` at `ArtworkSize.logo`). **Text fallback** when there is no logo: title in the 96 pt hero font, white 100%, one line, `minimumScaleFactor` 0.6, bottom-aligned on the same baseline as the logo box, with a 0 x 2 pt black 40% shadow so it reads over bright art. The fallback must look like a choice, not a failure: same position, same weight, no "no logo" styling.
-- **Default focus** on launch and on returning to Home is the hero's Play button. First frame: the button is focusable immediately; the entrance animation never delays input.
+- **Default focus** on returning to Home is the hero's Play button. First frame: the button is focusable immediately; the entrance animation never delays input. At launch, since WP-13, the tvOS 27 sidebar takes the first focus (its Home item) and ignores focus requests, so the hero is one Right away (DECISIONS, WP-13).
 
 ### 3.2 Rows (from 864 pt)
 
@@ -165,7 +165,7 @@ From `docs/ROADMAP.md` 0.2.0:
 
 1. **Home renders from cache with no spinner on second launch.** Verified on the test simulator with the fake household: first launch populates the snapshot; the second launch is captured at its first frame and must show hero and rows (checklist S1). A unit test proves `cachedRow` output renders without any async work; a UI test asserts no `ProgressView` identifier appears on Home at any time.
 2. **Launch to Home under 1.5 s warm.** A DEBUG-only signpost from process start to the first Home frame, read from the simulator log, on the live simulator against the household server, three runs, all under 1.5 s. Reported with the numbers. Not verified on the Apple TV (simulator-only period, see memory).
-3. **Two clicks or fewer to resume.** UI test: launch, press Select (hero Resume) resumes the fixture's in-progress item; and launch, Down, Select resumes from row 1.
+3. **Two clicks or fewer to resume.** UI test: launch, Right then Select (hero Resume) resumes the fixture's in-progress item; and launch, Right, Down, Select resumes from row 1. (Since WP-13 the sidebar holds the launch focus, so the first Right enters Home on the hero; resume is still two clicks.)
 4. **Back returns where you were.** UI test: focus row 1 card 3, Select, Back; focus is on row 1 card 3.
 
 ## 12. Screenshot checklist (defines done)

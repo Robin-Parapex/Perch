@@ -9,6 +9,7 @@ public struct DesignGallery: View {
     @State private var topSheet = false
     @State private var cornerNotice = false
     @State private var cornerPill = false
+    @State private var fullScreen = false
     @State private var replay = 0
     @Namespace private var focusNamespace
 
@@ -30,6 +31,7 @@ public struct DesignGallery: View {
                 pillsSection
                 heroSection
                 homeSection.id("home")
+                sidebarSection.id("sidebar")
                 rowsSection
                 setupSection.id("setup")
                 kidsSection
@@ -69,6 +71,15 @@ public struct DesignGallery: View {
         .perchCornerPill(isPresented: $cornerPill, title: "Skip intro", systemImage: "forward.fill") {
             cornerPill = false
         }
+        .perchFullScreen(isPresented: $fullScreen) {
+            VStack(spacing: 32) {
+                Text("Full screen").font(PerchFont.stepTitle(style)).foregroundStyle(PerchColor.textPrimary)
+                Button("Close") { fullScreen = false }
+                    .buttonStyle(.perchPrimary)
+                    .accessibilityIdentifier("fullScreen.close")
+            }
+            .environment(\.perchStyle, style)
+        }
     }
 
     // MARK: Sections
@@ -85,6 +96,8 @@ public struct DesignGallery: View {
                     .accessibilityIdentifier("gallery.showCornerNotice")
                 Button("Show corner pill") { cornerPill = true }
                     .accessibilityIdentifier("gallery.showCornerPill")
+                Button("Show full screen") { fullScreen = true }
+                    .accessibilityIdentifier("gallery.showFullScreen")
             }
             .buttonStyle(.perchSecondary)
         }
@@ -157,8 +170,7 @@ public struct DesignGallery: View {
     private var homeSection: some View {
         section("Home", fullWidth: true) {
             VStack(alignment: .leading, spacing: 48) {
-                ZStack(alignment: .topTrailing) {
-                    VStack(alignment: .leading, spacing: 0) {
+                VStack(alignment: .leading, spacing: 0) {
                         HeroCard(
                             title: "Dune: Part Two",
                             synopsis: "Paul Atreides unites with the Fremen while seeking revenge against those who destroyed his family.",
@@ -191,11 +203,6 @@ public struct DesignGallery: View {
                             }
                         }
                         .frame(height: 1100)
-                    }
-                    ProfileMenuButton(name: "Sam", action: {}) { Self.sampleArt(.indigo, "person.fill") }
-                        .padding(.top, PerchSpacing.topMargin)
-                        .padding(.trailing, PerchSpacing.horizontalMargin)
-                        .accessibilityIdentifier("gallery.profileMenu")
                 }
                 .accessibilityIdentifier("gallery.home")
                 // Text fallback: no logo artwork, title in the hero font.
@@ -212,6 +219,28 @@ public struct DesignGallery: View {
                     secondary: .init("Check again", identifier: "gallery.heroMessage.secondary") {}
                 )
                 .background(Color.black.opacity(0.2))
+            }
+        }
+    }
+
+    /// WP-13: the sidebar's profile button (standard and kids) and the empty state the Films, Series and Search
+    /// tabs show. The sidebar itself is the system's.
+    private var sidebarSection: some View {
+        section("Sidebar and empty states") {
+            VStack(alignment: .leading, spacing: 32) {
+                HStack(spacing: 32) {
+                    SidebarProfileButton(name: "Robin", action: {}) { Self.sampleArt(.indigo, "person.fill") }
+                        .accessibilityIdentifier("gallery.sidebarProfile")
+                    SidebarProfileButton(name: "Sam", action: {}) { Self.sampleArt(.orange, "person.fill") }
+                        .environment(\.perchStyle, .kids)
+                }
+                HStack(spacing: 32) {
+                    PerchEmptyState(systemImage: "film", title: "Films", message: "Browse your films here soon.")
+                    PerchEmptyState(systemImage: "magnifyingglass", title: "Search", message: "Search is on its way.")
+                        .environment(\.perchStyle, .kids)
+                }
+                .frame(height: 420)
+                .background(Color.black.opacity(0.2), in: RoundedRectangle(cornerRadius: 24))
             }
         }
     }
