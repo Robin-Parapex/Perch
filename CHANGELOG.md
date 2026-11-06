@@ -78,6 +78,9 @@ All notable changes to Perch. Format follows Keep a Changelog; versions follow `
 - WP-11 Series page: season chips, episode shelf, and one Play next rule used everywhere a series plays; a jump chip goes to the next episode's season.
 - WP-11 Cast rail (focusable, no action until person pages) and a theme music hook, off by default for everyone and never for kids.
 - WP-11 Select on a grid, collection or Home series card opens the page; Play/Pause plays. Home refreshes after Back from a page. Certificates show without the country prefix.
+- WP-12 Search tab: the system search field and keyboard (dictation through the Siri button), with Films, Series, Episodes and Collections in rows below. Nothing typed shows Recently added.
+- WP-12 Search results: Select opens a film or series page and plays an episode; Play/Pause plays. Back from a page or the player returns to the same result, and the query is kept per profile until a profile switch.
+- WP-12 Search rating checks run in the app on every result, because the server ignores the rating filter on search. Kids see no 15 or 18 results and no unrated or collection results.
 - Project document pack (README, CLAUDE.md, spec, roadmap with numbered work packages, modules, architecture, design, integrations, permissions, references, decisions, glossary).
 - Decisions through 1 November 2026: name Perch; build from scratch referencing Dusk and Swiftfin; app only with no proxy or hub; Plex PINs for profiles and an Admin PIN; provider-agnostic bring-your-own-key AI with permission levels and no free chat; setup wizard, welcome guide and feedback; Seerr-only polling and user-controlled Plex library refresh.
 
