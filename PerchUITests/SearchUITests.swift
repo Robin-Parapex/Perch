@@ -17,6 +17,7 @@ final class SearchUITests: XCTestCase {
     // MARK: Helpers
 
     /// Screenshot as an attachment, and to `PERCH_SHOT_DIR` when the runner has it (`TEST_RUNNER_PERCH_SHOT_DIR`).
+    @MainActor
     private func capture(_ name: String) {
         shot(name)
         if let folder = ProcessInfo.processInfo.environment["PERCH_SHOT_DIR"], !folder.isEmpty {
@@ -52,6 +53,7 @@ final class SearchUITests: XCTestCase {
         RunLoop.current.run(until: Date().addingTimeInterval(0.8))
     }
 
+    @MainActor
     private func field(_ app: XCUIApplication) -> XCUIElement { app.searchFields.firstMatch }
 
     @MainActor
@@ -75,8 +77,10 @@ final class SearchUITests: XCTestCase {
     @MainActor
     func testTypeSelectBackAndReturnToTab() throws {
         let app = try openSearch()
-        waitFor(element(app, "search.hint"), timeout: 5, "the quiet hint with nothing typed")
-        capture("wp12-empty")
+        // Nothing typed: Home's Recently added under the keyboard, no hint.
+        waitFor(element(app, "search.row.recent"), timeout: 5, "Recently added with nothing typed")
+        XCTAssertFalse(element(app, "search.hint").exists)
+        capture("wp12b-empty")
 
         type("harbour", app)
         waitFor(element(app, "search.item.1001"), timeout: 10, "results appear")
@@ -84,7 +88,7 @@ final class SearchUITests: XCTestCase {
         XCTAssertTrue(element(app, "search.row.series").exists)
         XCTAssertTrue(resultIDs(app).isSuperset(of: ["1001", "2202", "3000", "2208"]), "\(resultIDs(app))")
         RunLoop.current.run(until: Date().addingTimeInterval(1))
-        capture("wp12-results")
+        capture("wp12b-results")
 
         // Select a film: its title page; Back returns to the same result.
         XCTAssertTrue(focus(element(app, "search.item.1001"), in: app), "the film result takes focus")
@@ -103,6 +107,24 @@ final class SearchUITests: XCTestCase {
         XCTAssertEqual(field(app).value as? String, "harbour", "the query is kept")
     }
 
+    /// Play/Pause on a result plays it; Back from the player returns focus to the same card (review finding).
+    @MainActor
+    func testPlayFromSearchAndBackReturnsToTheCard() throws {
+        let app = try openSearch()
+        type("harbour", app)
+        waitFor(element(app, "search.item.1001"), timeout: 10, "results appear")
+        XCTAssertTrue(focus(element(app, "search.item.1001"), in: app), "the film result takes focus")
+        XCUIRemote.shared.press(.playPause)
+        XCTAssertTrue(waitUntil(10) { !self.element(app, "search.root").isHittable }, "the player opens")
+        // Menu until Search shows again (the player may first close its transport bar or finish loading).
+        for _ in 0..<4 {
+            back()
+            if waitUntil(4, { self.element(app, "search.root").isHittable }) { break }
+        }
+        XCTAssertTrue(element(app, "search.root").isHittable, "Search is visible again after Back")
+        XCTAssertTrue(waitUntil(6) { self.element(app, "search.item.1001").hasFocus }, "Back from the player lands on the same card")
+    }
+
     /// A query nothing matches: the calm message.
     @MainActor
     func testNoResultsMessage() throws {
@@ -111,7 +133,7 @@ final class SearchUITests: XCTestCase {
         waitFor(element(app, "search.noResults"), timeout: 10, "the no-results message")
         XCTAssertTrue(resultIDs(app).isEmpty)
         RunLoop.current.run(until: Date().addingTimeInterval(0.5))
-        capture("wp12-noresults")
+        capture("wp12b-noresults")
     }
 
     /// A kid never sees a 15 or 18 title, even when the server leaks them (`-PerchFakeSearchIgnoresRestriction`).
@@ -125,6 +147,6 @@ final class SearchUITests: XCTestCase {
         let shown = resultIDs(app)
         XCTAssertTrue(shown.isDisjoint(with: Self.adultOnly), "adult titles shown to a kid: \(shown.intersection(Self.adultOnly))")
         XCTAssertFalse(element(app, "search.row.collections").exists, "no collections for a kid")
-        capture("wp12-kid")
+        capture("wp12b-kid")
     }
 }

@@ -31,7 +31,24 @@ enum SearchProbe {
                 "PROBE search q=\(query, privacy: .public) unfiltered=\(all, privacy: .public) (\(elapsed.components.seconds, privacy: .public)s+\(elapsed.components.attoseconds / 1_000_000_000_000_000, privacy: .public)ms) PG=\(pg, privacy: .public) impossible=\(none, privacy: .public)"
             )
         }
+        await collections(library, "the")
         log.notice("PROBE search done")
+    }
+
+    /// Collections for `query`: how many lack their section or type, and how many an owner (server ceiling, not a
+    /// kid) keeps after the app's guard. Counts only.
+    private static func collections(_ library: PlexLibrary, _ query: String) async {
+        guard let raw = try? await library.search(query: query) else {
+            log.notice("PROBE search collections q=\(query, privacy: .public) error")
+            return
+        }
+        let owner = RowContext(profileID: "probe", serviceCeiling: .eighteen, ceiling: .eighteen)
+        let kept = SearchModel.guardResults(raw, context: owner, isKid: false).collections.count
+        let noSection = raw.collections.filter { $0.sectionID == nil }.count
+        let noKind = raw.collections.filter { $0.kind == nil }.count
+        log.notice(
+            "PROBE search collections q=\(query, privacy: .public) raw=\(raw.collections.count, privacy: .public) noSection=\(noSection, privacy: .public) noType=\(noKind, privacy: .public) ownerAfterGuard=\(kept, privacy: .public)"
+        )
     }
 
     /// "films/series/episodes/collections", or the error's type.

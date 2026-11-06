@@ -31,6 +31,7 @@ final class SearchModel {
 
     static let log = Logger(subsystem: "com.robrolabs.perch", category: "search")
     static let defaultDebounce: Duration = .milliseconds(300)
+    static let defaultRetryDelay: Duration = .seconds(1)
 
     let context: RowContext
     let isKid: Bool
@@ -48,18 +49,24 @@ final class SearchModel {
     private let admittedRatings: AdmittedRatings
     private let debounce: Duration
     private let sendsRatingFilter: Bool
+    private let retryDelay: Duration
+    /// Whether the session is ready now: a search that fails while it is ready is retried once.
+    private let isSessionReady: @MainActor () -> Bool
     private var cachedRatings: Set<String>?
     private var task: Task<Void, Never>?
 
     init(
         context: RowContext, isKid: Bool, debounce: Duration = SearchModel.defaultDebounce,
-        sendsRatingFilter: Bool = SearchModel.serverHonoursRatingFilter,
+        sendsRatingFilter: Bool = SearchModel.serverHonoursRatingFilter, retryDelay: Duration = SearchModel.defaultRetryDelay,
+        isSessionReady: @escaping @MainActor () -> Bool = { false },
         search: @escaping Search, admittedRatings: @escaping AdmittedRatings
     ) {
         self.context = context
         self.isKid = isKid
         self.debounce = debounce
         self.sendsRatingFilter = sendsRatingFilter
+        self.retryDelay = retryDelay
+        self.isSessionReady = isSessionReady
         self.search = search
         self.admittedRatings = admittedRatings
     }
@@ -91,19 +98,24 @@ final class SearchModel {
         }
     }
 
-    /// The session became ready: a query that failed (typed, dictated or restored while the app was still
-    /// connecting) runs again at once. Otherwise nothing happens.
+    /// The session became (or became again) ready: a query whose results are not on screen (it failed, or was typed,
+    /// dictated, edited or restored while the app was connecting) runs at once. Results for the current query stay.
     func sessionReady() {
         let trimmed = Self.trimmed(query)
-        guard !trimmed.isEmpty, phase == .failed else { return }
+        guard !trimmed.isEmpty, trimmed != shownQuery || phase == .failed else { return }
         task?.cancel()
         task = Task { [weak self] in await self?.run(trimmed) }
     }
 
-    /// Waits for the current request, if any (tests).
-    func settle() async { await task?.value }
+    /// Waits for the current request, and a retry it scheduled, if any (tests).
+    func settle() async {
+        while let current = task {
+            await current.value
+            if task == current { return }
+        }
+    }
 
-    private func run(_ trimmed: String) async {
+    private func run(_ trimmed: String, retrying: Bool = true) async {
         let ratings = await ratingFilter()
         guard !Task.isCancelled else { return }
         requestCount += 1
@@ -115,8 +127,20 @@ final class SearchModel {
             shownQuery = trimmed
             phase = guarded.isEmpty ? .noResults : .results
         } catch {
-            guard !Task.isCancelled, !(error is CancellationError) else { return }
+            // Only this task's own cancellation (a newer query) is quiet. A `CancellationError` thrown while the task
+            // runs on is the library's (the session changed under the request, as on a reconnect): a failure.
+            guard !Task.isCancelled, Self.trimmed(query) == trimmed else { return }
             Self.log.notice("Search failed: \(String(describing: type(of: error)), privacy: .public)")
+            // Failed although the session is ready (a reconnect landed during the request): one more try shortly.
+            if retrying, isSessionReady() {
+                let delay = retryDelay
+                task = Task { [weak self] in
+                    try? await Task.sleep(for: delay)
+                    guard !Task.isCancelled else { return }
+                    await self?.run(trimmed, retrying: false)
+                }
+                return
+            }
             // Keep what is shown; only an empty screen says the search could not run.
             if results.isEmpty { phase = .failed }
         }
@@ -134,7 +158,8 @@ final class SearchModel {
 
     /// The guard on every result: `RowContext.admits` (when the ceiling is lowered), and for a kid the certificate
     /// check against the profile ceiling whatever the server says, unrated failing closed. Collections carry no
-    /// certificate of their own, so a kid or a lowered ceiling sees none in search.
+    /// certificate of their own, so a kid or a lowered ceiling sees none in search. An adult's collections stay even
+    /// when the server left out their section or type (the collection page does not need them at the server's ceiling).
     nonisolated static func guardResults(
         _ raw: PlexSearchResults, context: RowContext, isKid: Bool
     ) -> PlexSearchResults {
@@ -144,7 +169,7 @@ final class SearchModel {
         let collections = isKid || LibraryQueryBuilder.isCeilingLowered(context) ? [] : raw.collections
         return PlexSearchResults(
             films: admit(raw.films), series: admit(raw.series), episodes: admit(raw.episodes),
-            collections: collections.filter { $0.sectionID != nil && $0.kind != nil })
+            collections: collections)
     }
 
     nonisolated static func trimmed(_ text: String) -> String {
@@ -176,6 +201,9 @@ final class SearchStore {
         let context = home.context
         let model = SearchModel(
             context: context, isKid: home.isKid,
+            isSessionReady: {
+                if case .ready = core.plexSignIn.snapshot.state { true } else { false }
+            },
             search: { query, ratings in try await library.search(query: query, contentRatings: ratings) },
             admittedRatings: {
                 let sections = try await library.sections().filter { !$0.isOtherVideos }

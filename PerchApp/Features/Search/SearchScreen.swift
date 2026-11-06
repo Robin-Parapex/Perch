@@ -6,10 +6,13 @@ import SwiftUI
 /// The Search tab (WP-12, SPEC 7): the system search field and keyboard (`.searchable`), so holding the Siri button
 /// while the field has focus dictates into it; library results in rows below: Films, Series, Episodes, Collections.
 /// Select opens a title or series page (an episode plays, as on Home); Play/Pause plays, as on the grids. The query,
-/// results and focused result survive leaving the tab or opening a page; a profile switch starts afresh.
+/// results and focused result survive leaving the tab or opening a page; a profile switch starts afresh. Nothing
+/// typed: Home's Recently added row under the keyboard (no hint; the field and the system's dictation line say it).
 struct SearchScreen: View {
     let core: CoreServices
     let home: HomeProfile
+    /// Home's model for this profile: its Recently added row fills the empty tab.
+    let homeModel: HomeModel
     let onOpen: (ShellRoute) -> Void
 
     @State private var model: SearchModel
@@ -17,11 +20,14 @@ struct SearchScreen: View {
     @FocusState private var focus: SearchFocus?
     /// The result a page or the player was opened from; focus returns to it on Back.
     @State private var pendingRestore: SearchFocus?
+    /// False while a page is pushed over Search: the player closing then restores nothing here (the page does).
+    @State private var onScreen = true
     @Environment(\.perchStyle) private var style
 
-    init(core: CoreServices, home: HomeProfile, onOpen: @escaping (ShellRoute) -> Void) {
+    init(core: CoreServices, home: HomeProfile, homeModel: HomeModel, onOpen: @escaping (ShellRoute) -> Void) {
         self.core = core
         self.home = home
+        self.homeModel = homeModel
         self.onOpen = onOpen
         let model = SearchStore.shared.model(for: home, core: core)
         _model = State(initialValue: model)
@@ -34,30 +40,35 @@ struct SearchScreen: View {
         if case .ready = core.plexSignIn.snapshot.state { true } else { false }
     }
 
+    private var playerActive: Bool { core.playback.activeSession != nil }
+
     private var memory: FocusMemory { .shared }
     private var scope: FocusMemory.Scope { .init(profileID: home.profile.id.rawValue, screen: SearchFocus.screen) }
 
     var body: some View {
-        ScrollView(.vertical) {
-            VStack(alignment: .leading, spacing: 24) {
-                content
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            // The search content already sits inside the safe area; Row adds its own 80 pt margin. Pull the rows back
-            // so their titles and first cards line up with the keyboard's first key (about x 120), not x 160.
-            .padding(.leading, -Self.rowInsetCorrection)
-            .padding(.bottom, 80)
+        // Home's rows and metrics (RowList: 36 pt between rows, Row's own title and card spacing).
+        RowList {
+            content
+            Color.clear.frame(height: 44)
         }
         .scrollClipDisabled()
         .searchable(text: $text, prompt: SearchStrings.prompt)
+        // A plain page: no artwork tint behind the keyboard (the tint follows Home's hero and the grids' focus).
+        .background { PerchColor.base.ignoresSafeArea() }
         .onChange(of: text) { _, new in model.setQuery(new) }
         .onChange(of: focus) { _, new in
             guard let new else { return }
             memory.record(new, in: scope)
-            if case .item(_, let id) = new, let item = item(id) { core.artworkTint.focus(item) }
         }
-        .onAppear(perform: restorePending)
-        // A search made while the app was still connecting runs again once the session is ready.
+        // Back from the player (an overlay; Search stays on screen): focus returns to the card it was started from.
+        // With a page pushed over Search the page restores instead (WP-11 grids).
+        .onChange(of: playerActive) { _, active in if !active, onScreen { restorePending() } }
+        .onAppear {
+            onScreen = true
+            restorePending()
+        }
+        .onDisappear { onScreen = false }
+        // A search made while the app was still connecting (or across a reconnect) runs again once it is ready.
         .task(id: sessionReady) { if sessionReady { model.sessionReady() } }
         .defaultFocus($focus, memory.lastFocus(SearchFocus.self, in: scope).flatMap { isPresent($0) ? $0 : nil })
         .accessibilityElement(children: .contain)
@@ -70,7 +81,9 @@ struct SearchScreen: View {
     private var content: some View {
         switch model.phase {
         case .idle:
-            SearchMessage(title: SearchStrings.hintTitle, message: SearchStrings.hintMessage, identifier: "search.hint")
+            if SearchModel.trimmed(model.query).isEmpty, !recentlyAdded.isEmpty {
+                recentRow(recentlyAdded)
+            }
         case .noResults:
             SearchMessage(
                 title: SearchStrings.noResultsTitle, message: SearchStrings.noResultsMessage(model.shownQuery),
@@ -90,13 +103,32 @@ struct SearchScreen: View {
         Row(id: group, title: title) {
             ForEach(items) { item in card(item, group: group, landscape: landscape) }
         }
+        .padding(.leading, -Self.rowInsetCorrection)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("search.row.\(group)")
         .transition(.opacity)
     }
 
+    /// Home's Recently added for this profile, through the same guard as the results.
+    private var recentlyAdded: [MediaSummary] {
+        let items = homeModel.rows.first { $0.id == HomeRowID.recentlyAdded }?.items ?? []
+        return LibraryQueryBuilder.guardCollectionItems(items, context: home.context, isKid: home.isKid)
+    }
+
+    private func recentRow(_ items: [MediaSummary]) -> some View {
+        Row(id: "recent", title: HomeStrings.recentlyAdded) {
+            ForEach(items) { item in
+                card(item, group: "recent", landscape: false, identifier: "search.recent.\(item.id)")
+            }
+        }
+        .padding(.leading, -Self.rowInsetCorrection)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("search.row.recent")
+        .transition(.opacity)
+    }
+
     @ViewBuilder
-    private func card(_ item: MediaSummary, group: String, landscape: Bool) -> some View {
+    private func card(_ item: MediaSummary, group: String, landscape: Bool, identifier: String? = nil) -> some View {
         let caption = SearchStrings.caption(item)
         let key = SearchFocus.item(group: group, id: item.id)
         Group {
@@ -108,7 +140,11 @@ struct SearchScreen: View {
                     ArtworkImage(path: HomeView.landscapePath(item), size: .landscape)
                 }
             } else {
-                PosterCard(title: caption.title, subtitle: caption.subtitle, action: { select(item, from: key) }) {
+                // Focused, a long title takes the year's line too and reads in two lines (as on the grids).
+                PosterCard(
+                    title: caption.title, subtitle: caption.subtitle, expandsTitleWhenFocused: true,
+                    action: { select(item, from: key) }
+                ) {
                     ArtworkImage(path: item.artworkPath(for: .poster), size: .poster)
                 }
             }
@@ -120,7 +156,7 @@ struct SearchScreen: View {
                 Button(TitleStrings.goToSeries) { open(page, from: key) }
             }
         }
-        .accessibilityIdentifier("search.item.\(item.id)")
+        .accessibilityIdentifier(identifier ?? "search.item.\(item.id)")
     }
 
     private func collectionsRow(_ collections: [PlexSearchCollection]) -> some View {
@@ -129,7 +165,7 @@ struct SearchScreen: View {
                 let key = SearchFocus.item(group: "collections", id: collection.id)
                 PosterCard(
                     title: LibraryStrings.collectionTitle(collection.title),
-                    subtitle: LibraryStrings.collectionCount(collection.childCount),
+                    subtitle: LibraryStrings.collectionCount(collection.childCount), expandsTitleWhenFocused: true,
                     action: { open(collection, from: key) }
                 ) {
                     ArtworkImage(path: collection.thumbPath, size: .poster)
@@ -138,19 +174,19 @@ struct SearchScreen: View {
                 .accessibilityIdentifier("search.collection.\(collection.id)")
             }
         }
+        .padding(.leading, -Self.rowInsetCorrection)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("search.row.collections")
     }
 
     // MARK: Focus
 
-    private func item(_ id: String) -> MediaSummary? {
-        let results = model.results
-        return (results.films + results.series + results.episodes).first { $0.id == id }
-    }
-
     private func isPresent(_ target: SearchFocus) -> Bool {
-        guard model.phase == .results, case .item(let group, let id) = target else { return false }
+        guard case .item(let group, let id) = target else { return false }
+        if group == "recent" {
+            return model.phase == .idle && SearchModel.trimmed(model.query).isEmpty && recentlyAdded.contains { $0.id == id }
+        }
+        guard model.phase == .results else { return false }
         let results = model.results
         switch group {
         case "films": return results.films.contains { $0.id == id }
@@ -196,12 +232,14 @@ struct SearchScreen: View {
         onOpen(page)
     }
 
+    /// An adult's collection may come without its section or type (the server leaves them out of some rows). The
+    /// collection page needs neither at the server's own ceiling (only a lowered one looks the section's ratings up,
+    /// and a lowered ceiling sees no collections in search), so the fallbacks never filter anything.
     private func open(_ collection: PlexSearchCollection, from key: SearchFocus) {
-        guard let sectionID = collection.sectionID, let kind = collection.kind else { return }
         open(
             .collection(
                 LibraryCollectionRoute(
-                    sectionID: sectionID, kind: kind, collectionID: collection.id,
+                    sectionID: collection.sectionID ?? "", kind: collection.kind ?? .film, collectionID: collection.id,
                     title: LibraryStrings.collectionTitle(collection.title), summary: collection.summary,
                     artPath: collection.artPath, thumbPath: collection.thumbPath)),
             from: key)
@@ -240,8 +278,6 @@ private struct SearchMessage: View {
 /// Copy for Search, in sentence case (GLOSSARY): no service names.
 enum SearchStrings {
     static let prompt = "Films and series"
-    static let hintTitle = "Search films and series"
-    static let hintMessage = "Type or hold the Siri button to speak a title."
     static let noResultsTitle = "No matches"
     static func noResultsMessage(_ query: String) -> String { "Nothing in your library matches \u{201C}\(query)\u{201D}." }
     static let failedTitle = "Search isn\u{2019}t available right now"
@@ -251,7 +287,7 @@ enum SearchStrings {
     static let episodes = "Episodes"
     static let collections = "Collections"
 
-    /// Films and series: title and year. Episodes: the episode's title over its series and number.
+    /// Films and series: title, then the year on the second line (a focused long title takes both). Episodes: the episode's title over its series and number.
     static func caption(_ item: MediaSummary) -> (title: String, subtitle: String?) {
         guard item.kind == .episode else { return LibraryStrings.caption(item) }
         let number: String? =

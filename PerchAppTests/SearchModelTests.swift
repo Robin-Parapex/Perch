@@ -152,6 +152,83 @@ struct SearchModelTests {
         #expect(model.requestCount == 2)
     }
 
+    /// Review finding: a reconnect cancels the request with the library's own `CancellationError` (the task itself
+    /// runs on). That is a failure, and the query runs again once the session is ready.
+    @Test func libraryCancellationIsAFailureAndRunsAgainWhenReady() async {
+        let ready = Mutex(false)
+        let model = SearchModel(
+            context: Self.adult, isKid: false, debounce: .milliseconds(10), sendsRatingFilter: false,
+            search: { query, _ in
+                guard ready.withLock({ $0 }) else { throw CancellationError() }
+                return Self.mixed(query)
+            },
+            admittedRatings: { [] })
+        model.setQuery("the")
+        await model.settle()
+        #expect(model.phase == .failed)
+        ready.withLock { $0 = true }
+        model.sessionReady()
+        await model.settle()
+        #expect(model.phase == .results)
+        #expect(model.shownQuery == "the")
+    }
+
+    /// Review finding: results for "lantern" are shown, the query becomes "lanterns" while the app reconnects (that
+    /// search fails, the old results stay); ready runs the edited query rather than leaving stale results up.
+    @Test func editedQueryWhileConnectingRunsWhenReady() async {
+        let ready = Mutex(true)
+        let model = SearchModel(
+            context: Self.adult, isKid: false, debounce: .milliseconds(10), sendsRatingFilter: false,
+            search: { query, _ in
+                guard ready.withLock({ $0 }) else { throw URLError(.networkConnectionLost) }
+                return Self.mixed(query)
+            },
+            admittedRatings: { [] })
+        model.setQuery("lantern")
+        await model.settle()
+        #expect(model.shownQuery == "lantern")
+        ready.withLock { $0 = false }
+        model.setQuery("lanterns")
+        await model.settle()
+        #expect(model.phase == .results)  // the failure keeps what is shown
+        #expect(model.shownQuery == "lantern")
+        ready.withLock { $0 = true }
+        model.sessionReady()
+        await model.settle()
+        #expect(model.shownQuery == "lanterns")
+        #expect(model.results.films.first?.id == "u-lanterns")
+        #expect(model.requestCount == 3)
+    }
+
+    /// Review finding: a transport failure that lands after the reconnect (session already ready) gets one retry.
+    @Test func failureWhileReadyRetriesOnce() async {
+        let calls = Mutex(0)
+        let model = SearchModel(
+            context: Self.adult, isKid: false, debounce: .milliseconds(10), sendsRatingFilter: false,
+            retryDelay: .milliseconds(20), isSessionReady: { true },
+            search: { query, _ in
+                let call = calls.withLock { $0 += 1; return $0 }
+                guard call > 1 else { throw URLError(.networkConnectionLost) }
+                return Self.mixed(query)
+            },
+            admittedRatings: { [] })
+        model.setQuery("the")
+        await model.settle()
+        #expect(model.phase == .results)
+        #expect(model.requestCount == 2)
+
+        // A failure that persists: one retry only, then the message.
+        let failing = SearchModel(
+            context: Self.adult, isKid: false, debounce: .milliseconds(10), sendsRatingFilter: false,
+            retryDelay: .milliseconds(20), isSessionReady: { true },
+            search: { _, _ in throw URLError(.timedOut) },
+            admittedRatings: { [] })
+        failing.setQuery("the")
+        await failing.settle()
+        #expect(failing.phase == .failed)
+        #expect(failing.requestCount == 2)
+    }
+
     // MARK: Rating guard
 
     @Test func kidSeesOnlyTitlesWithinTheCeilingEvenWhenTheServerLeaks() async {
@@ -191,6 +268,18 @@ struct SearchModelTests {
         await model.settle()
         #expect(model.results.films.count == 5)
         #expect(model.results.collections.count == 1)
+    }
+
+    /// Live rows may leave out a collection's section and type: an adult still sees it; a kid and a lowered ceiling
+    /// see no collections at all.
+    @Test func adultKeepsCollectionsWithoutSectionOrType() {
+        let raw = PlexSearchResults(collections: [
+            PlexSearchCollection(id: "c1", title: "Known", sectionID: "1", kind: .film),
+            PlexSearchCollection(id: "c2", title: "Bare"),
+        ])
+        #expect(SearchModel.guardResults(raw, context: Self.adult, isKid: false).collections.map(\.id) == ["c1", "c2"])
+        #expect(SearchModel.guardResults(raw, context: Self.kid, isKid: true).collections.isEmpty)
+        #expect(SearchModel.guardResults(raw, context: Self.lowered, isKid: false).collections.isEmpty)
     }
 
     // MARK: Store

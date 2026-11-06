@@ -14,8 +14,8 @@ Branch `wp-12-search` from main 0baa0de (WP-13 sidebar, WP-10 grids, WP-11 title
   on an episode offers "Go to series".
 - **Debounce** 300 ms; each keystroke cancels the request in flight or waiting. A stale answer never replaces newer
   results (checked against the current query after the await).
-- **No spinner:** the previous results stay while the next query loads. Nothing typed: a quiet hint ("Search films
-  and series"). Nothing found: "No matches" with the query. Failure with nothing shown: "Search isn't available
+- **No spinner:** the previous results stay while the next query loads. Nothing typed: Home's Recently added row
+  (review pass; the first build had a quiet hint). Nothing found: "No matches" with the query. Failure with nothing shown: "Search isn't available
   right now"; with results shown, they stay.
 - **State:** `SearchStore` keeps the current profile's `SearchModel` (query, results) for the app's lifetime, so leaving
   the tab or opening a page and coming back finds them. A different profile, ceiling or role gets a new, empty model:
@@ -60,9 +60,11 @@ Branch `wp-12-search` from main 0baa0de (WP-13 sidebar, WP-10 grids, WP-11 title
 
 ## Tests
 - PerchPlex `PlexSearchTests` (7): URL building, encoding, rating filter, decoding and grouping, blank queries.
-- PerchAppTests `SearchModelTests` (10): retry when the session becomes ready, debounce, stale answers, results kept while loading, blank query, no results,
+- PerchAppTests `SearchModelTests` (14): retry when the session becomes ready, the library's cancellation as a
+  failure, an edited query run on ready, one retry for a failure while ready, adult collections without section, debounce, stale answers, results kept while loading, blank query, no results,
   kid guard with a leaking server, lowered ceiling with and without the filter, adult, per-profile store.
-- PerchUITests `SearchUITests` (3): type, results, Select a film, Back to the same result, leave and return; no results;
+- PerchUITests `SearchUITests` (4): type, results, Select a film, Back to the same result, leave and return; Play/Pause
+  a result, Back from the player to the same card; no results;
   kid with a leaking server sees no 15/18 title.
 - Manual (Robin): with the search field focused, hold the Siri button, say a title, results appear.
 
@@ -75,3 +77,20 @@ Branch `wp-12-search` from main 0baa0de (WP-13 sidebar, WP-10 grids, WP-11 title
 - No `contentRating=` is sent on search: the live server ignores it (probe). The code path stays behind
   `SearchModel.serverHonoursRatingFilter` in case a later server honours it.
 - A failed search re-runs when the session becomes ready; there is no retry button (typing again also retries).
+  Review pass: ready also re-runs a query whose results are not on screen (edited while connecting), the library's
+  own `CancellationError` (session changed under the request) counts as a failure, and a failure while the session
+  is ready gets one retry after 1 s.
+- Search aligns with the keyboard's left edge (rows pulled back 40 pt, to about x 120), not the 80 pt margin: the
+  system's divider sits on 80. Messages are centred on the screen (x 960); only the rows are offset.
+- Nothing typed shows Home's Recently added row (same guard), no hint: the field's placeholder and the system's
+  "Hold to dictate" already say what to do. No data, nothing below the keyboard.
+- Rows use Home's `RowList` and `Row` as they are (36 pt between rows, Row's own title-to-card spacing).
+- Poster captions: title, then the year; focused, a long title takes both lines (`expandsTitleWhenFocused`, as on
+  the grids), so nothing below moves. Episodes keep title over series and number.
+- Search has a plain base background, no artwork tint.
+- The Search view's identity is the profile plus ceiling plus role (also the Films and Series grids), so a changed
+  ceiling makes a new model.
+- An adult keeps a collection the server sent without its section or type; it opens with fallbacks the collection
+  page does not use at the server's ceiling. Kids and lowered ceilings still see no collections.
+- The teen and managed-account restriction on `/hubs/search` is left to the server and is unverified live (no such
+  account in the household); the client guard covers kids and lowered ceilings only.
