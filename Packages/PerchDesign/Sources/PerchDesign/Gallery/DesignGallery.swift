@@ -33,6 +33,7 @@ public struct DesignGallery: View {
                 homeSection.id("home")
                 sidebarSection.id("sidebar")
                 rowsSection
+                librarySection.id("library")
                 setupSection.id("setup")
                 kidsSection
             }
@@ -274,6 +275,41 @@ public struct DesignGallery: View {
                 }
             }
             .frame(height: 1500)
+        }
+    }
+
+    /// WP-10: the library header's chips (idle, active, a toggle) and the letter rail.
+    private var librarySection: some View {
+        section("Library header and letter rail") {
+            HStack(alignment: .top, spacing: 48) {
+                VStack(alignment: .leading, spacing: 24) {
+                    HStack(spacing: 16) {
+                        Button {} label: { FilterChipLabel("Sort", value: "Title", systemImage: "arrow.up.arrow.down") }
+                            .buttonStyle(.perchChip())
+                            .accessibilityIdentifier("gallery.chip.sort")
+                        Button {} label: { FilterChipLabel("Genre", value: "Drama") }
+                            .buttonStyle(.perchChip(active: true))
+                        Button {} label: { FilterChipLabel("Decade") }
+                            .buttonStyle(.perchChip())
+                        Button {} label: { FilterChipLabel("Unwatched", systemImage: "checkmark", showsChevron: false) }
+                            .buttonStyle(.perchChip(active: true))
+                        Button {} label: { FilterChipLabel("Clear filters (2)", showsChevron: false) }
+                            .buttonStyle(.perchChip())
+                    }
+                    HStack(spacing: 16) {
+                        Button {} label: { FilterChipLabel("Genre", value: "Animation") }
+                            .buttonStyle(.perchChip(active: true))
+                        Button {} label: { FilterChipLabel("Collection") }
+                            .buttonStyle(.perchChip())
+                    }
+                    .environment(\.perchStyle, .kids)
+                }
+                LetterRail(
+                    letters: ["#"] + "ABCDEFGHIJKLMNOPQRSTUVWXYZ".map(String.init), current: "M",
+                    identifierPrefix: "gallery.letter"
+                ) { _ in }
+                .frame(height: 960)
+            }
         }
     }
 

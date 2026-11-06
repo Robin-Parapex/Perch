@@ -130,8 +130,10 @@ struct PlexWireDirectory: Decodable {
     var agent: String?
     var scanner: String?
     var subtype: String?
+    /// Item count, on firstCharacter buckets.
+    var size: Int?
 
-    enum CodingKeys: String, CodingKey { case key, title, type, agent, scanner, subtype }
+    enum CodingKeys: String, CodingKey { case key, title, type, agent, scanner, subtype, size }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -141,6 +143,7 @@ struct PlexWireDirectory: Decodable {
         agent = c.lenientString(.agent)
         scanner = c.lenientString(.scanner)
         subtype = c.lenientString(.subtype)
+        size = c.lenientInt(.size)
     }
 }
 

@@ -116,11 +116,15 @@ struct FakeHouseholdTransport: PlexTransport {
                     }
                 ], url)
         case ("GET", "/api/v2/resources"):
+            // A switched user's server token names the user, so the fake server can apply a restriction (WP-10).
+            let userToken = request.value(forHTTPHeaderField: "X-Plex-Token") ?? ""
+            let serverToken = userToken.hasPrefix("FAKE-USER-TOKEN-")
+                ? "FAKE-SERVER-TOKEN-" + userToken.dropFirst("FAKE-USER-TOKEN-".count) : "FAKE-SERVER-TOKEN"
             return try json(
                 [
                     [
                         "name": "Living room", "clientIdentifier": Self.machineID, "provides": "server",
-                        "accessToken": "FAKE-SERVER-TOKEN", "owned": true,
+                        "accessToken": serverToken, "owned": true,
                         "connections": [
                             [
                                 "protocol": "http", "address": Self.serverHost, "port": 32400,
@@ -162,6 +166,13 @@ struct FakeHouseholdTransport: PlexTransport {
         }
         let token = request.value(forHTTPHeaderField: "X-Plex-Token") ?? ""
         guard !token.isEmpty else { return (Data(), response(url, 401)) }
+        // Browse (WP-10): section items, letters, filter values, collections. A restricted user sees U titles only.
+        let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        if let body = FakeLibraryCatalogue.answer(
+            path: path, items: items, headers: request.allHTTPHeaderFields ?? [:], restricted: isRestricted(token: token))
+        {
+            return try json(body, url)
+        }
         switch path {
         case "/library/sections":
             return try json(
@@ -210,6 +221,14 @@ struct FakeHouseholdTransport: PlexTransport {
             }
             return (Data(), response(url, 404))
         }
+    }
+
+    /// The server token of a restricted Home user (`FAKE-SERVER-TOKEN-<id>` for a kid).
+    private func isRestricted(token: String) -> Bool {
+        guard token.hasPrefix("FAKE-SERVER-TOKEN-"), let id = Int(token.dropFirst("FAKE-SERVER-TOKEN-".count)) else {
+            return false
+        }
+        return users.first { $0.id == id }?.restricted ?? false
     }
 
     /// `/photo/:/transcode?width=&height=&url=`: a distinct test card per `url`, at the asked width (capped).

@@ -70,6 +70,10 @@ All notable changes to Perch. Format follows Keep a Changelog; versions follow `
 - WP-13 Settings: switch profile and run setup again (behind the Admin PIN); a kid sees "Ask a parent".
 - WP-13 Back: pops within a tab, then moves focus to the sidebar; from the sidebar, Back twice within 2 s leaves the app; double Back from content returns to Home.
 - WP-13 Home: the profile menu is removed (the sidebar avatar replaces it), and the hero text fades while the sidebar has focus.
+- WP-10 Films and Series grids: paged poster grids with native sort and filter menus (genre, decade, resolution, unwatched) and a letter rail to jump by title.
+- WP-10 Collections: a Collections row above the grid and a collection page with a hero; a collection needs two or more titles.
+- WP-10 Rating ceiling applied to browse: grids, letters and collections follow the profile's ceiling, checked again on every page; a failed ratings lookup shows Try again.
+- WP-10 Debug: fake household browse data (28 films, 13 series, three collections) and a read-only browse probe.
 - Project document pack (README, CLAUDE.md, spec, roadmap with numbered work packages, modules, architecture, design, integrations, permissions, references, decisions, glossary).
 - Decisions through 1 November 2026: name Perch; build from scratch referencing Dusk and Swiftfin; app only with no proxy or hub; Plex PINs for profiles and an Admin PIN; provider-agnostic bring-your-own-key AI with permission levels and no free chat; setup wizard, welcome guide and feedback; Seerr-only polling and user-controlled Plex library refresh.
 

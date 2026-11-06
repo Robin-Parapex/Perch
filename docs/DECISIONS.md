@@ -544,6 +544,17 @@ Append-only log of decisions and why. Newest at the bottom. Format: date, decisi
 - Refresh libraries is not in the sidebar yet: the only non-tab slot is `tabViewSidebarFooter` (tvOS 27 only); it lands with WP-14.
 - Decided by the WP-13 solver (Claude), from the lead's brief.
 
+## 2026-11-06 Films and Series grids (WP-10)
+- Order: WP-13 was built before WP-10 so the grids had a home (Robin approved the stage plan, 5 Nov 2026).
+- Rating ceiling: each filter key is percent-decoded before it is classified and sent; a key that does not parse is classified by its title; unknown and unrated count as 15. A content-rating filter is sent only when Perch's ceiling is below the server's, and every page also passes the client guard (`RowContext.admits`). A failed ratings lookup requests nothing and shows a retry, never "No films yet".
+- Collections under a lowered ceiling are filtered in the app: the list is asked for with the rating set, then members are loaded four at a time; a card shows only with two or more allowed titles and counts only those. For a kid's profile every collection card and collection title also passes the certificate check, lowered or not; unrated fails closed.
+- Letter jump reloads the grid from the letter's offset.
+- Native Menus for sort and filters; the Collection chip is removed (the Collections row covers it). No page title on Films and Series (the sidebar capsule shows the name); pushed collection grids keep theirs.
+- Grids wait for the session. Paging never stops silently: after an error one fresh pager tries again, then paging resumes on the next focus move or when the session is ready.
+- Layout: columns span x 80 to 1840, with a 96 pt gutter for the letter rail. Watched shows as a tick on the poster. A focused caption that needs two lines takes the subtitle's line. A collection page has a backdrop hero. The page tint's green hues are capped (saturation 0.45, brightness 0.55).
+- Focus lift on grid posters stays the system highlight (about 1.11, above DESIGN's 1.05 to 1.08), shared with Home's cards; revisit in the stage design pass.
+- Full detail: `docs/notes/wp-10-plan.md`.
+
 ## Open decisions (resolve in the named work package)
 - Recovery when the stored Perch PIN cannot be read (Admin is locked out by design): confirm the owner through Plex, audited, then allow a new Perch PIN (WP-05).
 - Assistant name (placeholder Pip) (WP-19).

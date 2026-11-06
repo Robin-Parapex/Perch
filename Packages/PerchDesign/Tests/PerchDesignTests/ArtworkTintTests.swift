@@ -56,6 +56,16 @@ private func makeImage(width: Int = 16, height: Int = 16, _ pixel: (Int, Int) ->
         #expect(ArtworkTint.hsb(of: out).v <= 0.80 + 1e-9)
     }
 
+    @Test func greensAreHeldLowSoThePageIsNotMuddy() {
+        for green in [ArtworkRGB(red: 0.25, green: 0.8, blue: 0.3), ArtworkRGB(red: 0.6, green: 0.75, blue: 0.2)] {
+            let (h, s, v) = ArtworkTint.hsb(of: ArtworkTint.tint(from: green))
+            #expect(ArtworkTint.greenHues.contains(h))
+            #expect(s <= 0.45 + 1e-9 && v <= 0.55 + 1e-9)
+        }
+        let blue = ArtworkTint.hsb(of: ArtworkTint.tint(from: ArtworkRGB(red: 0.1, green: 0.2, blue: 0.9)))
+        #expect(blue.s > 0.45, "other hues keep the full range")
+    }
+
     @Test func nearGreyReturnsNeutral() {
         #expect(ArtworkTint.tint(from: ArtworkRGB(red: 0.5, green: 0.51, blue: 0.5)) == ArtworkTint.neutral)
     }

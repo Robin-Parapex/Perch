@@ -62,14 +62,19 @@ public enum ArtworkTint {
     }
 
     /// Turns a raw average into a usable tint: saturation 0.35...0.75, brightness 0.45...0.80.
-    /// Near-greyscale input (saturation < 0.08) returns `neutral`.
+    /// Near-greyscale input (saturation < 0.08) returns `neutral`. Yellow-green to green hues (`greenHues`) are held
+    /// to the low end of both ranges: mixed into the near-black base at full strength they read as a muddy green.
     public static func tint(from average: ArtworkRGB) -> ArtworkRGB {
         var (h, s, v) = hsb(of: average)
         if s < 0.08 { return neutral }
-        s = min(max(s, 0.35), 0.75)
-        v = min(max(v, 0.45), 0.80)
+        let green = greenHues.contains(h)
+        s = min(max(s, 0.35), green ? 0.45 : 0.75)
+        v = min(max(v, 0.45), green ? 0.55 : 0.80)
         return rgb(h: h, s: s, v: v)
     }
+
+    /// Hue band (0...1) from yellow-green to green-cyan.
+    static let greenHues: ClosedRange<Double> = 0.15...0.45
 
     /// Base #0b0b0f mixed with `tint` at `strength` (clamped 0.08...0.12); the base when `tint` is nil.
     public static func pageColor(tint: ArtworkRGB?, strength: Double = 0.10) -> Color {

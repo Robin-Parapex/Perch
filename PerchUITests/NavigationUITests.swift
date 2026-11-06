@@ -99,10 +99,10 @@ final class NavigationUITests: XCTestCase {
         // To Films and back to Home.
         XCTAssertTrue(focus(tab(app, "Films"), in: app), "Films in the sidebar")
         press(.select)
-        XCTAssertTrue(waitUntil(5) { self.element(app, "films.empty").exists }, "the Films placeholder shows")
-        XCTAssertTrue(waitUntil(5) { self.element(app, "films.empty").hasFocus }, "the empty Films page holds focus; focus: \(describeFocus(app))")
-        XCTAssertFalse(focusInSidebar(app))
-        shot("wp13-films-placeholder")
+        // WP-10: Films is the library grid; Select moves focus into it (a poster or the sort chip).
+        XCTAssertTrue(waitUntil(5) { self.element(app, "library.root").exists }, "the Films grid shows")
+        XCTAssertTrue(waitUntil(5) { !self.focusInSidebar(app) && self.focused(app) != nil }, "focus is in Films; focus: \(describeFocus(app))")
+        shot("wp13-films-grid")
         press(.menu)
         XCTAssertTrue(waitUntil(5) { self.focusInSidebar(app) }, "Back from Films goes to the sidebar; focus: \(describeFocus(app))")
         XCTAssertTrue(focus(tab(app, "Home"), in: app), "Home in the sidebar")

@@ -112,7 +112,7 @@ public actor PlexLibrary: PlexWatchStateSink {
         var task: Task<PlexHomeRows, Error>
     }
 
-    private let contextSource: any PlexServerContextProviding
+    let contextSource: any PlexServerContextProviding
     let transport: any PlexTransport
     let endpoints: PlexEndpoints
     private let settings: SettingsStore
@@ -625,7 +625,7 @@ public actor PlexLibrary: PlexWatchStateSink {
     }
 
     /// One request with the context's token. Throws `CancellationError` when the context went stale.
-    private func fetch(_ context: PlexServerContext, _ request: URLRequest) async throws
+    func fetch(_ context: PlexServerContext, _ request: URLRequest) async throws
         -> PlexWireContainer
     {
         let data = try await transport.perform(request, host: .server)

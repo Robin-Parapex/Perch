@@ -18,7 +18,11 @@ public actor PlexSectionPager {
     private let transport: any PlexTransport
     private let endpoints: PlexEndpoints
 
-    private var offset = 0
+    /// Set for a query pager; nil for the legacy section-and-sort pager.
+    private let query: PlexSectionQuery?
+
+    /// The next row to ask for (rows the server has returned so far, plus the start offset).
+    public private(set) var offset = 0
     private var total: Int?
     private var finished = false
     private let generation: UInt64
@@ -29,10 +33,30 @@ public actor PlexSectionPager {
     ) {
         self.sectionID = sectionID
         self.sort = sort
+        self.query = nil
         self.generation = generation
         self.contextSource = contextSource
         self.transport = transport
         self.endpoints = endpoints
+    }
+
+    /// Starts at `query.startOffset`. A rating filter that admits nothing finishes at once, with no request.
+    init(
+        query: PlexSectionQuery, generation: UInt64, contextSource: any PlexServerContextProviding,
+        transport: any PlexTransport, endpoints: PlexEndpoints
+    ) {
+        self.sectionID = query.sectionID
+        self.sort = query.sort?.value
+        self.query = query
+        self.generation = generation
+        self.contextSource = contextSource
+        self.transport = transport
+        self.endpoints = endpoints
+        self.offset = query.startOffset
+        if query.admitsNothing {
+            finished = true
+            total = 0
+        }
     }
 
     public var isFinished: Bool { finished }
@@ -46,10 +70,16 @@ public actor PlexSectionPager {
         let context = try await contextSource.libraryContext()
         guard context.generation == generation else { throw CancellationError() }
         let start = offset
-        let size = start == 0 ? Self.firstPageSize : Self.laterPageSize
-        let request = endpoints.sectionItems(
-            base: context.baseURL, token: context.token, sectionID: sectionID, sort: sort,
-            start: start, size: size)
+        let size = start == (query?.startOffset ?? 0) ? Self.firstPageSize : Self.laterPageSize
+        let request: URLRequest
+        if let query {
+            request = endpoints.sectionItems(
+                base: context.baseURL, token: context.token, query: query, start: start, size: size)
+        } else {
+            request = endpoints.sectionItems(
+                base: context.baseURL, token: context.token, sectionID: sectionID, sort: sort,
+                start: start, size: size)
+        }
         let data = try await transport.perform(request, host: .server)
         guard await contextSource.currentGeneration() == context.generation else {
             throw CancellationError()
