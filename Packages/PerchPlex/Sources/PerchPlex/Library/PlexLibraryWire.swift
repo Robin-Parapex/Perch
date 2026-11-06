@@ -183,6 +183,24 @@ struct PlexWireTag: Decodable {
     }
 }
 
+/// A cast entry (`Role`): `tag` is the person, `role` the part, `thumb` the portrait.
+struct PlexWireRole: Decodable {
+    var id: String?
+    var tag: String?
+    var role: String?
+    var thumb: String?
+
+    enum CodingKeys: String, CodingKey { case id, tag, role, thumb }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = c.lenientString(.id)
+        tag = c.lenientString(.tag)
+        role = c.lenientString(.role)
+        thumb = c.lenientString(.thumb)
+    }
+}
+
 struct PlexWireGuid: Decodable {
     var id: String?
 
@@ -254,14 +272,18 @@ struct PlexWireMetadata: Decodable {
     var media: [PlexWireMedia]?
     var extras: PlexWireExtras?
     var image: [PlexWireImage]?
+    /// The theme tune's server path, e.g. "/library/metadata/2000/theme/1700000000".
+    var theme: String?
+    var role: [PlexWireRole]?
 
     enum CodingKeys: String, CodingKey {
         case ratingKey, key, type, subtype, title
         case grandparentTitle, grandparentRatingKey, grandparentThumb, grandparentArt
         case parentTitle, parentRatingKey, parentThumb, parentIndex, index
-        case year, contentRating, summary, tagline, studio, thumb, art
+        case year, contentRating, summary, tagline, studio, thumb, art, theme
         case duration, viewOffset, viewCount, leafCount, viewedLeafCount, childCount
         case addedAt, lastViewedAt, originallyAvailableAt, librarySectionID, extraType
+        case role = "Role"
         case genre = "Genre"
         case guid = "Guid"
         case marker = "Marker"
@@ -312,6 +334,8 @@ struct PlexWireMetadata: Decodable {
         chapter = c.lossyArray(.chapter, of: PlexWireChapter.self)
         media = c.lossyArray(.media, of: PlexWireMedia.self)
         extras = c.object(.extras, of: PlexWireExtras.self)
+        theme = c.lenientString(.theme)
+        role = c.lossyArray(.role, of: PlexWireRole.self)
     }
 }
 

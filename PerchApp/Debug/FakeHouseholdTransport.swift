@@ -198,8 +198,6 @@ struct FakeHouseholdTransport: PlexTransport {
             case "/library/onDeck": return raw(Self.onDeckJSON, url)
             default: return raw(Self.continueWatchingJSON, url)
             }
-        // The next episodes for the player (WP-07): the fake series has E3 to E6, each playing the bundled clip.
-        case "/library/metadata/2000/allLeaves": return raw(Self.allLeavesJSON, url)
         // A transcode decision (the fake file is 4K DV): accepted. The coordinator plays the bundled clip anyway.
         case "/video/:/transcode/universal/decision":
             return raw(#"{"MediaContainer": {"generalDecisionCode": 1000, "transcodeDecisionCode": 1000}}"#, url)
@@ -211,7 +209,17 @@ struct FakeHouseholdTransport: PlexTransport {
         default:
             // "/library/metadata/{rk}" is a detail; deeper paths (thumb, art) are the sample art.
             let parts = path.split(separator: "/")
+            // Episodes of a series (WP-07, WP-11): series 2000's E3 to E6 are the player's chain.
+            if parts.count == 4, parts[0] == "library", parts[1] == "metadata", parts[3] == "allLeaves" {
+                guard let body = FakeTitleCatalogue.allLeaves(seriesID: String(parts[2])) else { return (Data(), response(url, 404)) }
+                return try json(body, url)
+            }
             if parts.count == 3, parts[0] == "library", parts[1] == "metadata" {
+                // A detail per title (WP-11); any other key is the canned episode.
+                let ratingU = ProcessInfo.processInfo.arguments.contains("-PerchFakeRatingU")
+                if let body = FakeTitleCatalogue.detail(ratingKey: String(parts[2]), ratingU: ratingU) {
+                    return try json(body, url)
+                }
                 return raw(Self.detailJSON(ratingKey: String(parts[2])), url)
             }
             if path.hasPrefix("/library/metadata/") {
@@ -321,23 +329,14 @@ struct FakeHouseholdTransport: PlexTransport {
         ]}}
         """
 
-    private static let allLeavesJSON = """
-        {"MediaContainer": {"size": 4, "Metadata": [
-          {"ratingKey": "2101", "key": "/library/metadata/2101", "type": "episode", "title": "Salt and Signal", "summary": "A storm cuts the island off from the mainland on the keepers' third night. Mara has to decide whether to trust the stranger who rowed in with the tide.", "grandparentRatingKey": "2000", "grandparentTitle": "The Lantern Keepers", "parentRatingKey": "2100", "parentIndex": 1, "index": 3, "duration": 60000, "viewCount": 0, "thumb": "/library/metadata/2101/thumb/1", "addedAt": 1700000100},
-          {"ratingKey": "2102", "key": "/library/metadata/2102", "type": "episode", "title": "The Long Watch", "summary": "Supplies run low and tempers run shorter as the fog settles in. A signal lamp starts flashing from a rock nobody has ever landed on.", "grandparentRatingKey": "2000", "grandparentTitle": "The Lantern Keepers", "parentRatingKey": "2100", "parentIndex": 1, "index": 4, "duration": 60000, "viewCount": 0, "thumb": "/library/metadata/2102/thumb/1", "addedAt": 1700000200},
-          {"ratingKey": "2104", "key": "/library/metadata/2104", "type": "episode", "title": "Slack Water", "summary": "For one quiet hour the tide stands still and the keepers finally compare notes. What they find in the logbook changes how they see the lighthouse.", "grandparentRatingKey": "2000", "grandparentTitle": "The Lantern Keepers", "parentRatingKey": "2100", "parentIndex": 1, "index": 5, "duration": 60000, "viewCount": 0, "thumb": "/library/metadata/2104/thumb/1", "addedAt": 1790000200},
-          {"ratingKey": "2105", "key": "/library/metadata/2105", "type": "episode", "title": "First Light", "summary": "At dawn the keepers row out to the rock and find it is not empty. The season finale asks what they owe the people the lamp was built to guide home.", "grandparentRatingKey": "2000", "grandparentTitle": "The Lantern Keepers", "parentRatingKey": "2100", "parentIndex": 1, "index": 6, "duration": 60000, "viewCount": 0, "thumb": "/library/metadata/2105/thumb/1", "addedAt": 1790000250}
-        ]}}
-        """
-
     private static let hubsJSON = """
         {"MediaContainer": {"size": 2, "Hub": [
           {"hubIdentifier": "movie.recentlyadded.1", "title": "Recently Added Movies", "type": "movie", "key": "/hubs/sections/1/recentlyAdded?type=1", "size": 2, "Metadata": [
             {"ratingKey": "1003", "type": "movie", "title": "Paper Boats", "summary": "Two children fold a fleet of paper boats and race them down a flooded street. Their small game slowly pulls the whole neighbourhood out onto the pavement.", "year": 2024, "contentRating": "PG", "thumb": "/library/metadata/1003/thumb/1", "addedAt": 1790000300},
             {"ratingKey": "1002", "type": "movie", "title": "The Quiet Orchard", "summary": "A young botanist inherits a failing apple orchard and a notebook full of riddles. Each harvest brings her a little closer to why her grandmother never left.", "year": 2023, "contentRating": "PG", "thumb": "/library/metadata/1002/thumb/1", "addedAt": 1790000100}
           ]},
-          {"hubIdentifier": "tv.recentlyadded.2", "title": "Recently Added TV", "type": "episode", "key": "/hubs/sections/2/recentlyAdded?type=4", "size": 1, "Metadata": [
-            {"ratingKey": "2104", "type": "episode", "title": "Slack Water", "summary": "For one quiet hour the tide stands still and the keepers finally compare notes. What they find in the logbook changes how they see the lighthouse.", "grandparentRatingKey": "2000", "grandparentTitle": "The Lantern Keepers", "parentRatingKey": "2100", "parentIndex": 1, "index": 5, "contentRating": "TV-14", "thumb": "/library/metadata/2104/thumb/1", "addedAt": 1790000200}
+          {"hubIdentifier": "tv.recentlyadded.2", "title": "Recently Added TV", "type": "mixed", "key": "/hubs/sections/2/recentlyAdded", "size": 1, "Metadata": [
+            {"ratingKey": "2000", "type": "show", "title": "The Lantern Keepers", "summary": "Three strangers take on the old lighthouse on a storm-bound island for one winter.", "year": 2024, "contentRating": "TV-14", "thumb": "/library/metadata/2000/thumb/1", "art": "/library/metadata/2000/art/1", "leafCount": 10, "viewedLeafCount": 2, "addedAt": 1790000200}
           ]}
         ]}}
         """

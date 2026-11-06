@@ -116,6 +116,22 @@ public struct MediaMarker: Codable, Sendable, Hashable {
     }
 }
 
+/// One person in a title's cast: the name, the part they play, and a portrait path (a server path or an
+/// absolute https address).
+public struct MediaCastMember: Codable, Sendable, Hashable, Identifiable {
+    public var id: String
+    public var name: String
+    public var role: String?
+    public var thumbPath: String?
+
+    public init(id: String, name: String, role: String? = nil, thumbPath: String? = nil) {
+        self.id = id
+        self.name = name
+        self.role = role
+        self.thumbPath = thumbPath
+    }
+}
+
 public struct MediaChapter: Codable, Sendable, Hashable {
     public var index: Int
     public var title: String?
@@ -302,6 +318,10 @@ public struct MediaDetail: Codable, Sendable, Hashable, Identifiable {
     public var versions: [MediaVersion]
     /// External ids such as "imdb://tt0111161" or "tmdb://278".
     public var externalIDs: [String]
+    /// Cast in billing order (WP-11). Empty when the server lists none.
+    public var cast: [MediaCastMember]
+    /// Server path of the title's theme tune, nil when it has none (WP-11).
+    public var themePath: String?
 
     public var id: String { summary.id }
 
@@ -310,8 +330,11 @@ public struct MediaDetail: Codable, Sendable, Hashable, Identifiable {
         genres: [String] = [], studio: String? = nil, releaseDate: Date? = nil,
         childCount: Int? = nil, leafCount: Int? = nil, viewedLeafCount: Int? = nil,
         markers: [MediaMarker] = [], chapters: [MediaChapter] = [], extras: [MediaExtra] = [],
-        versions: [MediaVersion] = [], externalIDs: [String] = []
+        versions: [MediaVersion] = [], externalIDs: [String] = [], cast: [MediaCastMember] = [],
+        themePath: String? = nil
     ) {
+        self.cast = cast
+        self.themePath = themePath
         self.summary = summary
         self.synopsis = synopsis
         self.tagline = tagline

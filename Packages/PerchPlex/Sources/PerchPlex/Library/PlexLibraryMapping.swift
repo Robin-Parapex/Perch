@@ -118,7 +118,28 @@ enum PlexLibraryMapping {
             markers: markers(item.marker ?? []), chapters: chapters(item.chapter ?? []),
             extras: extras(item.extras?.metadata ?? []),
             versions: versions(item.media ?? []),
-            externalIDs: (item.guid ?? []).compactMap(\.id))
+            externalIDs: (item.guid ?? []).compactMap(\.id),
+            cast: cast(item.role ?? []),
+            themePath: themePath(item.theme))
+    }
+
+    /// Cast in the server's (billing) order; an entry with no name is dropped. Ids fall back to the position.
+    static func cast(_ roles: [PlexWireRole]) -> [MediaCastMember] {
+        roles.enumerated().compactMap { offset, role in
+            guard let name = role.tag?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty else { return nil }
+            let part = role.role?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let thumb = role.thumb.flatMap { $0.isEmpty ? nil : $0 }
+            return MediaCastMember(
+                id: role.id ?? "role-\(offset)", name: name, role: part?.isEmpty == false ? part : nil, thumbPath: thumb)
+        }
+    }
+
+    /// Only a plain server path (no scheme, host or query) is kept, so the theme request can only go to the server.
+    static func themePath(_ text: String?) -> String? {
+        guard let text, text.hasPrefix("/"), !text.hasPrefix("//"), !text.contains("://"), !text.contains("?"),
+            !text.contains("..")
+        else { return nil }
+        return text
     }
 
     // MARK: parts of an item

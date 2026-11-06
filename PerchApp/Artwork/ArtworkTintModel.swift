@@ -11,9 +11,12 @@ import UIKit
 @MainActor @Observable
 final class ArtworkTintModel {
     private(set) var tint: Color?
+    /// The focused backdrop's average luminance (0 dark to 1 bright), so a page can strengthen its text scrim on
+    /// bright art (WP-11). Nil until measured.
+    private(set) var luminance: Double?
 
     @ObservationIgnored private let service: ArtworkService
-    @ObservationIgnored private var cache: [String: ArtworkRGB] = [:]
+    @ObservationIgnored private var cache: [String: (tint: ArtworkRGB, luminance: Double)] = [:]
     @ObservationIgnored private var task: Task<Void, Never>?
     @ObservationIgnored private var current: ArtworkRGB?
 
@@ -37,11 +40,12 @@ final class ArtworkTintModel {
                 self.apply(cached)
                 return
             }
-            let measured = await Task.detached(priority: .utility) { () -> ArtworkRGB? in
+            let measured = await Task.detached(priority: .utility) { () -> (tint: ArtworkRGB, luminance: Double)? in
                 guard let image = try? await pipeline.image(for: request), let cgImage = image.cgImage,
                     let average = ArtworkTint.average(of: cgImage)
                 else { return nil }
-                return ArtworkTint.tint(from: average)
+                let luminance = 0.2126 * average.red + 0.7152 * average.green + 0.0722 * average.blue
+                return (ArtworkTint.tint(from: average), luminance)
             }.value
             guard !Task.isCancelled, let measured else { return }
             self.cache[key] = measured
@@ -54,9 +58,12 @@ final class ArtworkTintModel {
         cache.removeAll()
         current = nil
         tint = nil
+        luminance = nil
     }
 
-    private func apply(_ rgb: ArtworkRGB) {
+    private func apply(_ measured: (tint: ArtworkRGB, luminance: Double)) {
+        if luminance != measured.luminance { luminance = measured.luminance }
+        let rgb = measured.tint
         guard rgb != current else { return }
         current = rgb
         let animation: Animation? = UIAccessibility.isReduceMotionEnabled ? nil : .easeInOut(duration: Self.crossfade)

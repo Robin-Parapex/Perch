@@ -201,6 +201,13 @@ extension PlexEndpoints {
         return headers
     }
 
+    /// Headers for a theme tune's asset (WP-11): identity plus the token, never in the URL.
+    public func themeHeaders(token: String) -> [String: String] {
+        var headers = identity.headers(token: token)
+        headers["Accept"] = nil
+        return headers
+    }
+
     /// The query shared by `decision` and `start.m3u8` (the server wants the same items on both).
     /// Never carries the token. Items after Dusk's parameter set; the profile extra gives the HLS target
     /// ("Generic" alone gave decision 4005 on the live server).

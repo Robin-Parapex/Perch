@@ -12,22 +12,25 @@ import UIKit
 struct LibraryGridScreen: View {
     let core: CoreServices
     let home: HomeProfile
-    let onOpenCollection: (LibraryCollectionRoute) -> Void
+    /// Pushes a collection or a title page on the tab's stack.
+    let onOpen: (ShellRoute) -> Void
     @State private var model: LibraryGridModel
 
     @Environment(\.perchStyle) private var style
     @FocusState private var focus: LibraryFocus?
     /// The poster or collection card that opened the player or a collection: focus returns to it.
     @State private var pendingRestore: LibraryFocus?
+    /// False while a pushed page covers the grid.
+    @State private var onScreen = true
     @State private var currentLetter: String?
 
     init(
         core: CoreServices, home: HomeProfile, kind: PlexLibrarySection.Kind,
-        onOpenCollection: @escaping (LibraryCollectionRoute) -> Void
+        onOpen: @escaping (ShellRoute) -> Void
     ) {
         self.core = core
         self.home = home
-        self.onOpenCollection = onOpenCollection
+        self.onOpen = onOpen
         _model = State(
             initialValue: LibraryGridModel(kind: kind, context: home.context, isKid: home.isKid, browser: core.library))
     }
@@ -42,6 +45,7 @@ struct LibraryGridScreen: View {
 
     #if DEBUG
     @MainActor static var openedFirstCollection = false
+    @MainActor static var openedFirstTitle = false
     #endif
 
     private var layout: LibraryGridLayout { LibraryGridLayout(showsRail: model.showsLetters) }
@@ -102,8 +106,13 @@ struct LibraryGridScreen: View {
         .defaultFocus($focus, restoredFocus, priority: .userInitiated)
         .onChange(of: model.focusRequest.token) { _, _ in moveFocus(to: model.focusRequest.target) }
         .onChange(of: model.items.count) { old, new in prefetchArrived(from: old, to: new) }
-        .onChange(of: playerActive) { _, active in if !active { restorePending() } }
-        .onAppear { restorePending() }
+        // A page pushed over the grid plays from there: the grid restores only when it is on screen again.
+        .onChange(of: playerActive) { _, active in if !active, onScreen { restorePending() } }
+        .onAppear {
+            onScreen = true
+            restorePending()
+        }
+        .onDisappear { onScreen = false }
         #if DEBUG
         // `-PerchOpenFirstCollection` (DEBUG): opens the first collection once it loads, for live screenshots.
         .onChange(of: model.collections.first?.id) { _, id in
@@ -113,6 +122,15 @@ struct LibraryGridScreen: View {
             else { return }
             Self.openedFirstCollection = true
             open(first)
+        }
+        // `-PerchOpenFirstTitle` (DEBUG, WP-11): opens the first title's page once it loads, for live screenshots.
+        .onChange(of: model.items.first?.id) { _, id in
+            guard id != nil, !Self.openedFirstTitle,
+                ProcessInfo.processInfo.arguments.contains("-PerchOpenFirstTitle"),
+                let first = model.items.first
+            else { return }
+            Self.openedFirstTitle = true
+            select(first)
         }
         #endif
         .task(id: sessionReady) { if sessionReady { await model.startOrRetry() } }
@@ -287,7 +305,7 @@ struct LibraryGridScreen: View {
         case .content:
             LazyVGrid(columns: layout.columns, alignment: .leading, spacing: 48) {
                 ForEach(model.items) { item in
-                    LibraryPoster(item: item, focus: $focus) { select(item) } onWatched: { watched in
+                    LibraryPoster(item: item, focus: $focus) { select(item) } onPlay: { play(item) } onWatched: { watched in
                         Task { await model.setWatched(watched, item: item) }
                     }
                 }
@@ -400,7 +418,18 @@ struct LibraryGridScreen: View {
 
     // MARK: Actions
 
+    /// Select opens the title or series page (WP-11); Play is on the page, two clicks from the grid.
     private func select(_ item: MediaSummary) {
+        pendingRestore = .item(item.id)
+        if let route = TitleRoute.page(for: item) {
+            onOpen(route)
+        } else {
+            Task { await LibraryPlayback.play(item, core: core) }
+        }
+    }
+
+    /// Play/Pause on a poster plays at once, as on Home.
+    private func play(_ item: MediaSummary) {
         pendingRestore = .item(item.id)
         Task { await LibraryPlayback.play(item, core: core) }
     }
@@ -408,21 +437,24 @@ struct LibraryGridScreen: View {
     private func open(_ collection: PlexCollection) {
         guard let section = model.section else { return }
         pendingRestore = .collection(collection.id)
-        onOpenCollection(
-            LibraryCollectionRoute(
-                sectionID: section.id, kind: model.kind, collectionID: collection.id,
-                title: LibraryStrings.collectionTitle(collection.title), summary: collection.summary,
-                artPath: collection.artPath, thumbPath: collection.thumbPath))
+        onOpen(
+            .collection(
+                LibraryCollectionRoute(
+                    sectionID: section.id, kind: model.kind, collectionID: collection.id,
+                    title: LibraryStrings.collectionTitle(collection.title), summary: collection.summary,
+                    artPath: collection.artPath, thumbPath: collection.thumbPath)))
     }
 }
 
 // MARK: - Shared pieces
 
-/// A grid poster: title and year, progress for a started film, long-press to mark watched or unwatched.
+/// A grid poster: title and year, progress for a started film, long-press to mark watched or unwatched or open the
+/// page. Select opens the title page, Play/Pause plays (WP-11).
 struct LibraryPoster: View {
     let item: MediaSummary
     var focus: FocusState<LibraryFocus?>.Binding
     let onSelect: () -> Void
+    let onPlay: () -> Void
     let onWatched: (Bool) -> Void
 
     var body: some View {
@@ -438,7 +470,7 @@ struct LibraryPoster: View {
                 }
         }
         .focused(focus, equals: .item(item.id))
-        .onPlayPauseCommand(perform: onSelect)
+        .onPlayPauseCommand(perform: onPlay)
         .contextMenu {
             Button(item.isWatched ? LibraryStrings.markUnwatched : LibraryStrings.markWatched) {
                 onWatched(!item.isWatched)
@@ -570,16 +602,16 @@ struct LibraryMessage: View {
     static let width = LibraryGridLayout.screenWidth - 2 * PerchSpacing.horizontalMargin
 }
 
-/// Select on a library title (until title pages, WP-11): a film plays, resuming when started; a series plays its
-/// first unwatched episode, else S1 E1, as Home's Recently added does (DECISIONS, WP-09).
+/// Play/Pause on a library title (Select opens its page since WP-11): a film plays, resuming when started; a series
+/// plays its next episode by the series page's rule (`SeriesNext`).
 @MainActor
 enum LibraryPlayback {
     static func play(_ item: MediaSummary, core: CoreServices) async {
         switch item.kind {
         case .series:
             let episodes = (try? await core.library.allEpisodes(ofSeries: item.id)) ?? []
-            if let episode = HomeModel.episodeToPlay(in: episodes) {
-                core.playback.play(episode)
+            if let next = SeriesNext.choose(in: episodes, seasonID: nil) {
+                core.playback.play(next.episode, startMs: next.startMs)
             } else {
                 LibraryGridModel.log.notice("Library: no episode to play for series \(item.id, privacy: .public)")
             }

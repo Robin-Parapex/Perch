@@ -14,6 +14,8 @@ struct HomeView: View {
     let onSwitchProfile: () -> Void
     /// Bumped by the shell when double-tap Back returns to Home's root: focus goes to the hero, the page to the top.
     var rootRequest = 0
+    /// Pushes a title or series page on Home's stack (WP-11).
+    var onOpen: (ShellRoute) -> Void = { _ in }
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.perchStyle) private var style
@@ -23,6 +25,8 @@ struct HomeView: View {
     @State private var started = false
     /// The card or button that started playback, so Back from the player lands on it.
     @State private var playbackOrigin: HomeFocus?
+    /// The card that opened a title or series page, so Back from it lands on the card.
+    @State private var pageOrigin: HomeFocus?
 
     private static let log = Logger(subsystem: "com.robrolabs.perch", category: "home")
     private static let topID = "home.scroll.top"
@@ -94,6 +98,16 @@ struct HomeView: View {
         #if DEBUG
         LaunchSignpost.homeFirstFrame()
         #endif
+        if let origin = pageOrigin {
+            pageOrigin = nil
+            Task {
+                // After the pop transition, so the focus engine takes the request.
+                try? await Task.sleep(for: .milliseconds(250))
+                if isPresent(origin) { focus = origin }
+                // Something may have been watched from the page: Continue watching and Up next catch up.
+                await model.refresh()
+            }
+        }
         guard !revealed else { return }
         if model.heroItem != nil {
             focus = .hero
@@ -324,7 +338,14 @@ struct HomeView: View {
             }
         }
         .focused($focus, equals: key)
-        .onPlayPauseCommand { select(item, row: row.id, origin: key) }
+        // Play/Pause plays, as on the grids: a series or season card plays its next episode; Select opens the page.
+        .onPlayPauseCommand { select(item, row: row.id, origin: key, playing: true) }
+        .contextMenu {
+            // Long-press (WP-11, as the grids' menu): the page behind a card that plays at once.
+            if item.kind == .film || item.kind == .episode, let page = TitleRoute.page(for: item) {
+                Button(item.kind == .film ? TitleStrings.details : TitleStrings.goToSeries) { open(page, origin: key) }
+            }
+        }
         .animation(.easeInOut(duration: PerchMotion.crossfadeDuration), value: item.viewOffsetMs)
         .accessibilityIdentifier("home.card.\(item.id)")
         .transition(.opacity)
@@ -352,9 +373,14 @@ struct HomeView: View {
 
     // MARK: Select
 
-    /// Spec 5: Continue watching resumes; Up next and a Recently added film play from the start; a series
-    /// plays its first unwatched episode, else S1 E1.
-    private func select(_ item: MediaSummary, row: String, origin: HomeFocus) {
+    /// Spec 5: Continue watching resumes; Up next and a Recently added film play from the start (two-click resume);
+    /// a series or season card opens the series page (WP-11), unless Play/Pause pressed it (`playing`). The hero's
+    /// button still plays a series directly.
+    private func select(_ item: MediaSummary, row: String, origin: HomeFocus, playing: Bool = false) {
+        if !playing, origin != .hero, item.kind == .series || item.kind == .season, let page = TitleRoute.page(for: item) {
+            open(page, origin: origin)
+            return
+        }
         playbackOrigin = origin
         if item.kind == .series {
             Task { await playSeries(item.id) }
@@ -368,11 +394,16 @@ struct HomeView: View {
         }
     }
 
+    private func open(_ page: ShellRoute, origin: HomeFocus) {
+        pageOrigin = origin
+        onOpen(page)
+    }
+
     private func playSeries(_ seriesID: String, season seasonID: String? = nil) async {
+        // The series page's rule (`SeriesNext`), so the hero, Play/Pause and the page agree; a season plays within it.
         let episodes = (try? await core.library.allEpisodes(ofSeries: seriesID)) ?? []
-        let inSeason = seasonID.map { id in episodes.filter { $0.seasonID == id } } ?? []
-        if let episode = HomeModel.episodeToPlay(in: inSeason) ?? HomeModel.episodeToPlay(in: episodes) {
-            core.playback.play(episode)
+        if let next = SeriesNext.choose(in: episodes, seasonID: seasonID) {
+            core.playback.play(next.episode, startMs: next.startMs)
             return
         }
         // No episode list: the series' Up next episode, when there is one.
@@ -386,7 +417,7 @@ struct HomeView: View {
 }
 
 /// The hero's clearLogo, fitted and bottom-left in its 600 x 140 box; the title text if the image fails.
-private struct HeroLogo: View {
+struct HeroLogo: View {
     @Environment(ArtworkService.self) private var service: ArtworkService?
     @Environment(\.perchStyle) private var style
     @Environment(\.accessibilityReduceMotion) private var reduceMotion

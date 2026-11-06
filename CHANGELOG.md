@@ -74,6 +74,10 @@ All notable changes to Perch. Format follows Keep a Changelog; versions follow `
 - WP-10 Collections: a Collections row above the grid and a collection page with a hero; a collection needs two or more titles.
 - WP-10 Rating ceiling applied to browse: grids, letters and collections follow the profile's ceiling, checked again on every page; a failed ratings lookup shows Try again.
 - WP-10 Debug: fake household browse data (28 films, 13 series, three collections) and a read-only browse probe.
+- WP-11 Film and series pages: hero with logo, facts line and inline format marks, a state-aware primary button (Play, Resume, Play next, Play again) with first focus, and icon-circle secondary buttons.
+- WP-11 Series page: season chips, episode shelf, and one Play next rule used everywhere a series plays; a jump chip goes to the next episode's season.
+- WP-11 Cast rail (focusable, no action until person pages) and a theme music hook, off by default for everyone and never for kids.
+- WP-11 Select on a grid, collection or Home series card opens the page; Play/Pause plays. Home refreshes after Back from a page. Certificates show without the country prefix.
 - Project document pack (README, CLAUDE.md, spec, roadmap with numbered work packages, modules, architecture, design, integrations, permissions, references, decisions, glossary).
 - Decisions through 1 November 2026: name Perch; build from scratch referencing Dusk and Swiftfin; app only with no proxy or hub; Plex PINs for profiles and an Admin PIN; provider-agnostic bring-your-own-key AI with permission levels and no free chat; setup wizard, welcome guide and feedback; Seerr-only polling and user-controlled Plex library refresh.
 

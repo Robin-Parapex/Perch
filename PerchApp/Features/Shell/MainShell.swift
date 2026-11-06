@@ -13,6 +13,10 @@ enum MainTab: String, Hashable, CaseIterable {
 enum ShellRoute: Hashable {
     /// A collection's grid, pushed from Films or Series (WP-10).
     case collection(LibraryCollectionRoute)
+    /// A film's title page (WP-11).
+    case title(TitleRoute)
+    /// A series page (WP-11).
+    case series(TitleRoute)
     #if DEBUG
     case gallery
     #endif
@@ -156,7 +160,10 @@ struct MainShell: View {
             }
             resolvedFor = state
             #if DEBUG
-            if case .ready = state { await LibraryProbe.runIfAsked(library: core.library) }
+            if case .ready = state {
+                await LibraryProbe.runIfAsked(library: core.library)
+                await TitleProbe.runIfAsked(library: core.library)
+            }
             #endif
         }
         .task(id: entry?.home.profile.id) { await loadAvatar(entry?.home.profile) }
@@ -173,9 +180,15 @@ struct MainShell: View {
             Color.clear
                 .overlay { root() }
                 .navigationDestination(for: ShellRoute.self) { route in
-                    PushedScreen(onBack: { pop(tab) }) { destination(route) }
+                    PushedScreen(onBack: { pop(tab) }) { destination(route, tab: tab) }
                 }
         }
+        // A pushed title page stops its theme tune when another tab is chosen or the picker covers the shell.
+        .environment(\.titlePageCovered, pickerShown || selection != tab)
+    }
+
+    private func push(_ route: ShellRoute, on tab: MainTab) {
+        paths[tab, default: NavigationPath()].append(route)
     }
 
     private func pop(_ tab: MainTab) {
@@ -189,11 +202,22 @@ struct MainShell: View {
     }
 
     @ViewBuilder
-    private func destination(_ route: ShellRoute) -> some View {
+    private func destination(_ route: ShellRoute, tab: MainTab) -> some View {
+        let entry = activeProfile.map { HomeStore.shared.entry(for: $0, core: core) }
         switch route {
         case .collection(let collection):
-            if let entry = activeProfile.map({ HomeStore.shared.entry(for: $0, core: core) }) {
-                CollectionGridScreen(core: core, home: entry.home, route: collection)
+            if let entry {
+                CollectionGridScreen(core: core, home: entry.home, route: collection, onOpen: { push($0, on: tab) })
+                    .id(entry.home.profile.id)
+            }
+        case .title(let title):
+            if let entry {
+                TitleScreen(core: core, home: entry.home, route: title, onBack: { pop(tab) })
+                    .id(entry.home.profile.id)
+            }
+        case .series(let series):
+            if let entry {
+                SeriesScreen(core: core, home: entry.home, route: series, onBack: { pop(tab) })
                     .id(entry.home.profile.id)
             }
         #if DEBUG
@@ -207,7 +231,7 @@ struct MainShell: View {
     private func libraryContent(_ entry: HomeStore.Entry?, kind: PlexLibrarySection.Kind, tab: MainTab) -> some View {
         if let entry {
             LibraryGridScreen(core: core, home: entry.home, kind: kind) { route in
-                paths[tab, default: NavigationPath()].append(ShellRoute.collection(route))
+                push(route, on: tab)
             }
             .id(entry.home.profile.id)
         } else {
@@ -238,7 +262,8 @@ struct MainShell: View {
         if let entry {
             HomeView(
                 core: core, home: entry.home, model: entry.model,
-                onSwitchProfile: { pickerShown = true }, rootRequest: homeRootRequest
+                onSwitchProfile: { pickerShown = true }, rootRequest: homeRootRequest,
+                onOpen: { push($0, on: .home) }
             )
             .id(entry.home.profile.id)
         } else if resolvedFor != core.plexSignIn.snapshot.state {
@@ -441,6 +466,7 @@ enum ShellStrings {
     static let searchTitle = "Search"
     static let searchMessage = "Search is on its way."
     static let backAgainToLeave = "Press Back again to leave"
+    static let back = "Go back"
 }
 
 

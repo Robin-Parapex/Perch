@@ -7,7 +7,29 @@ public enum PlexPlaybackError: Error, Equatable, Sendable {
     case transcodeRefused(String)
 }
 
+/// A theme tune the app can open with `AVURLAsset` (WP-11): the token is only in `headers`.
+public struct PlexThemeSource: Sendable, Equatable {
+    public let url: URL
+    public let headers: [String: String]
+
+    public init(url: URL, headers: [String: String]) {
+        self.url = url
+        self.headers = headers
+    }
+}
+
 extension PlexLibrary {
+    /// The theme tune of a title (`/library/metadata/<key>/theme/...`, INTEGRATIONS), authorised like playback.
+    /// Nil unless `path` is a plain server path.
+    public func themeSource(ratingKey: String, path: String) async throws -> PlexThemeSource? {
+        let context = try await current()
+        try await authorisePlay(context, entity: ratingKey)
+        guard let path = PlexLibraryMapping.themePath(path),
+            let url = endpoints.directPlayURL(base: context.baseURL, partKey: path)
+        else { return nil }
+        return PlexThemeSource(url: url, headers: endpoints.themeHeaders(token: context.token))
+    }
+
     /// Turns a rating key into something the player can open. The token travels only in `headers`,
     /// never in the URL. Request shapes proven on the live server in the WP-07 spike (after Dusk, MIT).
     public func playbackSource(

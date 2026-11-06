@@ -180,7 +180,8 @@ final class LibraryUITests: XCTestCase {
     func testPosterPlaysAndBackReturnsToThePoster() throws {
         let app = try openFilms()
         XCTAssertTrue(focus(element(app, "library.item.1027"), in: app))
-        XCUIRemote.shared.press(.select)
+        // WP-11: Select opens the title page (TitleUITests); Play/Pause still plays from the grid.
+        XCUIRemote.shared.press(.playPause)
         XCTAssertTrue(waitUntil(10) { !self.element(app, "library.root").isHittable }, "the player opens")
         backToLibrary(app)
         XCTAssertTrue(hasFocus(app, "library.item.1027", timeout: 6), "Back lands on the same poster; focus: \(focusedDescription(app))")

@@ -12,12 +12,16 @@ struct CollectionGridScreen: View {
     let core: CoreServices
     let home: HomeProfile
     let route: LibraryCollectionRoute
+    /// Pushes a title or series page on the tab's stack (WP-11).
+    let onOpen: (ShellRoute) -> Void
 
     @Environment(\.perchStyle) private var style
     @FocusState private var focus: LibraryFocus?
     @State private var items: [MediaSummary] = []
     @State private var phase: LibraryGridModel.Phase = .starting
     @State private var pendingRestore: LibraryFocus?
+    /// False while a pushed page covers the grid.
+    @State private var onScreen = true
 
     private var playerActive: Bool { core.playback.activeSession != nil }
     private var sessionReady: Bool {
@@ -41,7 +45,7 @@ struct CollectionGridScreen: View {
                 case .content:
                     LazyVGrid(columns: layout.columns, alignment: .leading, spacing: 48) {
                         ForEach(items) { item in
-                            LibraryPoster(item: item, focus: $focus) { select(item) } onWatched: { watched in
+                            LibraryPoster(item: item, focus: $focus) { select(item) } onPlay: { play(item) } onWatched: { watched in
                                 Task { await setWatched(watched, item: item) }
                             }
                         }
@@ -69,14 +73,13 @@ struct CollectionGridScreen: View {
         .onChange(of: focus) { _, new in
             if case .item(let id) = new, let item = items.first(where: { $0.id == id }) { core.artworkTint.focus(item) }
         }
-        .onChange(of: playerActive) { _, active in
-            guard !active, let target = pendingRestore else { return }
-            pendingRestore = nil
-            Task {
-                try? await Task.sleep(for: .milliseconds(250))
-                focus = target
-            }
+        // A page pushed over the grid plays from there: the grid restores only when it is on screen again.
+        .onChange(of: playerActive) { _, active in if !active, onScreen { restorePending() } }
+        .onAppear {
+            onScreen = true
+            restorePending()
         }
+        .onDisappear { onScreen = false }
         .task(id: sessionReady) { if sessionReady, phase != .content { await load() } }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("collection.root")
@@ -135,6 +138,15 @@ struct CollectionGridScreen: View {
         .accessibilityIdentifier("collection.hero")
     }
 
+    private func restorePending() {
+        guard let target = pendingRestore else { return }
+        pendingRestore = nil
+        Task {
+            try? await Task.sleep(for: .milliseconds(250))
+            focus = target
+        }
+    }
+
     /// A failed ratings lookup requests nothing and shows the failure with a retry (which looks the ratings up again).
     private func load() async {
         let context = home.context
@@ -156,7 +168,17 @@ struct CollectionGridScreen: View {
         }
     }
 
+    /// Select opens the title or series page; Back lands on the same poster.
     private func select(_ item: MediaSummary) {
+        pendingRestore = .item(item.id)
+        if let page = TitleRoute.page(for: item) {
+            onOpen(page)
+        } else {
+            play(item)
+        }
+    }
+
+    private func play(_ item: MediaSummary) {
         pendingRestore = .item(item.id)
         Task { await LibraryPlayback.play(item, core: core) }
     }
