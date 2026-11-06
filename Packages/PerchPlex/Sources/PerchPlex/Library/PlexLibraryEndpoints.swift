@@ -11,7 +11,7 @@ extension PlexEndpoints {
 
     // MARK: building
 
-    private func libraryRequest(
+    func libraryRequest(
         base: URL, token: String, path: String, query: [URLQueryItem] = [],
         headers: [String: String] = [:]
     ) -> URLRequest {
@@ -32,12 +32,12 @@ extension PlexEndpoints {
     }
 
     /// One path segment, percent-encoded so an id can never add or remove a path component.
-    private func segment(_ value: String) -> String {
+    func segment(_ value: String) -> String {
         let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-._~"))
         return value.addingPercentEncoding(withAllowedCharacters: allowed) ?? ""
     }
 
-    private func paging(start: Int, size: Int) -> [URLQueryItem] {
+    func paging(start: Int, size: Int) -> [URLQueryItem] {
         [
             .init(name: "X-Plex-Container-Start", value: String(max(0, start))),
             .init(name: "X-Plex-Container-Size", value: String(max(1, size))),
