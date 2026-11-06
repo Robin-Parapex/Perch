@@ -234,6 +234,10 @@ struct HomeView: View {
         }
         // The whole hero width is one focus section, so Up from any card in row 1 reaches the hero button.
         .focusSection()
+        // With a hero up and nothing on Home focused, focus is in the sidebar: the expanded panel's glass would
+        // show the 96 pt title through it, cut at its edge, so the hero text fades back (WP-13). The system's
+        // own dimming of unfocused content still applies.
+        .environment(\.perchHeroDimmed, focus == nil && model.heroItem != nil)
         .transition(.opacity)
         .animation(.easeInOut(duration: PerchMotion.crossfadeDuration), value: model.state)
     }

@@ -81,6 +81,8 @@ enum HeroMetrics {
     static let leftScrimOpacity: Double = 0.55
     static let bottomScrimStart: CGFloat = 0.44
     static let bottomScrimTail: CGFloat = 36
+    /// The text block's opacity while the sidebar holds focus (`perchHeroDimmed`).
+    static let dimmedTextOpacity: Double = 0.15
 
     /// 0% at 44% of the height, 92% where the last 36 pt begin, 100% at the bottom.
     /// `strength` scales every opacity (used for the tint layer that sits over the base layer).
@@ -105,6 +107,11 @@ enum HeroMetrics {
     }
 }
 
+extension EnvironmentValues {
+    /// True while focus is outside the hero's page (the sidebar is open): the hero's text block fades back.
+    @Entry public var perchHeroDimmed: Bool = false
+}
+
 private extension View {
     @ViewBuilder func optionalIdentifier(_ id: String?) -> some View {
         if let id { accessibilityIdentifier(id) } else { self }
@@ -120,6 +127,7 @@ private struct HeroEntrance<Backdrop: View, Logo: View, Actions: View>: View {
     @Environment(\.perchStyle) private var style
     @Environment(\.perchTint) private var tint
     @Environment(\.perchAmbientMotion) private var ambientMotion
+    @Environment(\.perchHeroDimmed) private var dimmed
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var backdropIn = false
@@ -209,6 +217,9 @@ private struct HeroEntrance<Backdrop: View, Logo: View, Actions: View>: View {
             }
             .padding(.horizontal, PerchSpacing.horizontalMargin)
             .padding(.bottom, HeroMetrics.contentBottomInset)
+            // Faded back while the sidebar is open, so the title never reads through its glass (a fade only).
+            .opacity(dimmed ? HeroMetrics.dimmedTextOpacity : 1)
+            .animation(.easeInOut(duration: PerchMotion.crossfadeDuration), value: dimmed)
         }
         .containerRelativeFrame(.horizontal)
         .containerRelativeFrame(.vertical) { height, _ in height * heightFraction }

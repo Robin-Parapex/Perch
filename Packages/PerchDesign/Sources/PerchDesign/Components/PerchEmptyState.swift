@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// A quiet page for a screen with nothing on it yet: one large SF Symbol, a sentence-case title and a short line,
-/// centred in the page, fading up once. No buttons, no spinner, no jargon. Used by the Films, Series and Search
+/// A quiet page for a screen with nothing on it yet: one large SF Symbol, a sentence-case title and a short line at
+/// HeroMessage's scale (64/26 pt), centred in the page, fading up once. No buttons, no spinner, no jargon. Used by the Films, Series and Search
 /// tabs until their work packages fill them.
 public struct PerchEmptyState: View {
     @Environment(\.perchStyle) private var style
@@ -25,15 +25,15 @@ public struct PerchEmptyState: View {
                 .foregroundStyle(PerchColor.textSecondary)
                 .symbolRenderingMode(.hierarchical)
                 .accessibilityHidden(true)
-            VStack(spacing: 14) {
+            VStack(spacing: 20) {
                 Text(title)
-                    .font(PerchFont.section(style).weight(.semibold))
+                    .font(PerchFont.stepTitle(style))
                     .foregroundStyle(PerchColor.textPrimary)
                 if let message {
                     Text(message)
                         .font(PerchFont.body(style))
                         .foregroundStyle(PerchColor.textHelper)
-                        .frame(maxWidth: 720)
+                        .frame(maxWidth: 900)
                 }
             }
             .multilineTextAlignment(.center)
@@ -49,6 +49,6 @@ public struct PerchEmptyState: View {
 }
 
 #Preview {
-    PerchEmptyState(systemImage: "film", title: "Films will appear here", message: "Every film in your library, in one place.")
+    PerchEmptyState(systemImage: "film", title: "Films", message: "Browse your films here soon.")
         .perchPageBackground()
 }

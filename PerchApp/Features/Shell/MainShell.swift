@@ -35,6 +35,10 @@ struct MainShell: View {
     @State private var leaveArmed = false
     @State private var leaveGeneration = 0
     @State private var avatar: UIImage?
+    /// The last profile the shell showed, so a change to another one resets the stacks and selects Home.
+    @State private var shownProfileID: PlexUserID?
+    /// When double-tap Back last returned Home: a Back the system hands on in the same burst must not arm the leave.
+    @State private var returnedHomeAt: ContinuousClock.Instant?
     /// The session's profile as last read from it (every state change), for states that carry none.
     @State private var fallbackProfile: PlexActiveProfile?
     /// The session state the last read answered for; until it matches, a state without a usable profile
@@ -107,7 +111,8 @@ struct MainShell: View {
             Tab(ShellStrings.settings, systemImage: "gearshape", value: MainTab.settings) {
                 stack(.settings) {
                     SettingsView(
-                        name: name, avatar: avatar, isKid: entry?.home.isKid == true,
+                        // Unresolved profile: treated as a kid, so setup is never offered to someone unknown.
+                        name: name, avatar: avatar, isKid: entry.map { $0.home.isKid } ?? true,
                         onSwitchProfile: { pickerShown = true },
                         onRunSetup: { Task { await flow.open(profile: entry?.home.profile) } },
                         onGallery: galleryAction)
@@ -122,7 +127,7 @@ struct MainShell: View {
         // a second press inside it reaches the system and leaves the app (Robin, 5 Nov 2026). At a tab's root the
         // system moves focus to the sidebar before this runs.
         .onExitCommand(perform: leaveAction)
-        .overlay(alignment: .topTrailing) { LeaveHint(visible: leaveArmed) }
+        .overlay(alignment: .topLeading) { LeaveHint(visible: leaveArmed) }
         .perchFullScreen(isPresented: $pickerShown) {
             ProfilePickerView(core: core, onBack: { pickerShown = false }, onDone: { pickerShown = false })
                 .accessibilityElement(children: .contain)
@@ -143,6 +148,7 @@ struct MainShell: View {
             resolvedFor = state
         }
         .task(id: entry?.home.profile.id) { await loadAvatar(entry?.home.profile) }
+        .onChange(of: entry?.home.profile.id, initial: true) { _, id in profileChanged(to: id) }
     }
 
     // MARK: Tabs
@@ -229,6 +235,20 @@ struct MainShell: View {
         paths[.home] = NavigationPath()
         selection = .home
         homeRootRequest += 1
+        // Disarm the leave: the same burst's other press must not leave the hint up (or arm the exit) on Home.
+        leaveArmed = false
+        leaveGeneration += 1
+        returnedHomeAt = .now
+    }
+
+    /// Another profile took over: an adult's pushed screens never survive into a kid's session, and the new
+    /// profile starts on Home. The first profile of the launch keeps the stacks (`-PerchDesignGallery`).
+    private func profileChanged(to id: PlexUserID?) {
+        guard let id else { return }
+        defer { shownProfileID = id }
+        guard let shown = shownProfileID, shown != id else { return }
+        paths = [:]
+        selection = .home
     }
 
     static let leaveWindow: Duration = .seconds(2)
@@ -239,6 +259,7 @@ struct MainShell: View {
     }
 
     private func armLeave() {
+        if let returnedHomeAt, ContinuousClock.now - returnedHomeAt < .milliseconds(600) { return }
         leaveArmed = true
         leaveGeneration += 1
         let generation = leaveGeneration
@@ -250,16 +271,23 @@ struct MainShell: View {
 
     // MARK: Avatar
 
+    /// The task restarts per profile: the old face goes at once (a kid never sees the parent's), and a load
+    /// that a newer profile cancelled never writes.
     private func loadAvatar(_ profile: PlexActiveProfile?) async {
+        avatar = nil
         guard let profile else { return }
         let users = await core.plexSignIn.session.cachedHomeUsers()
-        guard let user = users.first(where: { $0.id == profile.id.rawValue }),
-            let request = await core.artwork.avatarRequest(thumb: user.thumb)
+        guard !Task.isCancelled,
+            let user = users.first(where: { $0.id == profile.id.rawValue }),
+            let request = await core.artwork.avatarRequest(thumb: user.thumb),
+            !Task.isCancelled
         else { return }
         if let image = core.artwork.cachedImage(request) {
             avatar = image
         } else {
-            avatar = await core.artwork.image(request)
+            let image = await core.artwork.image(request)
+            guard !Task.isCancelled else { return }
+            avatar = image
         }
     }
 }
@@ -281,6 +309,8 @@ private struct SidebarProfileHeader: ViewModifier {
                         image: avatar.map { Image(uiImage: $0).resizable() })
                 }
                 .accessibilityIdentifier("sidebar.profile")
+                // Left-aligned with the sidebar's item column, not centred (WP-13).
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         } else {
             content
@@ -336,9 +366,12 @@ private struct FocusRescue: UIViewRepresentable {
     }
 }
 
-/// "Press Back again to leave": a quiet glass card, top right, that fades in and out (a fade only, so Reduce Motion
-/// needs nothing else). Never focusable.
+/// "Press Back again to leave": a quiet glass card at the top left, where DESIGN puts notices, that fades in and out
+/// (a fade only, so Reduce Motion needs nothing else). It shows only while the sidebar is open, so it sits just right
+/// of the expanded panel rather than over the avatar. Never focusable.
 private struct LeaveHint: View {
+    /// The expanded system sidebar's trailing edge (about 392 pt on tvOS 27) plus a 32 pt gap.
+    static let leadingInset: CGFloat = 424
     let visible: Bool
     @Environment(\.perchStyle) private var style
 
@@ -356,7 +389,7 @@ private struct LeaveHint: View {
             }
         }
         .padding(.top, PerchSpacing.topMargin)
-        .padding(.trailing, PerchSpacing.horizontalMargin)
+        .padding(.leading, Self.leadingInset)
         .allowsHitTesting(false)
         .focusable(false)
         .animation(.easeInOut(duration: 0.25), value: visible)
@@ -370,12 +403,12 @@ enum ShellStrings {
     static let series = "Series"
     static let search = "Search"
     static let settings = "Settings"
-    static let filmsTitle = "Films will appear here"
-    static let filmsMessage = "Every film in your library, in one place."
-    static let seriesTitle = "Series will appear here"
-    static let seriesMessage = "Every series, with its seasons and episodes in order."
-    static let searchTitle = "Search will appear here"
-    static let searchMessage = "Find films and series by title."
+    static let filmsTitle = "Films"
+    static let filmsMessage = "Browse your films here soon."
+    static let seriesTitle = "Series"
+    static let seriesMessage = "Browse your series here soon."
+    static let searchTitle = "Search"
+    static let searchMessage = "Search is on its way."
     static let backAgainToLeave = "Press Back again to leave"
 }
 

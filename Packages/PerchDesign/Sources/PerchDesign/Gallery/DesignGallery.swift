@@ -235,8 +235,8 @@ public struct DesignGallery: View {
                         .environment(\.perchStyle, .kids)
                 }
                 HStack(spacing: 32) {
-                    PerchEmptyState(systemImage: "film", title: "Films will appear here", message: "Every film in your library, in one place.")
-                    PerchEmptyState(systemImage: "magnifyingglass", title: "Search will appear here")
+                    PerchEmptyState(systemImage: "film", title: "Films", message: "Browse your films here soon.")
+                    PerchEmptyState(systemImage: "magnifyingglass", title: "Search", message: "Search is on its way.")
                         .environment(\.perchStyle, .kids)
                 }
                 .frame(height: 420)

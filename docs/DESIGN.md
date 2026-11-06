@@ -41,7 +41,7 @@ The bar is the Apple TV app on tvOS 26. If a choice wouldn't look at home there,
 ## Screens (visual notes)
 
 - **Profile picker:** centred avatars 200 pt, name beneath, focused avatar scales 1.1. Kids' avatar with a small lock glyph.
-- **Sidebar:** the Apple TV app's collapsible left sidebar (SwiftUI sidebar-adaptable `TabView`): icons only when collapsed, expanding on focus with labels; profile avatar at the top. Content shifts right by the collapsed width; the hero backdrop runs underneath it.
+- **Sidebar:** the system tvOS 26/27 sidebar (SwiftUI sidebar-adaptable `TabView`), as in the Apple TV app. Collapsed, it is the system's tab pill at the top left (current tab's icon and name), with no avatar. Expanded on focus: a glass panel with icons and labels, the profile avatar and name at the top, left-aligned with the item column (tvOS 27 `tabViewSidebarHeader`). Content keeps its own 80 pt margin and does not shift; the hero backdrop runs underneath the panel, and while the panel has focus the hero's text fades back so it never reads through the glass.
 - **Home:** hero + rows as `SPEC.md` 3.
 - **Title page:** hero takes 60% height; cast circles 150 pt; rails below. The primary button is the first focus.
 - **Person page:** backdrop from best-known title with heavy bottom gradient; 300 pt portrait left; bio max 3 lines with "More".

@@ -23,11 +23,13 @@ final class NavigationUITests: XCTestCase {
 
     // MARK: Helpers
 
+    @MainActor
     private func focused(_ app: XCUIApplication) -> XCUIElement? {
         let all = app.descendants(matching: .any).matching(NSPredicate(format: "hasFocus == true")).allElementsBoundByIndex
         return all.last { $0.elementType != .window && $0.elementType != .other } ?? all.last
     }
 
+    @MainActor
     private func describeFocus(_ app: XCUIApplication) -> String {
         guard let now = focused(app) else { return "nothing" }
         return "\(now.elementType.rawValue) id=\(now.identifier) label=\(now.label) frame=\(now.frame)"
@@ -64,6 +66,11 @@ final class NavigationUITests: XCTestCase {
         press(.menu, settle: 0.5)
         XCTAssertEqual(app.state, .runningForeground, "one Back in the sidebar does not leave the app")
         XCTAssertTrue(element(app, "shell.leaveHint").exists, "the hint asks for a second press")
+        // At once (no settle): the hint lasts only the 2 s window.
+        let hint = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        hint.name = "wp13-leave-hint"
+        hint.lifetime = .keepAlways
+        add(hint)
         XCTAssertTrue(focusInSidebar(app), "focus stays in the sidebar; focus: \(describeFocus(app))")
         XCTAssertFalse(element(app, "picker.title").exists, "Back in the sidebar never opens the picker")
         // The window closes by itself.
@@ -147,6 +154,7 @@ final class NavigationUITests: XCTestCase {
         XCTAssertTrue(waitUntil(5) { self.element(app, "home.root").isHittable }, "double-tap Back shows Home")
         XCTAssertFalse(element(app, "designGallery").exists, "the pushed screen is gone")
         XCTAssertEqual(app.state, .runningForeground, "double-tap Back from a pushed screen does not leave the app")
+        XCTAssertFalse(element(app, "shell.leaveHint").exists, "double-tap Back disarms the leave: no hint on Home")
         // The second press reached Settings' root and moved focus to the sidebar before the double tap was known;
         // the sidebar keeps it (it ignores focus requests), so focus is on Home's item, one Right from the hero.
         let home = tab(app, "Home")
