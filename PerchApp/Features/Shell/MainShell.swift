@@ -116,9 +116,7 @@ struct MainShell: View {
             }
             .accessibilityIdentifier("tab.series")
             Tab(ShellStrings.search, systemImage: "magnifyingglass", value: MainTab.search) {
-                stack(.search) {
-                    placeholder(PerchEmptyState(systemImage: "magnifyingglass", title: ShellStrings.searchTitle, message: ShellStrings.searchMessage), id: "search.empty")
-                }
+                stack(.search) { searchContent(entry) }
             }
             .accessibilityIdentifier("tab.search")
             Tab(ShellStrings.settings, systemImage: "gearshape", value: MainTab.settings) {
@@ -163,6 +161,7 @@ struct MainShell: View {
             if case .ready = state {
                 await LibraryProbe.runIfAsked(library: core.library)
                 await TitleProbe.runIfAsked(library: core.library)
+                await SearchProbe.runIfAsked(library: core.library)
             }
             #endif
         }
@@ -241,6 +240,17 @@ struct MainShell: View {
                     systemImage: films ? "film" : "tv", title: films ? ShellStrings.filmsTitle : ShellStrings.seriesTitle,
                     message: ""),
                 id: films ? "films.empty" : "series.empty")
+        }
+    }
+
+    /// Search (WP-12), per profile: a new profile gets a new, empty search.
+    @ViewBuilder
+    private func searchContent(_ entry: HomeStore.Entry?) -> some View {
+        if let entry {
+            SearchScreen(core: core, home: entry.home) { route in push(route, on: .search) }
+                .id(entry.home.profile.id)
+        } else {
+            placeholder(PerchEmptyState(systemImage: "magnifyingglass", title: ShellStrings.searchTitle, message: ""), id: "search.empty")
         }
     }
 
@@ -464,7 +474,6 @@ enum ShellStrings {
     static let filmsTitle = "Films"
     static let seriesTitle = "Series"
     static let searchTitle = "Search"
-    static let searchMessage = "Search is on its way."
     static let backAgainToLeave = "Press Back again to leave"
     static let back = "Go back"
 }
