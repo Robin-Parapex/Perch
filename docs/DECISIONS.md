@@ -568,6 +568,19 @@ Append-only log of decisions and why. Newest at the bottom. Format: date, decisi
 - Follow-ups: a Similar titles rail; series format marks (needs a per-episode version read); trim logo transparent margins; gallery entries for `PerchIconButton`, `FormatGlyph` and `FactsLine`.
 - Full detail: `docs/notes/wp-11-plan.md`.
 
+## 2026-11-06 Search (WP-12)
+- Search uses `.searchable` on the Search tab's root view, not `Tab(role: .search)`, to keep the WP-13 sidebar. No custom keyboard.
+- Select on an episode plays (as on Home); Select on a film or series opens the page; Play/Pause plays everything.
+- Results are always checked in the app: the live server ignores `contentRating=` on `/hubs/search` (probe). No rating filter is sent on search; the code path stays behind `SearchModel.serverHonoursRatingFilter` in case a later server honours it. Kids get the certificate check against the profile ceiling, with unrated titles hidden. Collections carry no certificate, so they are hidden for kids and for lowered ceilings. Adults keep collections, even one sent without section or type (it opens with fallbacks).
+- The search is kept per profile in memory only, and cleared on a profile switch.
+- A failed search re-runs when the session becomes ready, and also when the query shown differs from the one typed. No retry button; typing again also retries.
+- Search aligns with the keyboard's left edge (rows pulled back 40 pt), not the 80 pt margin. Messages stay centred.
+- An empty tab shows Recently added, with no hint.
+- Rows use Home's `RowList` and `Row`. A focused poster shows a two-line title, so nothing below moves. Search has a plain base background.
+- The view identity is profile plus ceiling plus role (also used by the Films and Series grids), so a changed ceiling makes a new model.
+- The managed-account (teen) restriction on search is left to the server and is unverified live (no such account in the household); the client guard covers kids and lowered ceilings only.
+- Full detail: `docs/notes/wp-12-plan.md`.
+
 ## Open decisions (resolve in the named work package)
 - Recovery when the stored Perch PIN cannot be read (Admin is locked out by design): confirm the owner through Plex, audited, then allow a new Perch PIN (WP-05).
 - Assistant name (placeholder Pip) (WP-19).

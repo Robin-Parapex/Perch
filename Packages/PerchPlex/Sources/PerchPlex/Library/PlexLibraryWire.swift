@@ -155,10 +155,13 @@ struct PlexWireHub: Decodable {
     var size: Int?
     var more: Bool?
     var metadata: [PlexWireMetadata]?
+    /// Search hubs list collections (and tags) as `Directory` rows with the same fields as metadata (WP-12).
+    var directory: [PlexWireMetadata]?
 
     enum CodingKeys: String, CodingKey {
         case hubIdentifier, title, type, key, size, more
         case metadata = "Metadata"
+        case directory = "Directory"
     }
 
     init(from decoder: Decoder) throws {
@@ -170,6 +173,7 @@ struct PlexWireHub: Decodable {
         size = c.lenientInt(.size)
         more = c.lenientBool(.more)
         metadata = c.lossyArray(.metadata, of: PlexWireMetadata.self)
+        directory = c.lossyArray(.directory, of: PlexWireMetadata.self)
     }
 }
 

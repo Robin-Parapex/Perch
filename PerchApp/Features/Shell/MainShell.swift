@@ -116,9 +116,7 @@ struct MainShell: View {
             }
             .accessibilityIdentifier("tab.series")
             Tab(ShellStrings.search, systemImage: "magnifyingglass", value: MainTab.search) {
-                stack(.search) {
-                    placeholder(PerchEmptyState(systemImage: "magnifyingglass", title: ShellStrings.searchTitle, message: ShellStrings.searchMessage), id: "search.empty")
-                }
+                stack(.search) { searchContent(entry) }
             }
             .accessibilityIdentifier("tab.search")
             Tab(ShellStrings.settings, systemImage: "gearshape", value: MainTab.settings) {
@@ -163,6 +161,7 @@ struct MainShell: View {
             if case .ready = state {
                 await LibraryProbe.runIfAsked(library: core.library)
                 await TitleProbe.runIfAsked(library: core.library)
+                await SearchProbe.runIfAsked(library: core.library)
             }
             #endif
         }
@@ -233,7 +232,7 @@ struct MainShell: View {
             LibraryGridScreen(core: core, home: entry.home, kind: kind) { route in
                 push(route, on: tab)
             }
-            .id(entry.home.profile.id)
+            .id(entry.home.viewIdentity)
         } else {
             let films = kind == .film
             placeholder(
@@ -241,6 +240,17 @@ struct MainShell: View {
                     systemImage: films ? "film" : "tv", title: films ? ShellStrings.filmsTitle : ShellStrings.seriesTitle,
                     message: ""),
                 id: films ? "films.empty" : "series.empty")
+        }
+    }
+
+    /// Search (WP-12), per profile, ceiling and role: a change to any of them gets a new, empty search.
+    @ViewBuilder
+    private func searchContent(_ entry: HomeStore.Entry?) -> some View {
+        if let entry {
+            SearchScreen(core: core, home: entry.home, homeModel: entry.model) { route in push(route, on: .search) }
+                .id(entry.home.viewIdentity)
+        } else {
+            placeholder(PerchEmptyState(systemImage: "magnifyingglass", title: ShellStrings.searchTitle, message: ""), id: "search.empty")
         }
     }
 
@@ -464,9 +474,22 @@ enum ShellStrings {
     static let filmsTitle = "Films"
     static let seriesTitle = "Series"
     static let searchTitle = "Search"
-    static let searchMessage = "Search is on its way."
     static let backAgainToLeave = "Press Back again to leave"
     static let back = "Go back"
 }
 
 
+
+extension HomeProfile {
+    /// A screen's identity for this profile: a new profile, a changed ceiling or a changed role makes a new screen
+    /// (and a new model), not the old one showing results guarded for something else.
+    struct ViewIdentity: Hashable {
+        let profileID: String
+        let ceiling: RatingCeiling
+        let isKid: Bool
+    }
+
+    var viewIdentity: ViewIdentity {
+        ViewIdentity(profileID: profile.id.rawValue, ceiling: context.ceiling, isKid: isKid)
+    }
+}

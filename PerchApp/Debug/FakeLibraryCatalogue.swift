@@ -109,6 +109,7 @@ enum FakeLibraryCatalogue {
     static func answer(path: String, items: [URLQueryItem], headers: [String: String], restricted: Bool) -> Any? {
         let parts = path.split(separator: "/").map(String.init)
         func visible(_ title: Title) -> Bool { !restricted || kidAllows(title.rating) }
+        if path == "/hubs/search" { return search(items: items, restricted: restricted) }
         if parts.count == 4, parts[0] == "library", parts[1] == "sections", let section = Int(parts[2]) {
             let inSection = titles.filter { $0.section == section && visible($0) }
             switch parts[3] {
@@ -169,6 +170,53 @@ enum FakeLibraryCatalogue {
         return nil
     }
 
+    /// `/hubs/search` (WP-12): case-insensitive substring match on titles (an episode by its own title), hubs for
+    /// films, series, episodes and collections, honouring `contentRating=` and `limit`. A restricted user sees U
+    /// titles only, unless `-PerchFakeSearchIgnoresRestriction` makes the server leak everything (so a test proves the
+    /// app's own guard). Collections are hidden from a restricted user.
+    static func search(items: [URLQueryItem], restricted: Bool) -> [String: Any] {
+        let needle = (items.value("query") ?? "").trimmingCharacters(in: .whitespaces).lowercased()
+        let limit = Int(items.value("limit") ?? "") ?? 10
+        let leaks = ProcessInfo.processInfo.arguments.contains("-PerchFakeSearchIgnoresRestriction")
+        let allowed = items.value("contentRating").map { Set($0.split(separator: ",").map(String.init)) }
+        func admitted(_ rating: String?) -> Bool {
+            if restricted && !leaks && !kidAllows(rating) { return false }
+            if let allowed, !(rating.map(allowed.contains) ?? false) { return false }
+            return true
+        }
+        func matches(_ text: String) -> Bool { !needle.isEmpty && text.lowercased().contains(needle) }
+        let found = titles.filter { matches($0.title) && admitted($0.rating) }
+        let films = found.filter { $0.section == 1 }.prefix(limit).map(metadata)
+        let shows = found.filter { $0.section == 2 }.prefix(limit).map(metadata)
+        var episodes: [[String: Any]] = []
+        for series in titles where series.section == 2 && admitted(series.rating) {
+            for episode in FakeTitleCatalogue.episodes(of: series) where matches(episode.title) {
+                episodes.append(FakeTitleCatalogue.leaf(episode, series: series))
+            }
+        }
+        let collectionRows: [[String: Any]] =
+            restricted && !leaks
+            ? []
+            : collections.filter { matches($0.title) && allowed == nil }.map { collection in
+                [
+                    "ratingKey": String(collection.id), "key": "/library/collections/\(collection.id)/children",
+                    "type": "collection", "subtype": collection.section == 1 ? "movie" : "show",
+                    "librarySectionID": collection.section, "title": collection.title,
+                    "childCount": collection.members.count, "thumb": "/library/metadata/\(collection.id)/thumb/1",
+                ]
+            }
+        func hub(_ type: String, _ title: String, metadata rows: [[String: Any]], key: String = "Metadata") -> [String: Any] {
+            ["type": type, "hubIdentifier": type, "title": title, "size": rows.count, key: rows]
+        }
+        let hubs = [
+            hub("movie", "Movies", metadata: Array(films)), hub("show", "Shows", metadata: Array(shows)),
+            hub("episode", "Episodes", metadata: Array(episodes.prefix(limit))),
+            hub("collection", "Collections", metadata: collectionRows, key: "Directory"),
+            hub("actor", "People", metadata: []),
+        ]
+        return container(["size": hubs.count, "Hub": hubs])
+    }
+
     private static func members(of collection: Collection, visible: (Title) -> Bool, allowed: Set<String>?) -> [Title] {
         collection.members.compactMap { id in titles.first { $0.id == id } }
             .filter { title in visible(title) && (allowed.map { set in title.rating.map(set.contains) ?? false } ?? true) }
@@ -204,7 +252,7 @@ enum FakeLibraryCatalogue {
         }
     }
 
-    private static func metadata(_ title: Title) -> [String: Any] {
+    static func metadata(_ title: Title) -> [String: Any] {
         var row: [String: Any] = [
             "ratingKey": String(title.id), "key": "/library/metadata/\(title.id)",
             "type": title.section == 1 ? "movie" : "show", "title": title.title, "titleSort": title.sortTitle,

@@ -80,7 +80,7 @@ enum FakeTitleCatalogue {
         series.id == 2000 ? (episode.season == 1 ? "2100" : "2200") : "\(series.id)0"
     }
 
-    private static func leaf(_ episode: Episode, series: FakeLibraryCatalogue.Title) -> [String: Any] {
+    static func leaf(_ episode: Episode, series: FakeLibraryCatalogue.Title) -> [String: Any] {
         var row: [String: Any] = [
             "ratingKey": episode.id, "key": "/library/metadata/\(episode.id)", "type": "episode",
             "title": episode.title, "summary": episode.summary, "grandparentRatingKey": String(series.id),
