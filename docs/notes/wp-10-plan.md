@@ -15,6 +15,8 @@ Branch `wp-10-library`, on top of 377fafc (PerchPlex section queries, letters, f
 
 ## Live probe (C6E85DCA, normal signed launch, 6 Nov 2026)
 
+Superseded by the second pass below: the first-pass numbers counted prefixed rating keys as unknown.
+
 - Films (section 16): 490 unfiltered; PG set (PG only) 1; firstCharacter follows the filter (27 buckets/490 to 1/1, sum equals total); `contentRating!=` (9 values) honoured, 1; collections: 94 unfiltered, 0 with the PG filter; collection children ignore the filter (20 and 20).
 - Series (section 18): 132 unfiltered; PG set (TV-G, TV-Y) 4; firstCharacter follows (24/132 to 4/4); `contentRating!=` (10 values) honoured, 4; no collections.
 - First run found `collections?type=1` returns the section's films, not collections: the `type` item is removed and the mapping keeps only `type == collection` rows (PerchPlex, test updated).
