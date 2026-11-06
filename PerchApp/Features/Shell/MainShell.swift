@@ -183,6 +183,8 @@ struct MainShell: View {
                     PushedScreen(onBack: { pop(tab) }) { destination(route, tab: tab) }
                 }
         }
+        // A pushed title page stops its theme tune when another tab is chosen or the picker covers the shell.
+        .environment(\.titlePageCovered, pickerShown || selection != tab)
     }
 
     private func push(_ route: ShellRoute, on tab: MainTab) {

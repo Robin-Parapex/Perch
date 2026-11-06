@@ -29,8 +29,8 @@ struct SeriesScreen: View {
 
 /// The shared page. The primary button takes the first focus (DESIGN:46); Back pops to the card or poster that
 /// opened it (the shell's `PushedScreen` and the opener's own restore); Back from the player lands on the button or
-/// episode that started it. The theme tune plays softly while the page is up (never for a kid) and stops on leaving
-/// the page or when playback starts.
+/// episode that started it. The theme tune (off by default in 0.3) plays softly while the page is up, never for a
+/// kid; it fades out on leaving the page and stops at once when playback starts or the page is covered.
 private struct TitlePage: View {
     let core: CoreServices
     let home: HomeProfile
@@ -43,6 +43,7 @@ private struct TitlePage: View {
     @State private var pendingRestore: TitleFocus?
     @FocusState private var focus: TitleFocus?
     @Environment(\.perchStyle) private var style
+    @Environment(\.titlePageCovered) private var covered
 
     private static let topID = "title.top"
 
@@ -60,6 +61,8 @@ private struct TitlePage: View {
         if case .ready = core.plexSignIn.snapshot.state { true } else { false }
     }
     private var available: Bool { model.phase != .unavailable && model.phase != .failed }
+    /// A title this profile may not see shows nothing of itself: no name, art or synopsis.
+    private var blanked: Bool { model.phase == .unavailable }
     private var identifier: String { isSeries ? "series" : "title" }
 
     var body: some View {
@@ -102,12 +105,14 @@ private struct TitlePage: View {
         }
         .onAppear { if let seed = model.summary { core.artworkTint.focus(seed) } }
         .onDisappear { theme.stop() }
+        // A sidebar tab switch or the profile picker: the shell says the page is covered (WP-11).
+        .onChange(of: covered) { _, now in if now { theme.stop(immediately: true) } }
         .task(id: sessionReady) {
             guard sessionReady, model.phase != .ready else { return }
             await load()
         }
         .onChange(of: playerActive) { _, active in
-            if active { theme.stop() } else { returnedFromPlayer() }
+            if active { theme.stop(immediately: true) } else { returnedFromPlayer() }
         }
         .onChange(of: model.detail?.summary.id) { _, _ in
             if let summary = model.summary { core.artworkTint.focus(summary) }
@@ -120,9 +125,12 @@ private struct TitlePage: View {
 
     private var hero: some View {
         TitleHero(
-            summary: model.summary, metadata: TitleFacts.metadata(model.detail, seed: model.summary ?? placeholder),
-            badges: TitleFacts.badges(model.detail),
-            synopsis: model.detail?.synopsis ?? model.summary?.summary, focus: $focus,
+            height: isSeries && available ? TitleHero<EmptyView>.seriesHeight : TitleHero<EmptyView>.filmHeight,
+            summary: blanked ? nil : model.summary,
+            metadata: blanked ? "" : TitleFacts.metadata(model.detail, seed: model.summary ?? placeholder),
+            formats: blanked ? [] : TitleFacts.formats(model.detail),
+            synopsis: blanked ? nil : model.detail?.synopsis ?? model.summary?.summary,
+            luminance: core.artworkTint.luminance, focus: $focus,
             onMore: { showsSynopsis = true }
         ) {
             if available {
@@ -144,69 +152,88 @@ private struct TitlePage: View {
         .focused($focus, equals: .primary)
         .accessibilityIdentifier("title.primary")
         if case .resume = action {
-            Button { playFilm(startMs: 0) } label: {
-                Label(TitleStrings.fromStart, systemImage: "arrow.counterclockwise")
-            }
-            .buttonStyle(.perchSecondary)
-            .focused($focus, equals: .fromStart)
-            .accessibilityIdentifier("title.fromStart")
+            PerchIconButton(TitleStrings.fromStart, systemImage: "arrow.counterclockwise") { playFilm(startMs: 0) }
+                .focused($focus, equals: .fromStart)
+                .accessibilityIdentifier("title.fromStart")
         }
-        Button {
+        PerchIconButton(
+            item.isWatched ? TitleStrings.markUnwatched : TitleStrings.markWatched,
+            systemImage: item.isWatched ? "eye.slash" : "checkmark"
+        ) {
             Task { await model.setWatched(!item.isWatched, itemID: item.id) }
-        } label: {
-            Label(
-                item.isWatched ? TitleStrings.markUnwatched : TitleStrings.markWatched,
-                systemImage: item.isWatched ? "eye.slash" : "checkmark")
         }
-        .buttonStyle(.perchSecondary)
         .focused($focus, equals: .watched)
         .accessibilityIdentifier("title.watched")
     }
 
+    @ViewBuilder
     private var seriesActions: some View {
         let next = model.next
-        return Button { playNext(from: .primary) } label: {
+        Button { playNext() } label: {
             ActionLabel(title: next?.title ?? TitleStrings.play, detail: next?.detail, systemImage: "play.fill")
         }
         .buttonStyle(.perchPrimary)
         .focused($focus, equals: .primary)
         .accessibilityIdentifier("series.primary")
         .animation(.easeInOut(duration: PerchMotion.crossfadeDuration), value: next)
+        if !model.episodes.isEmpty {
+            let watched = model.seriesWatched
+            PerchIconButton(
+                watched ? TitleStrings.markSeriesUnwatched : TitleStrings.markSeriesWatched,
+                systemImage: watched ? "eye.slash" : "checkmark"
+            ) {
+                Task { await model.setSeriesWatched(!watched) }
+            }
+            .focused($focus, equals: .watched)
+            .accessibilityIdentifier("series.watched")
+            .transition(.opacity)
+        }
     }
 
     // MARK: Episodes
 
-    /// The season rail with Play next at its trailing end (SPEC 4: Play next stays reachable beside the episodes),
-    /// then the chosen season's episodes as a shelf of landscape cards.
+    /// The season chips (scrolling sideways when there are many), a "Next: S1 E4" jump chip at the trailing end when
+    /// another season holds the next episode, then the chosen season's episodes as a shelf of landscape cards.
     @ViewBuilder
     private var episodesSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 16) {
-                ForEach(model.seasons, id: \.self) { season in
-                    Button {
-                        withAnimation(.easeInOut(duration: PerchMotion.crossfadeDuration)) { model.selectedSeason = season }
-                    } label: {
-                        FilterChipLabel(TitleStrings.seasonTitle(season), showsChevron: false)
+            HStack(spacing: 24) {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 16) {
+                        ForEach(model.seasons, id: \.self) { season in
+                            Button {
+                                withAnimation(.easeInOut(duration: PerchMotion.crossfadeDuration)) {
+                                    model.selectedSeason = season
+                                }
+                            } label: {
+                                SeasonChipLabel(title: TitleStrings.seasonTitle(season), selected: season == model.selectedSeason)
+                            }
+                            .buttonStyle(.perchChip())
+                            .focused($focus, equals: .season(season))
+                            .accessibilityIdentifier("series.season.\(season)")
+                        }
                     }
-                    .buttonStyle(.perchChip(active: season == model.selectedSeason))
-                    .focused($focus, equals: .season(season))
-                    .accessibilityIdentifier("series.season.\(season)")
+                    // Room for the focus lift inside the clip; the outer padding gives it back.
+                    .padding(.vertical, 16)
+                    .padding(.horizontal, 12)
                 }
-                Spacer(minLength: 24)
-                if let next = model.next {
-                    Button { playNext(from: .playNext) } label: {
-                        FilterChipLabel(
-                            HomeStrings.joined([next.title, next.detail]), systemImage: "play.fill", showsChevron: false)
+                .padding(.vertical, -16)
+                .padding(.horizontal, -12)
+                .focusSection()
+                if let next = model.next, SeriesNext.season(of: next.episode) != model.selectedSeason {
+                    Button { jump(to: next.episode) } label: {
+                        FilterChipLabel(TitleStrings.nextJump(next.episode), systemImage: "arrow.right", showsChevron: false)
                     }
                     .buttonStyle(.perchChip())
-                    .focused($focus, equals: .playNext)
-                    .accessibilityIdentifier("series.playNext")
+                    .focused($focus, equals: .jumpNext)
+                    .accessibilityIdentifier("series.jumpNext")
+                    .fixedSize()
                     .transition(.opacity)
                 }
             }
             .padding(.horizontal, PerchSpacing.horizontalMargin)
             .frame(width: LibraryGridLayout.screenWidth, alignment: .leading)
-            .focusSection()
+            .animation(.easeInOut(duration: PerchMotion.crossfadeDuration), value: model.selectedSeason)
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("series.seasons")
 
@@ -224,7 +251,8 @@ private struct TitlePage: View {
 
     private var episodeShelf: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            LazyHStack(alignment: .top, spacing: 40) {
+            // Home's 24 pt card gap.
+            LazyHStack(alignment: .top, spacing: 24) {
                 ForEach(model.seasonEpisodes) { episode in
                     VStack(alignment: .leading, spacing: 6) {
                         LandscapeCard(
@@ -246,10 +274,11 @@ private struct TitlePage: View {
                         .accessibilityIdentifier("series.episode.\(episode.id)")
                         if let synopsis = episode.summary {
                             Text(synopsis)
-                                .font(PerchFont.metadata(style))
+                                .font(.system(size: PerchFont.size(19, for: style)))
                                 .foregroundStyle(PerchColor.textHelper)
-                                .lineLimit(1)
-                                .frame(width: PerchSize.landscape.width, alignment: .leading)
+                                .lineLimit(3)
+                                .lineSpacing(2)
+                                .frame(width: PerchSize.landscape.width, alignment: .topLeading)
                         }
                     }
                 }
@@ -274,20 +303,20 @@ private struct TitlePage: View {
             if model.detail?.themePath != nil { theme.markOff() }
             return
         }
-        guard !playerActive, let source = await model.themeSource(), !playerActive else { return }
+        guard !playerActive, !covered, let source = await model.themeSource(), !playerActive, !covered else { return }
         theme.start(source)
     }
 
     private func playFilm(startMs: Int?) {
         guard let item = model.summary else { return }
         pendingRestore = focus ?? .primary
-        theme.stop()
+        theme.stop(immediately: true)
         core.playback.play(item, startMs: startMs)
     }
 
-    private func playNext(from origin: TitleFocus) {
-        pendingRestore = origin
-        theme.stop()
+    private func playNext() {
+        pendingRestore = .primary
+        theme.stop(immediately: true)
         Task {
             if model.episodes.isEmpty { await model.load(isSeries: true) }
             guard let next = model.next else { return }
@@ -297,8 +326,20 @@ private struct TitlePage: View {
 
     private func play(_ episode: MediaSummary) {
         pendingRestore = .episode(episode.id)
-        theme.stop()
+        theme.stop(immediately: true)
         core.playback.play(episode, startMs: episode.isInProgress ? nil : 0)
+    }
+
+    /// The jump chip: shows the next episode's season, then puts focus on that episode.
+    private func jump(to episode: MediaSummary) {
+        withAnimation(.easeInOut(duration: PerchMotion.crossfadeDuration)) {
+            model.selectedSeason = SeriesNext.season(of: episode)
+        }
+        Task {
+            // After the new season's shelf is in, so the focus engine finds the card.
+            try? await Task.sleep(for: .milliseconds(350))
+            focus = .episode(episode.id)
+        }
     }
 
     private func returnedFromPlayer() {

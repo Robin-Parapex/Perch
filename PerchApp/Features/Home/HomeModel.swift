@@ -86,15 +86,6 @@ final class HomeModel {
         }?.element
     }
 
-    /// A series picked from Recently added (spec 5, until the title page in WP-11): its first unwatched
-    /// episode by season then number, else its first episode. Specials (season 0) are skipped.
-    static func episodeToPlay(in episodes: [MediaSummary]) -> MediaSummary? {
-        let regular = episodes
-            .filter { $0.kind == .episode && ($0.seasonNumber ?? 1) > 0 }
-            .sorted { ($0.seasonNumber ?? 1, $0.episodeNumber ?? 0) < ($1.seasonNumber ?? 1, $1.episodeNumber ?? 0) }
-        return regular.first { !$0.isWatched } ?? regular.first
-    }
-
     /// Fetches every row at once and applies each as it lands. A failure keeps the row that was there.
     func refresh() async {
         guard !isRefreshing, !sources.isEmpty else { return }

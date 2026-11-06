@@ -610,7 +610,7 @@ enum LibraryPlayback {
         switch item.kind {
         case .series:
             let episodes = (try? await core.library.allEpisodes(ofSeries: item.id)) ?? []
-            if let next = SeriesNext.choose(in: episodes) {
+            if let next = SeriesNext.choose(in: episodes, seasonID: nil) {
                 core.playback.play(next.episode, startMs: next.startMs)
             } else {
                 LibraryGridModel.log.notice("Library: no episode to play for series \(item.id, privacy: .public)")

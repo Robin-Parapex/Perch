@@ -137,15 +137,16 @@ struct HomeModelTests {
     }
 
     @Test func seriesPlaysFirstUnwatchedElseFirstEpisode() {
+        // Home now plays a series through the series page's rule (`SeriesNext`, WP-11).
         let s0 = Self.item("s0", kind: .episode, season: 0, episode: 1)
         let e11 = Self.item("e11", kind: .episode, season: 1, episode: 1, views: 1)
         let e12 = Self.item("e12", kind: .episode, season: 1, episode: 2)
         let e21 = Self.item("e21", kind: .episode, season: 2, episode: 1)
-        #expect(HomeModel.episodeToPlay(in: [e21, s0, e12, e11])?.id == "e12")
+        #expect(SeriesNext.choose(in: [e21, s0, e12, e11], seasonID: nil)?.episode.id == "e12")
         let w12 = Self.item("e12", kind: .episode, season: 1, episode: 2, views: 1)
         let w21 = Self.item("e21", kind: .episode, season: 2, episode: 1, views: 1)
-        #expect(HomeModel.episodeToPlay(in: [w21, w12, e11, s0])?.id == "e11")
-        #expect(HomeModel.episodeToPlay(in: []) == nil)
+        #expect(SeriesNext.choose(in: [w21, w12, e11, s0], seasonID: nil)?.mode == .playAgain)
+        #expect(SeriesNext.choose(in: [], seasonID: nil) == nil)
     }
 
     @Test func strings() {

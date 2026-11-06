@@ -123,14 +123,65 @@ struct TitleLogicTests {
 
     // MARK: Theme music
 
-    @Test func themePlaysOnlyForAnAdultWithATheme() {
-        #expect(ThemeMusicPolicy.plays(themePath: "/library/metadata/1/theme/2", isKid: false))
-        #expect(!ThemeMusicPolicy.plays(themePath: "/library/metadata/1/theme/2", isKid: true))
-        #expect(!ThemeMusicPolicy.plays(themePath: nil, isKid: false))
-        #expect(!ThemeMusicPolicy.plays(themePath: "", isKid: false))
-        #expect(!ThemeMusicPolicy.plays(themePath: "/library/metadata/1/theme/2", isKid: false, switchedOff: true))
+    @Test func themeIsOffByDefaultAndNeverForAKid() {
+        let path = "/library/metadata/1/theme/2"
+        // 0.3: off for everyone unless switched on (DEBUG -PerchThemeMusic; the test host runs without it).
+        #expect(!ThemeMusicPolicy.enabled)
+        #expect(!ThemeMusicPolicy.plays(themePath: path, isKid: false))
+        #expect(ThemeMusicPolicy.plays(themePath: path, isKid: false, enabled: true))
+        #expect(!ThemeMusicPolicy.plays(themePath: path, isKid: true, enabled: true))
+        #expect(!ThemeMusicPolicy.plays(themePath: nil, isKid: false, enabled: true))
+        #expect(!ThemeMusicPolicy.plays(themePath: "", isKid: false, enabled: true))
         #expect(ThemeMusicPolicy.volume == 0.25)
         #expect(ThemeMusicPolicy.fade == .seconds(1))
+    }
+
+    // MARK: Shared Play next routing
+
+    @Test func everySeriesPlayUsesTheSameRule() throws {
+        let episodes = [
+            episode("1", 1, 1, views: 1, viewedAt: 100), episode("2", 1, 2, offset: 30_000, viewedAt: 400),
+            episode("3", 2, 1), episode("4", 2, 2),
+        ]
+        let page = try #require(SeriesNext.choose(in: episodes))
+        let fromHome = try #require(SeriesNext.choose(in: episodes, seasonID: nil))
+        #expect(fromHome == page)
+        #expect(fromHome.episode.id == "2")
+        #expect(fromHome.startMs == nil, "an episode in progress resumes")
+    }
+
+    @Test func aSeasonCardPlaysWithinItsSeason() throws {
+        let episodes = [
+            episode("1", 1, 1, views: 1, viewedAt: 100), episode("2", 1, 2),
+            episode("3", 2, 1, views: 1, viewedAt: 50), episode("4", 2, 2),
+        ]
+        let season2 = try #require(SeriesNext.choose(in: episodes, seasonID: "s2"))
+        #expect(season2.episode.id == "4")
+        #expect(season2.startMs == 0)
+        // A season with no episodes in the list falls back to the whole series.
+        #expect(SeriesNext.choose(in: episodes, seasonID: "s9")?.episode.id == "2")
+    }
+
+    @Test func anEpisodeWithNoSeasonNumberIsSeasonOne() throws {
+        let loose = MediaSummary(id: "x", kind: .episode, title: "X", seriesID: "S", episodeNumber: 2, durationMs: 60_000)
+        #expect(SeriesNext.season(of: loose) == 1)
+        let next = try #require(SeriesNext.choose(in: [episode("1", 1, 1, views: 1, viewedAt: 10), loose, episode("3", 2, 1)]))
+        #expect(next.episode.id == "x", "S1 E1 watched, then the loose E2 before S2 E1")
+    }
+
+    // MARK: Certificates
+
+    @Test func certificatesDropTheirCountryPrefixForDisplay() {
+        #expect(CertificateDisplay.text("gb/12A") == "12A")
+        #expect(CertificateDisplay.text(" de/16 ") == "16")
+        #expect(CertificateDisplay.text("PG-13") == "PG-13")
+        #expect(CertificateDisplay.text("TV-14") == "TV-14")
+        #expect(CertificateDisplay.text("gb/") == nil)
+        #expect(CertificateDisplay.text("") == nil)
+        #expect(CertificateDisplay.text(nil) == nil)
+        let rated = MediaSummary(id: "1", kind: .film, title: "F", year: 2024, certificate: "gb/15", durationMs: 6_000_000)
+        #expect(TitleFacts.metadata(nil, seed: rated) == "2024 · 15 · 1 h 40 min")
+        #expect(HomeStrings.heroMetadata(rated) == "2024 · 1 h 40 min · 15")
     }
 
     // MARK: Routing
@@ -155,5 +206,6 @@ struct TitleLogicTests {
         let hd = MediaVersion(id: "m", videoResolution: "1080", parts: [MediaPart(id: "p", key: nil, streams: [hdr])])
         #expect(TitleFacts.badges(MediaDetail(summary: film(), versions: [hd])) == [.format("HD"), .format("HDR10")])
         #expect(TitleFacts.badges(nil).isEmpty)
+        #expect(TitleFacts.formats(detail) == ["4K", "Dolby Vision"])
     }
 }

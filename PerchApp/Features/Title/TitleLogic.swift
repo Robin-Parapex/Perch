@@ -110,7 +110,7 @@ struct SeriesNext: Equatable {
     /// one after the last finished (Plex's On deck rule).
     static func choose(in episodes: [MediaSummary]) -> SeriesNext? {
         let all = episodes.filter { $0.kind == .episode }
-        let regular = all.filter { ($0.seasonNumber ?? 1) > 0 }
+        let regular = all.filter { season(of: $0) > 0 }
         let pool = (regular.isEmpty ? all : regular).sorted { order($0) < order($1) }
         guard let first = pool.first else { return nil }
         func latest(_ items: [MediaSummary]) -> MediaSummary? {
@@ -136,20 +136,41 @@ struct SeriesNext: Equatable {
         return SeriesNext(episode: candidate, mode: candidate.isInProgress ? .resume : .next)
     }
 
+    /// The one entry point every Play on a series uses (the page's Play next, Home's hero and Play/Pause, the
+    /// grids' Play/Pause), so they all pick the same episode. A season card plays within its season (the same rule
+    /// over that season's episodes), falling back to the whole series when the season has none.
+    static func choose(in episodes: [MediaSummary], seasonID: String?) -> SeriesNext? {
+        if let seasonID, let inSeason = choose(in: episodes.filter { $0.seasonID == seasonID }) { return inSeason }
+        return choose(in: episodes)
+    }
+
+    /// An episode with no season number belongs to season 1, everywhere (rails, chips and this rule).
+    static func season(of item: MediaSummary) -> Int { item.seasonNumber ?? 1 }
+
     private static func order(_ item: MediaSummary) -> (Int, Int) {
-        (item.seasonNumber ?? 1, item.episodeNumber ?? 0)
+        (season(of: item), item.episodeNumber ?? 0)
     }
 }
 
-/// Theme tunes on title pages (SPEC 5): soft, faded in and out, never for a kid's profile (no setting yet; WP-18
-/// adds one). The token is only ever in the asset's headers.
+/// Theme tunes on title pages (SPEC 5: "0.3 hook, on by default from 1.2"; WP-27 turns it on). Off for everyone in
+/// 0.3; DEBUG `-PerchThemeMusic` turns it on for tests and checks. Never for a kid's profile, flag or not. Soft,
+/// faded in and out; the token is only ever in the asset's headers.
 enum ThemeMusicPolicy {
     static let volume: Float = 0.25
     static let fade: Duration = .seconds(1)
 
-    static func plays(themePath: String?, isKid: Bool, switchedOff: Bool = false) -> Bool {
+    /// Whether theme tunes are on at all: false until WP-27 (and its setting) turns them on.
+    static var enabled: Bool {
+        #if DEBUG
+        ProcessInfo.processInfo.arguments.contains("-PerchThemeMusic")
+        #else
+        false
+        #endif
+    }
+
+    static func plays(themePath: String?, isKid: Bool, enabled: Bool = ThemeMusicPolicy.enabled) -> Bool {
         guard let themePath, !themePath.isEmpty else { return false }
-        return !isKid && !switchedOff
+        return enabled && !isKid
     }
 }
 
@@ -158,15 +179,21 @@ enum TitleFacts {
     static func metadata(_ detail: MediaDetail?, seed: MediaSummary) -> String {
         let summary = detail?.summary ?? seed
         let genre = detail?.genres.first
+        let certificate = CertificateDisplay.text(summary.certificate)
         switch summary.kind {
         case .series:
             let seasons = detail?.childCount.map(TitleStrings.seasonCount)
-            return HomeStrings.joined([summary.year.map(String.init), summary.certificate, seasons, genre])
+            return HomeStrings.joined([summary.year.map(String.init), certificate, seasons, genre])
         default:
             return HomeStrings.joined([
-                summary.year.map(String.init), summary.certificate, summary.durationMs.map(HomeStrings.duration), genre,
+                summary.year.map(String.init), certificate, summary.durationMs.map(HomeStrings.duration), genre,
             ])
         }
+    }
+
+    /// The format marks' names, for the facts line's inline glyphs.
+    static func formats(_ detail: MediaDetail?) -> [String] {
+        badges(detail).compactMap { if case .format(let name) = $0 { name } else { nil } }
     }
 
     static func badges(_ detail: MediaDetail?) -> [Pill.Kind] {
@@ -198,6 +225,8 @@ enum TitleStrings {
     static let fromStart = "Play from the start"
     static let markWatched = "Mark watched"
     static let markUnwatched = "Mark unwatched"
+    static let markSeriesWatched = "Mark series watched"
+    static let markSeriesUnwatched = "Mark series unwatched"
     static let more = "More"
     static let cast = "Cast"
     static let episodes = "Episodes"
@@ -210,6 +239,11 @@ enum TitleStrings {
     static let failedMessage = "Check your media server is on, then try again."
     static let tryAgain = "Try again"
     static let noEpisodes = "No episodes yet"
+
+    /// The jump chip beside the seasons when another season holds the next episode: "Next: S1 E4".
+    static func nextJump(_ episode: MediaSummary) -> String {
+        "Next: " + (HomeStrings.episodeCode(episode) ?? episode.title)
+    }
 
     static func seasonTitle(_ number: Int) -> String { number == 0 ? specials : "Season \(number)" }
     static func seasonCount(_ count: Int) -> String { count == 1 ? "1 season" : "\(count) seasons" }

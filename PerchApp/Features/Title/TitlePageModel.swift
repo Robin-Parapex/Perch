@@ -37,13 +37,13 @@ final class TitlePageModel {
 
     /// Season numbers in order, Specials last (as the Apple TV app lists them).
     var seasons: [Int] {
-        let numbers = Set(episodes.compactMap(\.seasonNumber))
+        let numbers = Set(episodes.map(SeriesNext.season(of:)))
         return numbers.filter { $0 > 0 }.sorted() + (numbers.contains(0) ? [0] : [])
     }
 
     var seasonEpisodes: [MediaSummary] {
         guard let selectedSeason else { return [] }
-        return episodes.filter { $0.seasonNumber == selectedSeason }
+        return episodes.filter { SeriesNext.season(of: $0) == selectedSeason }
             .sorted { ($0.episodeNumber ?? 0) < ($1.episodeNumber ?? 0) }
     }
 
@@ -62,6 +62,11 @@ final class TitlePageModel {
                 chooseSeasonIfNeeded()
             }
             phase = .ready
+        } catch is CancellationError {
+            // The page went away (or the task restarted) mid-load: not a failure to show.
+            return
+        } catch let error as URLError where error.code == .cancelled {
+            return
         } catch {
             Self.log.notice("Title: load failed: \(String(describing: type(of: error)), privacy: .public)")
             if phase != .ready { phase = .failed }
@@ -78,12 +83,33 @@ final class TitlePageModel {
     private func chooseSeasonIfNeeded() {
         if let selectedSeason, seasons.contains(selectedSeason) { return }
         if let seasonID = route.seasonID,
-            let number = episodes.first(where: { $0.seasonID == seasonID })?.seasonNumber
+            let episode = episodes.first(where: { $0.seasonID == seasonID })
         {
-            selectedSeason = number
+            selectedSeason = SeriesNext.season(of: episode)
         } else {
-            selectedSeason = next?.episode.seasonNumber ?? seasons.first
+            selectedSeason = next.map { SeriesNext.season(of: $0.episode) } ?? seasons.first
         }
+    }
+
+    /// Every regular episode watched: the series hero offers Mark series unwatched instead.
+    var seriesWatched: Bool {
+        let regular = episodes.filter { SeriesNext.season(of: $0) > 0 }
+        return !regular.isEmpty && regular.allSatisfy(\.isWatched)
+    }
+
+    /// Marks the whole series (Plex marks every episode under it), then reads the episodes back.
+    func setSeriesWatched(_ watched: Bool) async {
+        do {
+            try await library.setWatched(watched, itemID: route.id)
+        } catch {
+            Self.log.notice("Title: series watch state not changed: \(String(describing: type(of: error)), privacy: .public)")
+            return
+        }
+        for index in episodes.indices {
+            episodes[index].viewCount = watched ? max(1, episodes[index].viewCount) : 0
+            episodes[index].viewOffsetMs = nil
+        }
+        await refresh(isSeries: true)
     }
 
     func setWatched(_ watched: Bool, itemID: String) async {
@@ -113,7 +139,8 @@ final class TitlePageModel {
 }
 
 /// Plays a title's theme tune softly (WP-11): an `AVURLAsset` with the token in its HTTP headers (the option key
-/// NativeEngine uses), 0.25 volume, 1 s fades in and out. One per page; `stop()` on leaving or when playback starts.
+/// NativeEngine uses), 0.25 volume, 1 s fades in and out. One per page; `stop()` fades out on leaving, `stop(immediately:)`
+/// cuts it when playback starts or the page is covered.
 @MainActor
 @Observable
 final class ThemeMusicPlayer {
@@ -122,6 +149,7 @@ final class ThemeMusicPlayer {
     private(set) var state: State = .none
     @ObservationIgnored private var player: AVPlayer?
     @ObservationIgnored private var fadeTask: Task<Void, Never>?
+    @ObservationIgnored private var fadingPlayer: AVPlayer?
 
     func markOff() { state = .off }
 
@@ -136,13 +164,32 @@ final class ThemeMusicPlayer {
         fade(to: ThemeMusicPolicy.volume, then: nil)
     }
 
-    /// Fades out and releases the player. Final for this page: a stopped theme never starts again.
-    func stop() {
+    /// Releases the player, fading out over 1 s on leaving the page, at once when playback starts (`immediately`).
+    /// Final for this page: a stopped theme never starts again.
+    func stop(immediately: Bool = false) {
+        if immediately, state == .stopped, fadeTask != nil {
+            // A fade-out is still running: cut it short.
+            fadeTask?.cancel()
+            fadeTask = nil
+            fadingPlayer?.pause()
+            fadingPlayer = nil
+            return
+        }
         guard state != .stopped else { return }
         state = .stopped
         guard let player else { return }
         self.player = nil
-        fade(from: player, to: 0) { player.pause() }
+        if immediately {
+            fadeTask?.cancel()
+            fadeTask = nil
+            player.pause()
+        } else {
+            fadingPlayer = player
+            fade(from: player, to: 0) { [weak self] in
+                player.pause()
+                self?.fadingPlayer = nil
+            }
+        }
     }
 
     private func fade(to target: Float, then done: (() -> Void)?) {
@@ -158,6 +205,7 @@ final class ThemeMusicPlayer {
         fadeTask = Task { @MainActor in
             for index in 1...steps {
                 try? await Task.sleep(for: step)
+                guard !Task.isCancelled else { return }
                 player.volume = start + (target - start) * Float(index) / Float(steps)
             }
             done?()

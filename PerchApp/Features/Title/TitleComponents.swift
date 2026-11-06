@@ -7,21 +7,33 @@ import SwiftUI
 enum TitleFocus: Hashable {
     case primary, synopsis, fromStart, watched
     case season(Int)
-    case playNext
+    case jumpNext
     case episode(String)
     case cast(String)
 }
 
-/// The page's hero (DESIGN: 60% of the height): the backdrop faded into the page, the logo or the title, the facts
-/// line, format badges, a three-line synopsis that opens in full on Select, and the actions. Fixed sizes, because
-/// container-relative frames inside a scroll view re-laid out every frame on the grids (WP-10).
-struct TitleHero<Actions: View>: View {
-    static var height: CGFloat { 648 }
+extension EnvironmentValues {
+    /// Set by the shell while a pushed page is not what the viewer sees (another sidebar tab chosen, the profile
+    /// picker over the shell): the page stops its theme tune (WP-11).
+    @Entry var titlePageCovered = false
+}
 
+/// The page's hero: the backdrop faded into the page, the logo or the title, the facts line with its format marks
+/// inline, a three-line synopsis that opens in full on Select ("More" only when it is cut), and the actions. Fixed
+/// sizes, because container-relative frames inside a scroll view re-laid out every frame on the grids (WP-10). A
+/// film's hero is 60% of the height (DESIGN); a series' is taller so the first frame ends inside the episode stills.
+struct TitleHero<Actions: View>: View {
+    static var filmHeight: CGFloat { 648 }
+    /// 1080 less the season row and 115 pt of the stills (WP-11 design pass).
+    static var seriesHeight: CGFloat { 832 }
+
+    let height: CGFloat
     let summary: MediaSummary?
     let metadata: String
-    let badges: [Pill.Kind]
+    let formats: [String]
     let synopsis: String?
+    /// The backdrop's luminance (0 to 1) when measured: brighter art gets a stronger scrim behind the text.
+    let luminance: Double?
     var focus: FocusState<TitleFocus?>.Binding
     let onMore: () -> Void
     @ViewBuilder let actions: () -> Actions
@@ -37,16 +49,23 @@ struct TitleHero<Actions: View>: View {
         return 0
     }
 
+    /// 0.85 on dark art up to 0.95 on bright art at the left edge, and it reaches further across.
+    private var scrim: (edge: Double, mid: Double, end: Double) {
+        let light = min(1, max(0, ((luminance ?? 0.35) - 0.2) / 0.5))
+        return (0.85 + 0.1 * light, 0.55 + 0.25 * light, 0.62 + 0.13 * light)
+    }
+
     var body: some View {
         ZStack(alignment: .bottomLeading) {
             ArtworkImage(path: summary?.artworkPath(for: .backdrop), size: .backdrop)
-                .frame(width: LibraryGridLayout.screenWidth, height: Self.height)
+                .frame(width: LibraryGridLayout.screenWidth, height: height)
                 .clipped()
                 .overlay {
                     LinearGradient(
                         stops: [
-                            .init(color: PerchColor.base.opacity(0.8), location: 0),
-                            .init(color: PerchColor.base.opacity(0), location: 0.62),
+                            .init(color: PerchColor.base.opacity(scrim.edge), location: 0),
+                            .init(color: PerchColor.base.opacity(scrim.mid), location: 0.3),
+                            .init(color: PerchColor.base.opacity(0), location: scrim.end),
                         ], startPoint: .leading, endPoint: .trailing)
                 }
                 // Faded out by a mask, not painted over, so it melts into the tinted page (as the collection hero).
@@ -60,42 +79,24 @@ struct TitleHero<Actions: View>: View {
                         ], startPoint: .top, endPoint: .bottom)
                 }
                 .opacity(shown ? 1 : 0)
+                .animation(.easeInOut(duration: 0.4), value: luminance)
             VStack(alignment: .leading, spacing: 0) {
                 titleBlock
                     .frame(height: 140, alignment: .bottomLeading)
                     .accessibilityIdentifier("title.name")
                 VStack(alignment: .leading, spacing: 0) {
-                    if !metadata.isEmpty {
-                        Text(metadata)
-                            .font(PerchFont.metadata(style))
-                            .foregroundStyle(PerchColor.textSecondary)
-                            .lineLimit(1)
+                    if !metadata.isEmpty || !formats.isEmpty {
+                        FactsLine(metadata, formats: formats, textIdentifier: "title.metadata")
                             .padding(.top, 20)
-                            .accessibilityIdentifier("title.metadata")
                     }
-                    if !badges.isEmpty { BadgeStrip(badges).padding(.top, 14) }
                     if let synopsis, !synopsis.isEmpty {
-                        Button(action: onMore) {
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text(synopsis)
-                                    .font(PerchFont.body(style))
-                                    .foregroundStyle(PerchColor.textBody)
-                                    .lineLimit(3)
-                                    .multilineTextAlignment(.leading)
-                                if synopsis.count > 160 {
-                                    Text(TitleStrings.more)
-                                        .font(PerchFont.metadata(style).weight(.semibold))
-                                        .foregroundStyle(PerchColor.textPrimary)
-                                }
-                            }
-                            .frame(width: 900, alignment: .leading)
-                        }
-                        .buttonStyle(SynopsisButtonStyle())
-                        .focused(focus, equals: .synopsis)
-                        .accessibilityIdentifier("title.synopsis")
-                        .padding(.top, 14)
+                        Button(action: onMore) { SynopsisText(text: synopsis) }
+                            .buttonStyle(SynopsisButtonStyle())
+                            .focused(focus, equals: .synopsis)
+                            .accessibilityIdentifier("title.synopsis")
+                            .padding(.top, 16)
                     }
-                    HStack(spacing: 24) { actions() }
+                    HStack(alignment: .top, spacing: 24) { actions() }
                         .focusSection()
                         .padding(.top, 28)
                 }
@@ -105,7 +106,7 @@ struct TitleHero<Actions: View>: View {
             .padding(.leading, PerchSpacing.horizontalMargin)
             .padding(.bottom, 24)
         }
-        .frame(width: LibraryGridLayout.screenWidth, height: Self.height, alignment: .bottomLeading)
+        .frame(width: LibraryGridLayout.screenWidth, height: height, alignment: .bottomLeading)
         .onAppear {
             withAnimation(.easeOut(duration: reduceMotion ? PerchMotion.crossfadeDuration : PerchMotion.heroBackdropFade)) {
                 shown = true
@@ -130,6 +131,62 @@ struct TitleHero<Actions: View>: View {
     }
 }
 
+/// The hero synopsis: three lines at 760 pt. When the text is cut, "More" sits at the end of the last line and the
+/// line fades out just before it (as the Apple TV app); when it all fits there is no "More". Focus brightens the
+/// text itself.
+private struct SynopsisText: View {
+    static let width: CGFloat = 760
+    let text: String
+    @Environment(\.perchStyle) private var style
+    @Environment(\.isFocused) private var focused
+    @State private var fullHeight: CGFloat = 0
+    @State private var shownHeight: CGFloat = 0
+
+    private var truncated: Bool { fullHeight > shownHeight + 1 }
+
+    var body: some View {
+        Text(text)
+            .font(PerchFont.body(style))
+            .foregroundStyle(focused ? PerchColor.textPrimary : PerchColor.textBody)
+            .lineLimit(3)
+            .multilineTextAlignment(.leading)
+            .frame(width: Self.width, alignment: .leading)
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { shownHeight = $0 }
+            .background(alignment: .topLeading) {
+                Text(text)
+                    .font(PerchFont.body(style))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(width: Self.width, alignment: .leading)
+                    .hidden()
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { fullHeight = $0 }
+            }
+            .mask { if truncated { lastLineFade } else { Rectangle() } }
+            .overlay(alignment: .bottomTrailing) {
+                if truncated {
+                    Text(TitleStrings.more)
+                        .font(PerchFont.body(style).weight(.bold))
+                        .foregroundStyle(PerchColor.textPrimary)
+                        .accessibilityIdentifier("title.more")
+                }
+            }
+            .animation(PerchMotion.spring, value: focused)
+    }
+
+    /// Clears the last line's end so "More" reads on its own: three lines tall, the last fading out before it.
+    private var lastLineFade: some View {
+        let line = shownHeight / 3
+        return VStack(spacing: 0) {
+            Rectangle().frame(height: max(0, shownHeight - line))
+            HStack(spacing: 0) {
+                Rectangle()
+                LinearGradient(colors: [.black, .clear], startPoint: .leading, endPoint: .trailing).frame(width: 60)
+                Color.clear.frame(width: 84)
+            }
+            .frame(height: line)
+        }
+    }
+}
+
 /// The synopsis as a quiet focusable block: a soft platter and a small lift when focused.
 private struct SynopsisButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View { Styled(configuration: configuration) }
@@ -144,12 +201,28 @@ private struct SynopsisButtonStyle: ButtonStyle {
                 .padding(.vertical, 12)
                 .background(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(Color.white.opacity(focused ? 0.14 : 0)))
+                        .fill(Color.white.opacity(focused ? 0.12 : 0)))
                 .scaleEffect(focused ? 1.02 : 1, anchor: .leading)
                 .padding(.horizontal, -20)
                 .padding(.vertical, -12)
                 .animation(PerchMotion.spring, value: focused)
         }
+    }
+}
+
+/// A season chip's label: the chosen season reads by weight and brightness only; the pill is focus alone.
+struct SeasonChipLabel: View {
+    let title: String
+    let selected: Bool
+    @Environment(\.perchStyle) private var style
+    @Environment(\.isFocused) private var focused
+
+    var body: some View {
+        Text(title)
+            .font(PerchFont.metadata(style).weight(selected ? .bold : .medium))
+            .lineLimit(1)
+            .opacity(focused || selected ? 1 : 0.6)
+            .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
 

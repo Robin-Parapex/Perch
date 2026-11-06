@@ -72,9 +72,9 @@ enum HomeStrings {
         case .episode:
             joined([episodeCode(item), item.title, item.remainingMs.map(timeLeft)])
         case .series:
-            joined([series, item.year.map(String.init), item.certificate])
+            joined([series, item.year.map(String.init), CertificateDisplay.text(item.certificate)])
         default:
-            joined([item.year.map(String.init), item.durationMs.map(duration), item.certificate])
+            joined([item.year.map(String.init), item.durationMs.map(duration), CertificateDisplay.text(item.certificate)])
         }
     }
 
