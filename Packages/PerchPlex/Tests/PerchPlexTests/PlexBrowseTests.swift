@@ -100,7 +100,7 @@ struct PlexBrowseTests {
         let list = endpoints.sectionCollections(base: base, token: token, query: query)
         #expect(list.url?.path == "/library/sections/1/collections")
         #expect(items(list)["contentRating"] == "PG,U")
-        #expect(items(list)["type"] == "1")
+        #expect(items(list)["type"] == nil, "type=1 made the live server list films, not collections")
         expectTokenOnlyInHeader(list)
         let children = endpoints.collectionChildren(
             base: base, token: token, collectionID: "55", start: 0, size: 200)
@@ -218,7 +218,8 @@ struct PlexBrowseTests {
         let json = #"""
             {"MediaContainer":{"size":2,"Metadata":[
             {"ratingKey":"88","type":"collection","title":"Marvel","thumb":"/library/metadata/88/thumb/1","childCount":"23"},
-            {"type":"collection","title":"No key"}]}}
+            {"type":"collection","title":"No key"},
+            {"ratingKey":"5","type":"movie","title":"A film, not a collection"}]}}
             """#
         await rig.transport.script(path: "/library/sections/1/collections", json: json)
         let list = try await rig.library.collections(

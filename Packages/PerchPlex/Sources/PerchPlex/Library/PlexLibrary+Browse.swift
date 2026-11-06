@@ -55,6 +55,41 @@ extension PlexLibrary {
         return items.filter { $0.certificate.map(allowed.contains) ?? false }
     }
 
+    /// The server's total for a query, asking for one row. `extraItems` adds raw query items, so a live check
+    /// can try syntax the query type does not model (for example `contentRating!=` exclusion). Diagnostics only.
+    public func sectionTotal(query: PlexSectionQuery, extraItems: [URLQueryItem] = []) async throws -> Int? {
+        guard !query.admitsNothing else { return 0 }
+        let context = try await current()
+        var request = endpoints.sectionItems(
+            base: context.baseURL, token: context.token, query: query, start: 0, size: 1)
+        if !extraItems.isEmpty, let url = request.url,
+            var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        {
+            components.queryItems = (components.queryItems ?? []) + extraItems
+            request.url = components.url
+        }
+        let container = try await fetch(context, request)
+        return container.totalCount
+    }
+
+    /// How many children a collection returns from the server, with or without a content-rating filter on the
+    /// request and before any filtering here. Diagnostics only (does the endpoint honour the filter?).
+    public func collectionChildCount(collectionID: String, contentRatings: Set<String>?) async throws -> Int {
+        let context = try await current()
+        var request = endpoints.collectionChildren(
+            base: context.baseURL, token: context.token, collectionID: collectionID, start: 0, size: 500)
+        if let contentRatings, !contentRatings.isEmpty, let url = request.url,
+            var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        {
+            components.queryItems =
+                (components.queryItems ?? [])
+                + [.init(name: "contentRating", value: contentRatings.sorted().joined(separator: ","))]
+            request.url = components.url
+        }
+        let container = try await fetch(context, request)
+        return container.totalCount ?? container.rowCount
+    }
+
     /// The section's content-rating values that the ceiling admits.
     public func admittedContentRatings(
         sectionID: String, ceiling: RatingCeiling
@@ -91,7 +126,8 @@ extension PlexLibraryMapping {
 
     static func collections(_ items: [PlexWireMetadata]) -> [PlexCollection] {
         items.compactMap { item in
-            guard let id = item.ratingKey, !id.isEmpty else { return nil }
+            // Only collection rows: a server that answers with titles must not turn them into collections.
+            guard let id = item.ratingKey, !id.isEmpty, item.type.map({ $0 == "collection" }) ?? true else { return nil }
             return PlexCollection(
                 id: id, title: item.title ?? "", thumbPath: item.thumb, childCount: item.childCount)
         }

@@ -11,6 +11,8 @@ enum MainTab: String, Hashable, CaseIterable {
 
 /// Screens pushed inside a tab's own stack.
 enum ShellRoute: Hashable {
+    /// A collection's grid, pushed from Films or Series (WP-10).
+    case collection(LibraryCollectionRoute)
     #if DEBUG
     case gallery
     #endif
@@ -50,7 +52,18 @@ struct MainShell: View {
         _flow = State(initialValue: SetupRerunFlow(core: core, onRunSetupAgain: onRunSetupAgain))
     }
 
-    private static var initialTab: MainTab { .home }
+    /// `-PerchInitialTab films` (DEBUG) opens another tab at launch, for screenshots of a live library.
+    private static var initialTab: MainTab {
+        #if DEBUG
+        let arguments = ProcessInfo.processInfo.arguments
+        if let index = arguments.firstIndex(of: "-PerchInitialTab"), arguments.indices.contains(index + 1),
+            let tab = MainTab(rawValue: arguments[index + 1])
+        {
+            return tab
+        }
+        #endif
+        return .home
+    }
 
     private static func initialPaths() -> [MainTab: NavigationPath] {
         var home = NavigationPath()
@@ -91,15 +104,11 @@ struct MainShell: View {
             }
             .accessibilityIdentifier("tab.home")
             Tab(ShellStrings.films, systemImage: "film", value: MainTab.films) {
-                stack(.films) {
-                    placeholder(PerchEmptyState(systemImage: "film", title: ShellStrings.filmsTitle, message: ShellStrings.filmsMessage), id: "films.empty")
-                }
+                stack(.films) { libraryContent(entry, kind: .film, tab: .films) }
             }
             .accessibilityIdentifier("tab.films")
             Tab(ShellStrings.series, systemImage: "tv", value: MainTab.series) {
-                stack(.series) {
-                    placeholder(PerchEmptyState(systemImage: "tv", title: ShellStrings.seriesTitle, message: ShellStrings.seriesMessage), id: "series.empty")
-                }
+                stack(.series) { libraryContent(entry, kind: .series, tab: .series) }
             }
             .accessibilityIdentifier("tab.series")
             Tab(ShellStrings.search, systemImage: "magnifyingglass", value: MainTab.search) {
@@ -146,6 +155,9 @@ struct MainShell: View {
                 fallbackProfile = profile
             }
             resolvedFor = state
+            #if DEBUG
+            if case .ready = state { await LibraryProbe.runIfAsked(library: core.library) }
+            #endif
         }
         .task(id: entry?.home.profile.id) { await loadAvatar(entry?.home.profile) }
         .onChange(of: entry?.home.profile.id, initial: true) { _, id in profileChanged(to: id) }
@@ -161,7 +173,7 @@ struct MainShell: View {
             Color.clear
                 .overlay { root() }
                 .navigationDestination(for: ShellRoute.self) { route in
-                    PushedScreen(onBack: { pop(tab) }) { Self.destination(route) }
+                    PushedScreen(onBack: { pop(tab) }) { destination(route) }
                 }
         }
     }
@@ -177,14 +189,35 @@ struct MainShell: View {
     }
 
     @ViewBuilder
-    private static func destination(_ route: ShellRoute) -> some View {
-        #if DEBUG
+    private func destination(_ route: ShellRoute) -> some View {
         switch route {
+        case .collection(let collection):
+            if let entry = activeProfile.map({ HomeStore.shared.entry(for: $0, core: core) }) {
+                CollectionGridScreen(core: core, home: entry.home, route: collection)
+                    .id(entry.home.profile.id)
+            }
+        #if DEBUG
         case .gallery: DesignGallery()
-        }
-        #else
-        EmptyView()
         #endif
+        }
+    }
+
+    /// Films or Series (WP-10), per profile: a new profile gets a new grid (and its own focus memory).
+    @ViewBuilder
+    private func libraryContent(_ entry: HomeStore.Entry?, kind: PlexLibrarySection.Kind, tab: MainTab) -> some View {
+        if let entry {
+            LibraryGridScreen(core: core, home: entry.home, kind: kind) { route in
+                paths[tab, default: NavigationPath()].append(ShellRoute.collection(route))
+            }
+            .id(entry.home.profile.id)
+        } else {
+            let films = kind == .film
+            placeholder(
+                PerchEmptyState(
+                    systemImage: films ? "film" : "tv", title: films ? ShellStrings.filmsTitle : ShellStrings.seriesTitle,
+                    message: ""),
+                id: films ? "films.empty" : "series.empty")
+        }
     }
 
     /// A tab with nothing in it yet. The whole page takes focus, without a focus effect: selecting the tab
@@ -404,9 +437,7 @@ enum ShellStrings {
     static let search = "Search"
     static let settings = "Settings"
     static let filmsTitle = "Films"
-    static let filmsMessage = "Browse your films here soon."
     static let seriesTitle = "Series"
-    static let seriesMessage = "Browse your series here soon."
     static let searchTitle = "Search"
     static let searchMessage = "Search is on its way."
     static let backAgainToLeave = "Press Back again to leave"

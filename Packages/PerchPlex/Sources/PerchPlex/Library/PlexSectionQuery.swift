@@ -155,10 +155,11 @@ extension PlexEndpoints {
             path: "/library/sections/\(segment(sectionID))/\(kind.rawValue)")
     }
 
+    /// No `type` item: on the live server (6 Nov 2026, WP-10 probe) `collections?type=1` returned the section's
+    /// films instead of its collections.
     public func sectionCollections(base: URL, token: String, query: PlexSectionQuery) -> URLRequest {
         var items: [URLQueryItem] = []
         if let rating = query.contentRatingItem { items.append(rating) }
-        items.append(.init(name: "type", value: query.typeValue))
         return libraryRequest(
             base: base, token: token,
             path: "/library/sections/\(segment(query.sectionID))/collections", query: items)
