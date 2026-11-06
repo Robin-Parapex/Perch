@@ -18,12 +18,14 @@
 		14385D923BA789B87B7EA200 /* ProfileSwitcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 578031749B01762ADB2FC507 /* ProfileSwitcher.swift */; };
 		146971E126B8437E57F88A0B /* ShellTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77F4AFB8AF7B8626D14E8373 /* ShellTests.swift */; };
 		19BD99C61264AC9DF22D0BA2 /* NavigationUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC841DA99ABBB43A17DD70CA /* NavigationUITests.swift */; };
+		1A8427693904F68998C25785 /* TitlePage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 702425D263F9EBEBB7658E96 /* TitlePage.swift */; };
 		1DCB6DFE90588D9C43E46992 /* LibraryUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3780FACDC2BD93D00D1945AB /* LibraryUITests.swift */; };
 		216985AF718481FBA2C86A17 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = DAFA42F3295D0579E36B8D6C /* PrivacyInfo.xcprivacy */; };
 		22E7464F851F3DFAE221147A /* PlexSignInModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84A9F221D541396CE0789A4C /* PlexSignInModel.swift */; };
 		252E8A283428F23621EBD82A /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2901BDE6A08590EB3904D868 /* SettingsView.swift */; };
 		2563C792550A55B37D94C1D3 /* SetupConnectStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9BAFB1253B478EA302FA009 /* SetupConnectStep.swift */; };
 		2CEC284DED175742F31EE79F /* MainShell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A9672552FEBFE6114D3266F /* MainShell.swift */; };
+		30074EF02841B71538F93D09 /* TitleLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A14C0C0B3AF57AC3BED5517 /* TitleLogic.swift */; };
 		3246A4499A15F8B3CE89F022 /* LibraryGridModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50927AF2B876A626E5BC296 /* LibraryGridModel.swift */; };
 		34E73F508EA639C0CB7DFB51 /* PerchMain.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB144107DD23A8D0BAD69C69 /* PerchMain.swift */; };
 		37996216A7C85B009A559C32 /* SetupFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4E088AAD12B918F3014DDE1 /* SetupFlowView.swift */; };
@@ -33,6 +35,7 @@
 		3DF3EEA72F6F90D6F28662F0 /* SetupWizardUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24058FD508AF202F5629849E /* SetupWizardUITests.swift */; };
 		41252ABD4AB177935FD5305F /* PlayerUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0515B7DA325FB2439471BC2 /* PlayerUITests.swift */; };
 		42B8A5B6784DC88C684A5826 /* LibraryDumpTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47420A664FAA3977282845F2 /* LibraryDumpTransport.swift */; };
+		42DAE28F1D129E3D0882816E /* TitleUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA251B6D6DC3D136026ACBC2 /* TitleUITests.swift */; };
 		4462CE2D5EC979F88262D325 /* ArtworkServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 529D88C7637EADD0D2F09F61 /* ArtworkServiceTests.swift */; };
 		46097627FE5794180AE13E8B /* NukeUI in Frameworks */ = {isa = PBXBuildFile; productRef = 090FE52D646F01BE25472CE4 /* NukeUI */; };
 		487B2E112C27D4631E1E3BA0 /* PerchUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DCA53A26933A2B3B0B4F245 /* PerchUITests.swift */; };
@@ -55,6 +58,8 @@
 		872F476A2369612540CE18D7 /* HomeModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79FD002575B57466DA887250 /* HomeModel.swift */; };
 		89B4EE5C92F09B655BA72295 /* LibraryQuery.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B38CEF0DE9FA900C16D70DB /* LibraryQuery.swift */; };
 		93FFCFF78D87B171B9178117 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 243A1FBF501983A4028E086D /* Assets.xcassets */; };
+		98FF1739DCA13653D9092ECC /* TitleComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = B57D67FE089EDC3818CDA026 /* TitleComponents.swift */; };
+		9E9AD6734130D46451C337B6 /* FakeTitleCatalogue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 589BE0DDEBD4E2688BFB8F76 /* FakeTitleCatalogue.swift */; };
 		A50F4216A747F7CAF404ABF4 /* AppRoot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0274461E25099FBB92325409 /* AppRoot.swift */; };
 		A95C2FA7989C3E5D7E0111D2 /* Nuke in Frameworks */ = {isa = PBXBuildFile; productRef = 5C4E476B95D695AA04698AE5 /* Nuke */; };
 		AAF5ECC22EB6ECFE03EED88D /* LibraryStrings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A75CF6A0A7517A2FBE134B6 /* LibraryStrings.swift */; };
@@ -64,9 +69,11 @@
 		B8D5B2787C3BA3A00A310831 /* PerchAI in Frameworks */ = {isa = PBXBuildFile; productRef = F656F949D78A4CE7629D0463 /* PerchAI */; };
 		B9C109B0BE8B4408148629CB /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A263C0AF61D7A62CCEAA5C3E /* HomeView.swift */; };
 		BABA8ABFB8EF4004030C4EF7 /* FakeLibraryCatalogue.swift in Sources */ = {isa = PBXBuildFile; fileRef = B97588D353099A477660C43D /* FakeLibraryCatalogue.swift */; };
+		BDB815567DCA79D838744124 /* TitleProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE6C2058EAD6B709EA7F7BCB /* TitleProbe.swift */; };
 		C127772127EF6B790C8943A4 /* HomeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69A47F4609C33530034C7A39 /* HomeUITests.swift */; };
 		CDFBFBB915A495A97B84AD24 /* FocusMemory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B0FD87AE587F5E60E1540EF /* FocusMemory.swift */; };
 		D1B3DAA6B30566F205F9A79C /* PerchTrakt in Frameworks */ = {isa = PBXBuildFile; productRef = A709F0B77C976BE6027C7CF2 /* PerchTrakt */; };
+		D50B48F400A6902AC5523F99 /* TitlePageModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A92D4598D98036D1EE0502 /* TitlePageModel.swift */; };
 		D8C1571D6EFC22A8F99D79AC /* FakeArt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46EFB7000E3577048BE61940 /* FakeArt.swift */; };
 		DB9AA4FB630BD89EB1E43B8C /* HomeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4987A0A73FB197EBD5CBDC2F /* HomeStore.swift */; };
 		DE8CF85EBA2C000902DEE287 /* PerchPlayer in Frameworks */ = {isa = PBXBuildFile; productRef = DCF36096C7A159128C1E58DB /* PerchPlayer */; };
@@ -78,6 +85,7 @@
 		EB11B17A82D3138ABD7060B0 /* HomeContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B6DB24BF7EC9A5E5BAB1CAF /* HomeContext.swift */; };
 		EB703ED1F35EC501C0B06DC0 /* SetupAdminPINStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B6A2EAF62F625006D78BD53 /* SetupAdminPINStep.swift */; };
 		EDC6C1F90776D7A90636BB57 /* LibraryGridScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10087873A9F1DCA7216948F /* LibraryGridScreen.swift */; };
+		F07CFEF7C51E5D8CC9907A86 /* TitleLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E06845889E059EBCCA6202F /* TitleLogicTests.swift */; };
 		F17A4CF87B5F387537B49983 /* HomeModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA91AA52FBB0CCEF5F0BCAB4 /* HomeModelTests.swift */; };
 		FA8EAC7E606D5F11E7839CD5 /* PlayerOverlayContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA3D00610520725A20C7FCA1 /* PlayerOverlayContent.swift */; };
 		FBEAED2DA37B878394938DCF /* PerchHome in Frameworks */ = {isa = PBXBuildFile; productRef = 5737B578B94A41B308C80DFD /* PerchHome */; };
@@ -125,8 +133,10 @@
 		0274461E25099FBB92325409 /* AppRoot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRoot.swift; sourceTree = "<group>"; };
 		03DAA0A60E32CA770C8AEB56 /* ArtworkPrefetcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArtworkPrefetcher.swift; sourceTree = "<group>"; };
 		08393C8DD9CE37ACF64C1E97 /* ProfilePickerUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfilePickerUITests.swift; sourceTree = "<group>"; };
+		0A14C0C0B3AF57AC3BED5517 /* TitleLogic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TitleLogic.swift; sourceTree = "<group>"; };
 		10B3E725E1759A6E6E8610DE /* ArtworkTintModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArtworkTintModel.swift; sourceTree = "<group>"; };
 		1B0FD87AE587F5E60E1540EF /* FocusMemory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusMemory.swift; sourceTree = "<group>"; };
+		1E06845889E059EBCCA6202F /* TitleLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TitleLogicTests.swift; sourceTree = "<group>"; };
 		1FDF7616159B5794150C0A0B /* PerchApp.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = PerchApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		24058FD508AF202F5629849E /* SetupWizardUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupWizardUITests.swift; sourceTree = "<group>"; };
 		243A1FBF501983A4028E086D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -148,9 +158,11 @@
 		5049C881306F28A7D69171E2 /* PlayerSpikeClip.mp4 */ = {isa = PBXFileReference; path = PlayerSpikeClip.mp4; sourceTree = "<group>"; };
 		529D88C7637EADD0D2F09F61 /* ArtworkServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArtworkServiceTests.swift; sourceTree = "<group>"; };
 		578031749B01762ADB2FC507 /* ProfileSwitcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSwitcher.swift; sourceTree = "<group>"; };
+		589BE0DDEBD4E2688BFB8F76 /* FakeTitleCatalogue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FakeTitleCatalogue.swift; sourceTree = "<group>"; };
 		65B77FBA7B90AF35072DBB7E /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		69A47F4609C33530034C7A39 /* HomeUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeUITests.swift; sourceTree = "<group>"; };
 		6C0B3C5FC5D8A5ED71FF74CB /* SetupProfilesStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupProfilesStep.swift; sourceTree = "<group>"; };
+		702425D263F9EBEBB7658E96 /* TitlePage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TitlePage.swift; sourceTree = "<group>"; };
 		72EBCD50A28455935FE5B81E /* ModuleManifest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModuleManifest.swift; sourceTree = "<group>"; };
 		733569FCF6FF7AC55BDD33F9 /* FakeHouseholdTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FakeHouseholdTransport.swift; sourceTree = "<group>"; };
 		7681D4897B64FB4FDB46CD4C /* BackPressMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackPressMonitor.swift; sourceTree = "<group>"; };
@@ -173,6 +185,7 @@
 		AE0A60A56E3483E4EDE906B0 /* PerchFrigate */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PerchFrigate; path = Packages/PerchFrigate; sourceTree = SOURCE_ROOT; };
 		B10087873A9F1DCA7216948F /* LibraryGridScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryGridScreen.swift; sourceTree = "<group>"; };
 		B4E088AAD12B918F3014DDE1 /* SetupFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupFlowView.swift; sourceTree = "<group>"; };
+		B57D67FE089EDC3818CDA026 /* TitleComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TitleComponents.swift; sourceTree = "<group>"; };
 		B97588D353099A477660C43D /* FakeLibraryCatalogue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FakeLibraryCatalogue.swift; sourceTree = "<group>"; };
 		BA3D00610520725A20C7FCA1 /* PlayerOverlayContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerOverlayContent.swift; sourceTree = "<group>"; };
 		BD04E58E88BA9BC35355C563 /* PerchAI */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PerchAI; path = Packages/PerchAI; sourceTree = SOURCE_ROOT; };
@@ -183,15 +196,18 @@
 		D9747DA535C64AC2ADD90729 /* PlayerSpikeUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerSpikeUITests.swift; sourceTree = "<group>"; };
 		DAFA42F3295D0579E36B8D6C /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		DFCF9214DE208DF357C09CFF /* SetupFlowModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupFlowModel.swift; sourceTree = "<group>"; };
+		E2A92D4598D98036D1EE0502 /* TitlePageModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TitlePageModel.swift; sourceTree = "<group>"; };
 		E3FD1A399EE728F4D38CCD2C /* CoreServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreServices.swift; sourceTree = "<group>"; };
 		E50927AF2B876A626E5BC296 /* LibraryGridModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryGridModel.swift; sourceTree = "<group>"; };
 		E8C9CDA7267F3A0FCDF12036 /* ProfilePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfilePickerView.swift; sourceTree = "<group>"; };
 		E970117425D5C7F16FF6DDFA /* PerchTopShelf.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = PerchTopShelf.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		EE6C2058EAD6B709EA7F7BCB /* TitleProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TitleProbe.swift; sourceTree = "<group>"; };
 		EEC73F03519F0ABA8E1A202F /* ContentProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentProvider.swift; sourceTree = "<group>"; };
 		F1BD45BB05ACB9B99DFCEE5D /* LibraryProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryProbe.swift; sourceTree = "<group>"; };
 		F4C5D477818723FF0622A0A1 /* FaultInjectingTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaultInjectingTransport.swift; sourceTree = "<group>"; };
 		F5D99161830111DE7EC1F780 /* PerchTrakt */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PerchTrakt; path = Packages/PerchTrakt; sourceTree = SOURCE_ROOT; };
 		F9BAFB1253B478EA302FA009 /* SetupConnectStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupConnectStep.swift; sourceTree = "<group>"; };
+		FA251B6D6DC3D136026ACBC2 /* TitleUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TitleUITests.swift; sourceTree = "<group>"; };
 		FB144107DD23A8D0BAD69C69 /* PerchMain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerchMain.swift; sourceTree = "<group>"; };
 		FC7085DC52549325C480CDCC /* LibraryGridModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryGridModelTests.swift; sourceTree = "<group>"; };
 		FC841DA99ABBB43A17DD70CA /* NavigationUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationUITests.swift; sourceTree = "<group>"; };
@@ -247,6 +263,7 @@
 				CA91AA52FBB0CCEF5F0BCAB4 /* HomeModelTests.swift */,
 				FC7085DC52549325C480CDCC /* LibraryGridModelTests.swift */,
 				77F4AFB8AF7B8626D14E8373 /* ShellTests.swift */,
+				1E06845889E059EBCCA6202F /* TitleLogicTests.swift */,
 			);
 			path = PerchAppTests;
 			sourceTree = "<group>";
@@ -272,8 +289,20 @@
 				B2AC489B90B3EF51FE148380 /* Settings */,
 				73BF864FAFE4E917B2F7CF28 /* Setup */,
 				8052340871F82935BD237BC5 /* Shell */,
+				3902E9BD6C5EB2D989740653 /* Title */,
 			);
 			path = Features;
+			sourceTree = "<group>";
+		};
+		3902E9BD6C5EB2D989740653 /* Title */ = {
+			isa = PBXGroup;
+			children = (
+				B57D67FE089EDC3818CDA026 /* TitleComponents.swift */,
+				0A14C0C0B3AF57AC3BED5517 /* TitleLogic.swift */,
+				702425D263F9EBEBB7658E96 /* TitlePage.swift */,
+				E2A92D4598D98036D1EE0502 /* TitlePageModel.swift */,
+			);
+			path = Title;
 			sourceTree = "<group>";
 		};
 		44932EEBE14B96A36401A5C4 /* Home */ = {
@@ -339,10 +368,12 @@
 				46EFB7000E3577048BE61940 /* FakeArt.swift */,
 				733569FCF6FF7AC55BDD33F9 /* FakeHouseholdTransport.swift */,
 				B97588D353099A477660C43D /* FakeLibraryCatalogue.swift */,
+				589BE0DDEBD4E2688BFB8F76 /* FakeTitleCatalogue.swift */,
 				47420A664FAA3977282845F2 /* LibraryDumpTransport.swift */,
 				F1BD45BB05ACB9B99DFCEE5D /* LibraryProbe.swift */,
 				5049C881306F28A7D69171E2 /* PlayerSpikeClip.mp4 */,
 				975A43ACE2DD13C90E0B58A1 /* PlayerSpikeView.swift */,
+				EE6C2058EAD6B709EA7F7BCB /* TitleProbe.swift */,
 			);
 			path = Debug;
 			sourceTree = "<group>";
@@ -370,6 +401,7 @@
 				D0515B7DA325FB2439471BC2 /* PlayerUITests.swift */,
 				08393C8DD9CE37ACF64C1E97 /* ProfilePickerUITests.swift */,
 				24058FD508AF202F5629849E /* SetupWizardUITests.swift */,
+				FA251B6D6DC3D136026ACBC2 /* TitleUITests.swift */,
 				7B74E85BFB25EAF18EAAFBAA /* WP05Support.swift */,
 			);
 			path = PerchUITests;
@@ -644,6 +676,7 @@
 				41252ABD4AB177935FD5305F /* PlayerUITests.swift in Sources */,
 				05EE20E1CEDCBCB567CC7E61 /* ProfilePickerUITests.swift in Sources */,
 				3DF3EEA72F6F90D6F28662F0 /* SetupWizardUITests.swift in Sources */,
+				42DAE28F1D129E3D0882816E /* TitleUITests.swift in Sources */,
 				70DB6C9458CCE2CA58217FB4 /* WP05Support.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -663,6 +696,7 @@
 				D8C1571D6EFC22A8F99D79AC /* FakeArt.swift in Sources */,
 				EA554CCC29B78E08008E449D /* FakeHouseholdTransport.swift in Sources */,
 				BABA8ABFB8EF4004030C4EF7 /* FakeLibraryCatalogue.swift in Sources */,
+				9E9AD6734130D46451C337B6 /* FakeTitleCatalogue.swift in Sources */,
 				0E90752923D2A8DD20600D4A /* FaultInjectingTransport.swift in Sources */,
 				CDFBFBB915A495A97B84AD24 /* FocusMemory.swift in Sources */,
 				EB11B17A82D3138ABD7060B0 /* HomeContext.swift in Sources */,
@@ -693,6 +727,11 @@
 				37996216A7C85B009A559C32 /* SetupFlowView.swift in Sources */,
 				737BC63B499B2034F488A938 /* SetupProfilesStep.swift in Sources */,
 				E50868931329326A3B73ABF8 /* SetupRerunFlow.swift in Sources */,
+				98FF1739DCA13653D9092ECC /* TitleComponents.swift in Sources */,
+				30074EF02841B71538F93D09 /* TitleLogic.swift in Sources */,
+				1A8427693904F68998C25785 /* TitlePage.swift in Sources */,
+				D50B48F400A6902AC5523F99 /* TitlePageModel.swift in Sources */,
+				BDB815567DCA79D838744124 /* TitleProbe.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -704,6 +743,7 @@
 				F17A4CF87B5F387537B49983 /* HomeModelTests.swift in Sources */,
 				3C755E0FBFCACEC9CE55B32D /* LibraryGridModelTests.swift in Sources */,
 				146971E126B8437E57F88A0B /* ShellTests.swift in Sources */,
+				F07CFEF7C51E5D8CC9907A86 /* TitleLogicTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
