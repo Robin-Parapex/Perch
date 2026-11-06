@@ -42,17 +42,29 @@ struct LibraryGridModelTests {
     final class Recorder: Sendable {
         let queries = Mutex<[PlexSectionQuery]>([])
         let admittedCalls = Mutex(0)
+        /// Page requests that throw next (as a reconnect does), whichever pager makes them.
+        let pageFailures = Mutex(0)
+        let admittedFailures = Mutex(0)
     }
 
     final class FakePager: LibraryPaging {
         let items: [MediaSummary]
         let state: Mutex<Int>
-        init(items: [MediaSummary], start: Int) {
+        let recorder: Recorder?
+        init(items: [MediaSummary], start: Int, recorder: Recorder? = nil) {
             self.items = items
             state = Mutex(start)
+            self.recorder = recorder
         }
+        var position: Int { get async { state.withLock { $0 } } }
         func nextPage() async throws -> [MediaSummary] {
-            state.withLock { offset in
+            let fail = recorder?.pageFailures.withLock { count -> Bool in
+                guard count > 0 else { return false }
+                count -= 1
+                return true
+            } ?? false
+            if fail { throw CancellationError() }
+            return state.withLock { offset in
                 let size = 20
                 let page = Array(items.dropFirst(offset).prefix(size))
                 offset += page.count
@@ -66,13 +78,14 @@ struct LibraryGridModelTests {
         let recorder: Recorder
         var admitted: Set<String> = ["U", "PG"]
         var admittedFails = false
+        var members: [MediaSummary] = []
 
         func sections() async throws -> [PlexLibrarySection] {
             [PlexLibrarySection(id: "1", title: "Films", kind: .film), PlexLibrarySection(id: "2", title: "Shows", kind: .series)]
         }
         func makePager(query: PlexSectionQuery) async -> any LibraryPaging {
             recorder.queries.withLock { $0.append(query) }
-            return FakePager(items: LibraryGridModelTests.films, start: query.startOffset)
+            return FakePager(items: LibraryGridModelTests.films, start: query.startOffset, recorder: recorder)
         }
         func firstCharacters(query: PlexSectionQuery) async throws -> [PlexLetterBucket] { LibraryGridModelTests.buckets }
         func filterValues(sectionID: String, kind: PlexFilterKind) async throws -> [PlexFilterValue] {
@@ -81,10 +94,15 @@ struct LibraryGridModelTests {
         func collections(query: PlexSectionQuery) async throws -> [PlexCollection] {
             [PlexCollection(id: "9001", title: "Harbour stories", thumbPath: nil, childCount: 5)]
         }
-        func collectionItems(collectionID: String, query: PlexSectionQuery) async throws -> [MediaSummary] { [] }
+        func collectionItems(collectionID: String, query: PlexSectionQuery) async throws -> [MediaSummary] { members }
         func admittedContentRatings(sectionID: String, ceiling: RatingCeiling) async throws -> Set<String> {
             recorder.admittedCalls.withLock { $0 += 1 }
-            if admittedFails { throw URLError(.timedOut) }
+            let failNow = recorder.admittedFailures.withLock { count -> Bool in
+                guard count > 0 else { return false }
+                count -= 1
+                return true
+            }
+            if admittedFails || failNow { throw URLError(.timedOut) }
             return admitted
         }
         func setWatched(_ watched: Bool, itemID: String) async throws {}
@@ -162,7 +180,7 @@ struct LibraryGridModelTests {
         #expect(adultModel.items.contains { $0.certificate == nil }, "adults see unrated titles")
         #expect(adultModel.items.contains { $0.certificate == "18" })
         #expect(adultModel.collections.count == 1)
-        #expect(model.collections.isEmpty, "a lowered ceiling hides collections: the server cannot filter them")
+        #expect(model.collections.isEmpty, "lowered: members are guarded on the client; none admitted, no card")
     }
 
     // MARK: Final guard
@@ -234,5 +252,87 @@ struct LibraryGridModelTests {
         await model.focusMoved(to: model.items.last!.id)
         #expect(!model.hasMore)
         #expect(model.items.count == Self.films.count)
+    }
+
+    // MARK: Review fixes (WP-10 second pass)
+
+    @Test func aFailedRatingsLookupRequestsNothingAndRetryLooksThemUpAgain() async {
+        let recorder = Recorder()
+        recorder.admittedFailures.withLock { $0 = 1 }
+        let model = LibraryGridModel(kind: .film, context: Self.lowered, browser: FakeBrowser(recorder: recorder))
+        await model.start()
+        #expect(model.phase == .failed, "a failed lookup shows the failure, not \"No films yet\"")
+        #expect(model.query() == nil, "no query while the ratings are unresolved")
+        #expect(recorder.queries.withLock { $0.isEmpty }, "nothing requested")
+        await model.retry()
+        #expect(recorder.admittedCalls.withLock { $0 } == 2, "retry fetches the ratings again")
+        #expect(model.phase == .content)
+        #expect(recorder.queries.withLock { $0.last?.contentRatings } == ["U", "PG"])
+    }
+
+    @Test func aReconnectMidwayRebuildsThePagerFromWhereItStopped() async throws {
+        let recorder = Recorder()
+        let model = LibraryGridModel(kind: .film, context: Self.adult, browser: FakeBrowser(recorder: recorder))
+        await model.start()
+        #expect(model.items.count == 20)
+        recorder.pageFailures.withLock { $0 = 1 }
+        await model.focusMoved(to: model.items.last!.id)
+        #expect(model.items.count == 40, "one fresh pager carries on at once")
+        #expect(recorder.queries.withLock { $0.last?.startOffset } == 20)
+        #expect(!model.pagingStalled)
+    }
+
+    @Test func pagingThatKeepsFailingStallsAndResumesWhenTheSessionIsReady() async throws {
+        let recorder = Recorder()
+        let model = LibraryGridModel(kind: .film, context: Self.adult, browser: FakeBrowser(recorder: recorder))
+        await model.start()
+        recorder.pageFailures.withLock { $0 = 2 }
+        await model.focusMoved(to: model.items.last!.id)
+        #expect(model.items.count == 20)
+        #expect(model.pagingStalled && model.hasMore, "never a silent stop: placeholders stay and paging resumes")
+        #expect(model.phase == .content)
+        await model.startOrRetry()
+        #expect(model.items.count == 40)
+        #expect(!model.pagingStalled)
+        #expect(Set(model.items.map(\.id)).count == 40, "no gaps or duplicates")
+        #expect(model.items.map(\.id) == Self.films.prefix(40).map(\.id))
+    }
+
+    @Test func aKidsCollectionsPassTheCertificateCheckAndNeedTwoTitles() async {
+        let kid = RowContext(profileID: "1003", serviceCeiling: .u, ceiling: .u)
+        var browser = FakeBrowser(recorder: Recorder())
+        browser.members = [
+            MediaSummary(id: "1", kind: .film, title: "A", certificate: "U"),
+            MediaSummary(id: "2", kind: .film, title: "B", certificate: "PG"),
+            MediaSummary(id: "3", kind: .film, title: "C", certificate: nil),
+            MediaSummary(id: "4", kind: .film, title: "D", certificate: "gb/U"),
+        ]
+        let model = LibraryGridModel(kind: .film, context: kid, isKid: true, browser: browser)
+        await model.start()
+        #expect(model.collections.map(\.id) == ["9001"])
+        #expect(model.collections.first?.childCount == 2, "only U titles count; unrated fails closed")
+        let items = LibraryQueryBuilder.guardCollectionItems(browser.members, context: kid, isKid: true)
+        #expect(items.map(\.id) == ["1", "4"])
+        #expect(LibraryQueryBuilder.guardCollectionItems(browser.members, context: kid, isKid: false).count == 4)
+
+        browser.members = Array(browser.members.prefix(1))
+        let single = LibraryGridModel(kind: .film, context: kid, isKid: true, browser: browser)
+        await single.start()
+        #expect(single.collections.isEmpty, "a collection with fewer than two titles is hidden")
+    }
+
+    @Test func collectionNamesDropATrailingCollection() {
+        #expect(LibraryStrings.collectionTitle("Toy Story Collection") == "Toy Story")
+        #expect(LibraryStrings.collectionTitle("Harbour stories") == "Harbour stories")
+        #expect(LibraryStrings.collectionTitle("Collection") == "Collection")
+    }
+
+    @Test func gridLayoutSpreadsColumnsAndReservesTheRailGutter() {
+        let plain = LibraryGridLayout(showsRail: false)
+        #expect(plain.gap == 64)
+        #expect(plain.trailingInset == 80, "six columns end at x 1840")
+        let rail = LibraryGridLayout(showsRail: true)
+        #expect(rail.trailingInset >= 80 + LibraryGridLayout.railWidth + LibraryGridLayout.railGap)
+        #expect(rail.trailingInset - (80 + LibraryGridLayout.railWidth + LibraryGridLayout.railGap) < 5)
     }
 }

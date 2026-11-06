@@ -123,11 +123,19 @@ public struct PlexCollection: Sendable, Equatable, Identifiable {
     public let title: String
     public let thumbPath: String?
     public let childCount: Int?
-    public init(id: String, title: String, thumbPath: String?, childCount: Int?) {
+    /// The collection's own summary and backdrop, when the server has them.
+    public let summary: String?
+    public let artPath: String?
+    public init(
+        id: String, title: String, thumbPath: String?, childCount: Int?, summary: String? = nil,
+        artPath: String? = nil
+    ) {
         self.id = id
         self.title = title
         self.thumbPath = thumbPath
         self.childCount = childCount
+        self.summary = summary
+        self.artPath = artPath
     }
 }
 

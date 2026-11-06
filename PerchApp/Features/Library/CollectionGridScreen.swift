@@ -3,9 +3,11 @@ import PerchDesign
 import PerchPlex
 import SwiftUI
 
-/// One collection's titles as a poster grid (WP-10), pushed on the tab's stack. The rating ceiling applies as on
-/// the section grid: the content-rating set when Perch's ceiling is lowered, then `RowContext.admits` on the
-/// result. Back pops to the collection card (the shell's `PushedScreen`).
+/// One collection's titles (WP-10), pushed on the tab's stack: a backdrop hero (the collection's art, else its
+/// first title's) with the name, the summary when the server has one and the title count, then the poster grid.
+/// The rating ceiling applies as on the section grid: the content-rating set when Perch's ceiling is lowered, then
+/// `RowContext.admits`, and for a kid the certificate check against the profile ceiling. Back pops to the
+/// collection card (the shell's `PushedScreen`).
 struct CollectionGridScreen: View {
     let core: CoreServices
     let home: HomeProfile
@@ -22,19 +24,22 @@ struct CollectionGridScreen: View {
         if case .ready = core.plexSignIn.snapshot.state { true } else { false }
     }
 
+    static let heroHeight: CGFloat = 560
+    private let layout = LibraryGridLayout(showsRail: false)
+
+    private var backdropPath: String? {
+        route.artPath ?? items.first?.artworkPath(for: .backdrop) ?? route.thumbPath
+    }
+
     var body: some View {
         ScrollView(.vertical) {
             VStack(alignment: .leading, spacing: PerchSpacing.rowGap) {
-                Text(route.title)
-                    .font(.system(size: PerchFont.size(48, for: style), weight: .bold))
-                    .foregroundStyle(PerchColor.textPrimary)
-                    .padding(.leading, PerchSpacing.horizontalMargin)
-                    .accessibilityIdentifier("collection.title")
+                hero
                 switch phase {
                 case .starting:
-                    LibraryPlaceholderGrid(count: 6)
+                    LibraryPlaceholderGrid(count: 6, layout: layout)
                 case .content:
-                    LazyVGrid(columns: LibraryGridScreen.columns, alignment: .leading, spacing: 48) {
+                    LazyVGrid(columns: layout.columns, alignment: .leading, spacing: 48) {
                         ForEach(items) { item in
                             LibraryPoster(item: item, focus: $focus) { select(item) } onWatched: { watched in
                                 Task { await setWatched(watched, item: item) }
@@ -55,7 +60,6 @@ struct CollectionGridScreen: View {
                         })
                 }
             }
-            .padding(.top, PerchSpacing.topMargin)
             .padding(.bottom, 120)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -78,17 +82,73 @@ struct CollectionGridScreen: View {
         .accessibilityIdentifier("collection.root")
     }
 
+    /// Full-bleed backdrop, faded into the page at the bottom and on the left behind the text. Fixed sizes (no
+    /// container-relative frames inside the scroll view).
+    private var hero: some View {
+        ZStack(alignment: .bottomLeading) {
+            ArtworkImage(path: backdropPath, size: .backdrop)
+                .frame(width: LibraryGridLayout.screenWidth, height: Self.heroHeight)
+                .clipped()
+                .overlay {
+                    LinearGradient(
+                        stops: [
+                            .init(color: PerchColor.base.opacity(0.8), location: 0),
+                            .init(color: PerchColor.base.opacity(0), location: 0.6),
+                        ], startPoint: .leading, endPoint: .trailing)
+                }
+                // Faded out by a mask, not painted over, so it melts into the tinted page with no edge.
+                .mask {
+                    LinearGradient(
+                        stops: [
+                            .init(color: .black, location: 0),
+                            .init(color: .black, location: 0.35),
+                            .init(color: .black.opacity(0.35), location: 0.72),
+                            .init(color: .clear, location: 1),
+                        ], startPoint: .top, endPoint: .bottom)
+                }
+            VStack(alignment: .leading, spacing: 14) {
+                Text(route.title)
+                    .font(.system(size: PerchFont.size(56, for: style), weight: .bold))
+                    .foregroundStyle(PerchColor.textPrimary)
+                    .lineLimit(2)
+                    .accessibilityIdentifier("collection.title")
+                if let summary = route.summary {
+                    Text(summary)
+                        .font(PerchFont.body(style))
+                        .foregroundStyle(PerchColor.textBody)
+                        .lineLimit(3)
+                        .accessibilityIdentifier("collection.summary")
+                }
+                if phase == .content, let count = LibraryStrings.collectionCount(items.count) {
+                    Text(count)
+                        .font(PerchFont.metadata(style))
+                        .foregroundStyle(PerchColor.textSecondary)
+                        .accessibilityIdentifier("collection.count")
+                }
+            }
+            .frame(width: 1000, alignment: .leading)
+            .padding(.leading, PerchSpacing.horizontalMargin)
+            .padding(.bottom, 24)
+        }
+        .frame(width: LibraryGridLayout.screenWidth, height: Self.heroHeight, alignment: .bottomLeading)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("collection.hero")
+    }
+
+    /// A failed ratings lookup requests nothing and shows the failure with a retry (which looks the ratings up again).
     private func load() async {
         let context = home.context
         let library = core.library
         let route = route
-        let admitted = await LibraryQueryBuilder.admittedRatings(for: context) {
-            try await library.admittedContentRatings(sectionID: route.sectionID, ceiling: context.ceiling)
-        }
-        let query = PlexSectionQuery(sectionID: route.sectionID, kind: route.kind, contentRatings: admitted)
+        let isKid = home.isKid
         do {
+            let admitted: Set<String>? =
+                LibraryQueryBuilder.isCeilingLowered(context)
+                ? try await library.admittedContentRatings(sectionID: route.sectionID, ceiling: context.ceiling)
+                : nil
+            let query = PlexSectionQuery(sectionID: route.sectionID, kind: route.kind, contentRatings: admitted)
             let found = try await library.collectionItems(collectionID: route.collectionID, query: query)
-            items = LibraryQueryBuilder.guardPage(found, context: context, existing: [])
+            items = LibraryQueryBuilder.guardCollectionItems(found, context: context, isKid: isKid)
             phase = items.isEmpty ? .empty : .content
             core.artworkPrefetcher.prefetch(row: Array(items.dropFirst(18)), size: .poster)
         } catch {

@@ -37,16 +37,43 @@ struct CardArtwork<Artwork: View>: View {
 
 struct CardCaption: View {
     @Environment(\.perchStyle) private var style
+    @Environment(\.isFocused) private var isFocused
     let width: CGFloat
     let title: String
     let subtitle: String?
     let availability: TitleAvailability?
+    /// Focused, a title too long for one line takes the subtitle's line as well, so it reads in full in the same
+    /// height (nothing below moves).
+    var expandsTitleWhenFocused = false
+
+    private var titleText: some View {
+        Text(title).font(PerchFont.metadata(style)).foregroundStyle(PerchColor.textBody)
+    }
+
+    private var lines: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            titleText.lineLimit(1)
+            if let subtitle {
+                Text(subtitle).font(PerchFont.metadata(style)).foregroundStyle(PerchColor.textSecondary).lineLimit(1)
+            }
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(title).font(PerchFont.metadata(style)).foregroundStyle(PerchColor.textBody).lineLimit(1)
-            if let subtitle {
-                Text(subtitle).font(PerchFont.metadata(style)).foregroundStyle(PerchColor.textSecondary).lineLimit(1)
+            if expandsTitleWhenFocused && subtitle != nil {
+                // The resting two lines always reserve the height; focused, the title gets both lines when it needs them.
+                lines.opacity(isFocused ? 0 : 1)
+                    .overlay(alignment: .topLeading) {
+                        if isFocused {
+                            ViewThatFits(in: .horizontal) {
+                                lines
+                                titleText.lineLimit(2).frame(width: width, alignment: .leading)
+                            }
+                        }
+                    }
+            } else {
+                lines
             }
             if let availability {
                 Pill(.availability(availability, kids: style == .kids))
@@ -70,6 +97,7 @@ public struct PosterCard<Artwork: View>: View {
     private let badges: [Pill.Kind]
     private let availability: TitleAvailability?
     private let progress: Double?
+    private let expandsTitleWhenFocused: Bool
     private let action: () -> Void
     private let artwork: Artwork
 
@@ -80,6 +108,7 @@ public struct PosterCard<Artwork: View>: View {
         badges: [Pill.Kind] = [],
         availability: TitleAvailability? = nil,
         progress: Double? = nil,
+        expandsTitleWhenFocused: Bool = false,
         action: @escaping () -> Void,
         @ViewBuilder artwork: () -> Artwork
     ) {
@@ -89,6 +118,7 @@ public struct PosterCard<Artwork: View>: View {
         self.badges = badges
         self.availability = availability
         self.progress = progress
+        self.expandsTitleWhenFocused = expandsTitleWhenFocused
         self.action = action
         self.artwork = artwork()
     }
@@ -97,7 +127,9 @@ public struct PosterCard<Artwork: View>: View {
         PerchCardButton(action: action) {
             CardArtwork(size: size.dimensions, badges: badges, progress: progress) { artwork }
         } caption: {
-            CardCaption(width: size.dimensions.width, title: title, subtitle: subtitle, availability: availability)
+            CardCaption(
+                width: size.dimensions.width, title: title, subtitle: subtitle, availability: availability,
+                expandsTitleWhenFocused: expandsTitleWhenFocused)
         }
     }
 }

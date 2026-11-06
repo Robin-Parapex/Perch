@@ -147,11 +147,13 @@ enum FakeLibraryCatalogue {
                 let rows = collections.filter { $0.section == section }.compactMap { collection -> [String: Any]? in
                     let members = members(of: collection, visible: visible, allowed: allowed)
                     guard !members.isEmpty else { return nil }
-                    return [
+                    var row: [String: Any] = [
                         "ratingKey": String(collection.id), "key": "/library/collections/\(collection.id)/children",
                         "type": "collection", "title": collection.title, "childCount": members.count,
                         "thumb": "/library/metadata/\(collection.id)/thumb/1",
                     ]
+                    if collection.id == 9002 { row["summary"] = "Films for the whole family, for a slow weekend night." }
+                    return row
                 }
                 return container(["size": rows.count, "Metadata": rows])
             default: return nil

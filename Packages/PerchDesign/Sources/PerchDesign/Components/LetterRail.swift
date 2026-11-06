@@ -10,6 +10,8 @@ public struct LetterRail: View {
     private let current: String?
     private let identifierPrefix: String
     private let onSelect: (String) -> Void
+    /// The focused letter: while the rail has focus only it is highlighted, so there is one mark, not two.
+    @FocusState private var focused: String?
 
     public init(
         letters: [String], current: String? = nil, identifierPrefix: String = "letterRail",
@@ -30,7 +32,9 @@ public struct LetterRail: View {
                 Button { onSelect(letter) } label: {
                     Text(letter)
                 }
-                .buttonStyle(LetterButtonStyle(isCurrent: letter == current, height: rowHeight, style: style))
+                .buttonStyle(
+                    LetterButtonStyle(isCurrent: focused == nil && letter == current, height: rowHeight, style: style))
+                .focused($focused, equals: letter)
                 .accessibilityIdentifier("\(identifierPrefix).\(letter)")
                 .accessibilityLabel(letter == "#" ? "Numbers" : letter)
             }
@@ -62,7 +66,8 @@ private struct LetterButtonStyle: ButtonStyle {
         var body: some View {
             configuration.label
                 .font(.system(size: PerchFont.size(PerchFont.minimumSize + 3, for: style), weight: isFocused || isCurrent ? .bold : .medium))
-                .foregroundStyle(isFocused ? PerchColor.base : (isCurrent ? PerchColor.textPrimary : PerchColor.textSecondary))
+                // Unfocused letters at body brightness, so they read from 3 m.
+                .foregroundStyle(isFocused ? PerchColor.base : (isCurrent ? PerchColor.textPrimary : PerchColor.textBody))
                 .frame(width: 44, height: height)
                 .background {
                     Circle().fill(Color.white).frame(width: 40, height: 40).opacity(isFocused ? 1 : 0)

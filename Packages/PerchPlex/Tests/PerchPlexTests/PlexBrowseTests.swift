@@ -276,4 +276,75 @@ struct PlexBrowseTests {
         let set = try await rig.library.admittedContentRatings(sectionID: "1", ceiling: .pg)
         #expect(set == ["gb/U"])
     }
+
+    /// Live (6 Nov 2026): prefixed keys arrive percent-encoded, so a PG ceiling admitted 1 of 490 films.
+    @Test func encodedKeysAreDecodedBeforeTheyAreClassifiedAndSent() async throws {
+        let rig = try await LibraryRig.make()
+        defer { rig.cleanup() }
+        let json = #"""
+            {"MediaContainer":{"Directory":[
+            {"key":"gb%2FU","title":"gb/U"},{"key":"gb%2FPG","title":"gb/PG"},{"key":"gb%2F12A","title":"gb/12A"},
+            {"key":"gb%2F15","title":"gb/15"},{"key":"PG","title":"PG"},{"key":"us%2FTV-Y7","title":"us/TV-Y7"}]}}
+            """#
+        await rig.transport.script(path: "/library/sections/1/contentRating", json: json)
+        let set = try await rig.library.admittedContentRatings(sectionID: "1", ceiling: .pg)
+        #expect(set == ["gb/U", "gb/PG", "PG", "us/TV-Y7"])
+
+        let query = PlexSectionQuery(sectionID: "1", kind: .film, contentRatings: set)
+        let request = endpoints.sectionItems(base: base, token: token, query: query, start: 0, size: 50)
+        #expect(items(request)["contentRating"] == "PG,gb/PG,gb/U,us/TV-Y7")
+        let raw = try #require(request.url?.absoluteString)
+        #expect(!raw.contains("%25"), "encoded exactly once")
+    }
+
+    @Test func aKeyThatDoesNotParseFallsBackToItsTitle() {
+        let values = [
+            PlexFilterValue(key: "1234", title: "PG"), PlexFilterValue(key: "5678", title: "gb/15"),
+            PlexFilterValue(key: "9999", title: "Not rated"),
+        ]
+        #expect(PlexLibrary.admittedContentRatings(values: values, ceiling: .pg) == ["1234"])
+    }
+
+    @Test func aPGCeilingAdmitsEveryChildLabelBareOrPrefixed() {
+        let child = ["U", "PG", "G", "TV-Y", "TV-Y7", "TV-Y7-FV", "TV-G", "TV-PG"]
+        let older = ["12", "12A", "PG-13", "TV-14", "15", "R", "18", "NC-17", "TV-MA", "NR", "Unrated"]
+        let bare = child + older
+        let prefixed = bare.map { "gb/\($0)" } + bare.map { "us/\($0)" }
+        let encoded = prefixed.map { PlexFilterValue(key: $0.replacingOccurrences(of: "/", with: "%2F"), title: $0) }
+        let fromBare = PlexLibrary.admittedContentRatings(bare, ceiling: .pg)
+        let fromEncoded = PlexLibrary.admittedContentRatings(values: encoded, ceiling: .pg)
+        #expect(fromBare == Set(child))
+        #expect(fromEncoded == Set(child.map { "gb/\($0)" } + child.map { "us/\($0)" }))
+        let twelve = PlexLibrary.admittedContentRatings(values: encoded, ceiling: .twelveA)
+        #expect(twelve.contains("gb/12A") && twelve.contains("us/PG-13") && twelve.contains("gb/12"))
+        #expect(!twelve.contains("us/TV-14"), "TV-14 rounds up to 15 for a title (fails closed)")
+        #expect(!twelve.contains("gb/15") && !twelve.contains("us/NR"))
+    }
+
+    @Test func collectionItemsComparesDecodedRatings() async throws {
+        let rig = try await LibraryRig.make()
+        defer { rig.cleanup() }
+        let json = #"""
+            {"MediaContainer":{"size":2,"Metadata":[
+            {"ratingKey":"1","type":"movie","title":"A","contentRating":"gb/PG"},
+            {"ratingKey":"2","type":"movie","title":"B","contentRating":"gb/15"}]}}
+            """#
+        await rig.transport.script(path: "/library/collections/9/children", json: json)
+        let filtered = try await rig.library.collectionItems(
+            collectionID: "9", query: PlexSectionQuery(sectionID: "1", kind: .film, contentRatings: ["gb%2FPG"]))
+        #expect(filtered.map(\.id) == ["1"])
+    }
+
+    @Test func collectionItemsLoadEveryPage() async throws {
+        let rig = try await LibraryRig.make()
+        defer { rig.cleanup() }
+        await rig.transport.script(path: "/library/collections/9/children", json: movies(1...200, total: 250))
+        await rig.transport.script(path: "/library/collections/9/children", json: movies(201...250, total: 250))
+        let all = try await rig.library.collectionItems(
+            collectionID: "9", query: PlexSectionQuery(sectionID: "1", kind: .film))
+        #expect(all.count == 250)
+        let starts = await rig.transport.requests(forPath: "/library/collections/9/children")
+            .map { items($0)["X-Plex-Container-Start"] }
+        #expect(starts == ["0", "200"])
+    }
 }

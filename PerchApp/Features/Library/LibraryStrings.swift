@@ -9,7 +9,6 @@ enum LibraryStrings {
     static let decade = "Decade"
     static let resolution = "Resolution"
     static let unwatched = "Unwatched"
-    static let collection = "Collection"
     static let collections = "Collections"
     static let any = "Any"
     static let markWatched = "Mark as watched"
@@ -41,12 +40,16 @@ enum LibraryStrings {
         }
     }
 
-    /// Grid caption: the title, then the year (and "Watched" once seen).
+    /// Grid caption: the title, then the year. Watched shows as a tick on the poster.
     static func caption(_ item: MediaSummary) -> (title: String, subtitle: String?) {
-        var parts: [String] = []
-        if let year = item.year { parts.append(String(year)) }
-        if item.isWatched { parts.append("Watched") }
-        return (item.title, parts.isEmpty ? nil : parts.joined(separator: " · "))
+        (item.title, item.year.map(String.init))
+    }
+
+    /// A collection's name without a trailing " Collection" ("Toy Story Collection" reads "Toy Story").
+    static func collectionTitle(_ title: String) -> String {
+        let suffix = " Collection"
+        guard title.count > suffix.count, title.lowercased().hasSuffix(suffix.lowercased()) else { return title }
+        return String(title.dropLast(suffix.count))
     }
 
     static func collectionCount(_ count: Int?) -> String? {

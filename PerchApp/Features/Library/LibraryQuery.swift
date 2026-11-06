@@ -93,6 +93,15 @@ enum LibraryQueryBuilder {
         }
     }
 
+    /// A collection's titles: the final guard, then for a kid the certificate check against the profile ceiling
+    /// whether or not it is lowered (Plex already restricts managed users; this is a second guard, and an unrated
+    /// title fails closed).
+    static func guardCollectionItems(_ items: [MediaSummary], context: RowContext, isKid: Bool) -> [MediaSummary] {
+        let guarded = guardPage(items, context: context, existing: [])
+        guard isKid else { return guarded }
+        return guarded.filter { context.ceiling.allows(.forTitle(certificate: $0.certificate)) }
+    }
+
     /// Where a letter starts in the full (filtered) list, from the server's letter buckets.
     static func letterOffset(_ letter: String, in buckets: [PlexLetterBucket]) -> Int? {
         letterOffsets(buckets)[letter]
@@ -125,4 +134,7 @@ struct LibraryCollectionRoute: Hashable {
     let kind: PlexLibrarySection.Kind
     let collectionID: String
     let title: String
+    var summary: String? = nil
+    var artPath: String? = nil
+    var thumbPath: String? = nil
 }

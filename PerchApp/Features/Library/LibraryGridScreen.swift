@@ -3,6 +3,7 @@ import PerchCore
 import PerchDesign
 import PerchPlex
 import SwiftUI
+import UIKit
 
 /// Films or Series (WP-10, SPEC 4): a header with the section title, sort and filter chips, a Collections row, and
 /// a poster grid paged in as focus nears the end, never a spinner. Sorted by title, a letter rail on the trailing
@@ -27,13 +28,24 @@ struct LibraryGridScreen: View {
         self.core = core
         self.home = home
         self.onOpenCollection = onOpenCollection
-        _model = State(initialValue: LibraryGridModel(kind: kind, context: home.context, browser: core.library))
+        _model = State(
+            initialValue: LibraryGridModel(kind: kind, context: home.context, isKid: home.isKid, browser: core.library))
     }
 
-    static let columnCount = 6
-    static let columnGap: CGFloat = 40
-    static let columns = Array(
-        repeating: GridItem(.fixed(PerchSize.posterGrid.width), spacing: columnGap, alignment: .top), count: columnCount)
+    static let columnCount = LibraryGridLayout.columnCount
+    /// Scroll anchors: the page top, and a zero-height mark just above the grid's first row.
+    static let topAnchor = "library.top"
+    static let gridAnchor = "library.gridTop"
+    /// Where the grid's first row sits when it takes focus under the Collections row: low enough that the lifted
+    /// poster clears the top margin, high enough that the Collections row is fully out of view.
+    static let gridAnchorPoint = UnitPoint(x: 0, y: 72 / LibraryGridLayout.screenHeight)
+
+    #if DEBUG
+    @MainActor static var openedFirstCollection = false
+    #endif
+
+    private var layout: LibraryGridLayout { LibraryGridLayout(showsRail: model.showsLetters) }
+    private var showsCollections: Bool { !model.collections.isEmpty && model.filters.isEmpty }
 
     private var memory: FocusMemory { .shared }
     private var scope: FocusMemory.Scope { .init(profileID: home.profile.id.rawValue, screen: model.memoryScreen) }
@@ -51,38 +63,58 @@ struct LibraryGridScreen: View {
     }
 
     var body: some View {
-        ZStack(alignment: .trailing) {
-            ScrollView(.vertical) {
-                VStack(alignment: .leading, spacing: PerchSpacing.rowGap) {
-                    header
-                    if !model.collections.isEmpty, model.filters.isEmpty { collectionsRow }
-                    content
+        ScrollViewReader { proxy in
+            ZStack(alignment: .trailing) {
+                ScrollView(.vertical) {
+                    VStack(alignment: .leading, spacing: PerchSpacing.rowGap) {
+                        header.id(Self.topAnchor)
+                        if showsCollections { collectionsRow }
+                        VStack(alignment: .leading, spacing: 0) {
+                            Color.clear.frame(height: 0).id(Self.gridAnchor)
+                            content
+                        }
+                    }
+                    .padding(.top, PerchSpacing.topMargin)
+                    .padding(.bottom, 120)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .padding(.top, PerchSpacing.topMargin)
-                .padding(.bottom, 120)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .scrollClipDisabled()
+                if model.showsLetters {
+                    LetterRail(
+                        letters: model.letters.map(\.title), current: currentLetter, identifierPrefix: "library.letter"
+                    ) { letter in
+                        Task { await model.jump(to: letter) }
+                    }
+                    // Inside the 80 pt margin, in the gutter the grid leaves for it.
+                    .padding(.trailing, PerchSpacing.horizontalMargin)
+                    .transition(.opacity)
+                    .accessibilityElement(children: .contain)
+                    .accessibilityIdentifier("library.letters")
+                }
             }
-            .scrollClipDisabled()
-            if model.showsLetters {
-                LetterRail(
-                    letters: model.letters.map(\.title), current: currentLetter, identifierPrefix: "library.letter"
-                ) { letter in
-                    Task { await model.jump(to: letter) }
-                }
-                .padding(.trailing, 44)
-                .transition(.opacity)
-                .accessibilityElement(children: .contain)
-                .accessibilityIdentifier("library.letters")
+            .onChange(of: focus) { old, new in
+                focusChanged(new)
+                scrollForFocus(from: old, to: new, proxy: proxy)
             }
         }
         .animation(.easeInOut(duration: PerchMotion.crossfadeDuration), value: model.showsLetters)
         .ignoresSafeArea()
         .defaultFocus($focus, restoredFocus, priority: .userInitiated)
-        .onChange(of: focus) { _, new in focusChanged(new) }
         .onChange(of: model.focusRequest.token) { _, _ in moveFocus(to: model.focusRequest.target) }
         .onChange(of: model.items.count) { old, new in prefetchArrived(from: old, to: new) }
         .onChange(of: playerActive) { _, active in if !active { restorePending() } }
         .onAppear { restorePending() }
+        #if DEBUG
+        // `-PerchOpenFirstCollection` (DEBUG): opens the first collection once it loads, for live screenshots.
+        .onChange(of: model.collections.first?.id) { _, id in
+            guard id != nil, !Self.openedFirstCollection,
+                ProcessInfo.processInfo.arguments.contains("-PerchOpenFirstCollection"),
+                let first = model.collections.first
+            else { return }
+            Self.openedFirstCollection = true
+            open(first)
+        }
+        #endif
         .task(id: sessionReady) { if sessionReady { await model.startOrRetry() } }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("library.root")
@@ -108,7 +140,8 @@ struct LibraryGridScreen: View {
                 .focusSection()
             }
             HStack(spacing: 16) {
-                sortMenu
+                // Sort is a different kind of control from the filters: its own gap.
+                sortMenu.padding(.trailing, 24)
                 filterMenu(
                     LibraryStrings.genre, id: "genre", choices: model.genres, selected: model.filters.genre
                 ) { var f = model.filters; f.genre = $0; return f }
@@ -131,12 +164,9 @@ struct LibraryGridScreen: View {
                 .buttonStyle(.perchChip(active: model.filters.unwatched))
                 .focused($focus, equals: .control("unwatched"))
                 .accessibilityIdentifier("library.filter.unwatched")
-                filterMenu(
-                    LibraryStrings.collection, id: "collection",
-                    choices: model.collections.map { LibraryFilterChoice(key: $0.id, title: $0.title) },
-                    selected: model.filters.collection
-                ) { var f = model.filters; f.collection = $0; return f }
-                if model.filters.activeCount > 0 {
+                // No Collection chip: the Collections row covers it. No Clear chip while the empty state shows its
+                // own "Clear filters" pill (one clear action).
+                if model.filters.activeCount > 0, model.phase != .empty {
                     Button { Task { await model.clearFilters() } } label: {
                         FilterChipLabel(
                             LibraryStrings.clearFilters(count: model.filters.activeCount), systemImage: "xmark",
@@ -205,20 +235,43 @@ struct LibraryGridScreen: View {
 
     // MARK: Collections
 
+    /// Grid-size cards on the grid's columns, so the row's edges line up with the grid's. With the letter rail
+    /// showing, cards beyond the grid's right edge are masked so they never pass under the rail.
     private var collectionsRow: some View {
-        Row(id: "library.collections", title: LibraryStrings.collections) {
-            ForEach(model.collections) { collection in
-                PosterCard(
-                    title: collection.title, subtitle: LibraryStrings.collectionCount(collection.childCount),
-                    action: { open(collection) }
-                ) {
-                    ArtworkImage(path: collection.thumbPath, size: .poster)
+        VStack(alignment: .leading, spacing: 0) {
+            Text(LibraryStrings.collections)
+                .font(PerchFont.section(style))
+                .foregroundStyle(PerchColor.textPrimary)
+                .padding(.leading, PerchSpacing.horizontalMargin)
+            ScrollView(.horizontal, showsIndicators: false) {
+                LazyHStack(alignment: .top, spacing: layout.gap) {
+                    ForEach(model.collections) { collection in
+                        PosterCard(
+                            size: .grid, title: LibraryStrings.collectionTitle(collection.title),
+                            subtitle: LibraryStrings.collectionCount(collection.childCount),
+                            expandsTitleWhenFocused: true, action: { open(collection) }
+                        ) {
+                            ArtworkImage(path: collection.thumbPath, size: .poster)
+                        }
+                        .focused($focus, equals: .collection(collection.id))
+                        .accessibilityIdentifier("library.collection.\(collection.id)")
+                    }
                 }
-                .focused($focus, equals: .collection(collection.id))
-                .accessibilityIdentifier("library.collection.\(collection.id)")
+                .scrollTargetLayout()
+                .padding(.vertical, 40)
             }
+            .contentMargins(.leading, PerchSpacing.horizontalMargin, for: .scrollContent)
+            .contentMargins(.trailing, layout.trailingInset, for: .scrollContent)
+            .scrollTargetBehavior(.viewAligned)
+            .scrollClipDisabled()
+            .mask {
+                Rectangle()
+                    .padding(.trailing, model.showsLetters ? layout.trailingInset - 24 : -200)
+                    .padding(.leading, -200)
+                    .padding(.vertical, -80)
+            }
+            .focusSection()
         }
-        .focusSection()
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("library.collections")
         .transition(.opacity)
@@ -230,16 +283,18 @@ struct LibraryGridScreen: View {
     private var content: some View {
         switch model.phase {
         case .starting:
-            LibraryPlaceholderGrid(count: 12)
+            LibraryPlaceholderGrid(count: 12, layout: layout)
         case .content:
-            LazyVGrid(columns: Self.columns, alignment: .leading, spacing: 48) {
+            LazyVGrid(columns: layout.columns, alignment: .leading, spacing: 48) {
                 ForEach(model.items) { item in
                     LibraryPoster(item: item, focus: $focus) { select(item) } onWatched: { watched in
                         Task { await model.setWatched(watched, item: item) }
                     }
                 }
                 if model.hasMore {
-                    ForEach(0..<Self.columnCount, id: \.self) { _ in LibraryPlaceholderTile() }
+                    ForEach(0..<Self.columnCount, id: \.self) { index in
+                        LibraryPlaceholderTile().id("library.placeholder.\(index)")
+                    }
                 }
             }
             .padding(.leading, PerchSpacing.horizontalMargin)
@@ -281,6 +336,31 @@ struct LibraryGridScreen: View {
         core.artworkTint.focus(item)
         currentLetter = model.letter(of: id)
         Task { await model.focusMoved(to: id) }
+    }
+
+    /// Keeps the Collections row whole: focus on the grid's first row scrolls it fully out of view; focus on the
+    /// header or a collection card brings the page back to its top. Only while the Collections row shows.
+    private func scrollForFocus(from old: LibraryFocus?, to new: LibraryFocus?, proxy: ScrollViewProxy) {
+        guard showsCollections, let new else { return }
+        let animation: Animation? =
+            UIAccessibility.isReduceMotionEnabled ? nil : .easeInOut(duration: PerchMotion.crossfadeDuration)
+        switch new {
+        case .item(let id):
+            guard let index = model.items.firstIndex(where: { $0.id == id }), index < Self.columnCount else { return }
+            if case .item(let oldID) = old, let oldIndex = model.items.firstIndex(where: { $0.id == oldID }),
+                oldIndex < Self.columnCount
+            {
+                return  // moving along the first row: already placed
+            }
+            withAnimation(animation) { proxy.scrollTo(Self.gridAnchor, anchor: Self.gridAnchorPoint) }
+        case .collection, .control:
+            switch old {
+            case .collection, .control: return
+            default: withAnimation(animation) { proxy.scrollTo(Self.topAnchor, anchor: .top) }
+            }
+        case .letter:
+            return
+        }
     }
 
     /// After a sort, filter or letter change: the first item (or the letter's first title).
@@ -330,7 +410,9 @@ struct LibraryGridScreen: View {
         pendingRestore = .collection(collection.id)
         onOpenCollection(
             LibraryCollectionRoute(
-                sectionID: section.id, kind: model.kind, collectionID: collection.id, title: collection.title))
+                sectionID: section.id, kind: model.kind, collectionID: collection.id,
+                title: LibraryStrings.collectionTitle(collection.title), summary: collection.summary,
+                artPath: collection.artPath, thumbPath: collection.thumbPath))
     }
 }
 
@@ -347,9 +429,13 @@ struct LibraryPoster: View {
         let caption = LibraryStrings.caption(item)
         PosterCard(
             size: .grid, title: caption.title, subtitle: caption.subtitle,
-            progress: item.kind == .film && item.isInProgress ? item.progress : nil, action: onSelect
+            progress: item.kind == .film && item.isInProgress ? item.progress : nil,
+            expandsTitleWhenFocused: true, action: onSelect
         ) {
             ArtworkImage(path: item.artworkPath(for: .poster), size: .poster)
+                .overlay(alignment: .topTrailing) {
+                    if item.isWatched { WatchedTick().padding(12) }
+                }
         }
         .focused(focus, equals: .item(item.id))
         .onPlayPauseCommand(perform: onSelect)
@@ -359,6 +445,54 @@ struct LibraryPoster: View {
             }
         }
         .accessibilityIdentifier("library.item.\(item.id)")
+    }
+}
+
+/// The small tick on a watched poster (in place of a "Watched" caption).
+struct WatchedTick: View {
+    var body: some View {
+        Image(systemName: "checkmark")
+            .font(.system(size: 18, weight: .bold))
+            .foregroundStyle(Color.white)
+            .frame(width: 36, height: 36)
+            .background(Circle().fill(Color.black.opacity(0.6)))
+            .accessibilityLabel("Watched")
+            .accessibilityIdentifier("library.watched")
+    }
+}
+
+/// The grid's columns: six posters, 80 pt margins. Without the letter rail they spread evenly from x 80 to x 1840
+/// (64 pt gaps). With it, a fixed gutter (rail plus 40 pt) is reserved inside the right margin and the six columns
+/// fill what remains, so the grid and the Collections row end at the same edge.
+struct LibraryGridLayout: Equatable {
+    static let screenWidth: CGFloat = 1920
+    static let screenHeight: CGFloat = 1080
+    static let columnCount = 6
+    static let railWidth: CGFloat = 56
+    static let railGap: CGFloat = 40
+
+    /// Space between columns.
+    let gap: CGFloat
+    /// From the grid's right edge to the screen's.
+    let trailingInset: CGFloat
+
+    init(showsRail: Bool) {
+        let margin = PerchSpacing.horizontalMargin
+        let right = Self.screenWidth - margin - (showsRail ? Self.railWidth + Self.railGap : 0)
+        let available = right - margin
+        let posters = CGFloat(Self.columnCount) * PerchSize.posterGrid.width
+        gap = ((available - posters) / CGFloat(Self.columnCount - 1)).rounded(.down)
+        trailingInset = Self.screenWidth - margin - Self.width(gap: gap)
+    }
+
+    static func width(gap: CGFloat) -> CGFloat {
+        CGFloat(columnCount) * PerchSize.posterGrid.width + CGFloat(columnCount - 1) * gap
+    }
+
+    var columns: [GridItem] {
+        Array(
+            repeating: GridItem(.fixed(PerchSize.posterGrid.width), spacing: gap, alignment: .top),
+            count: Self.columnCount)
     }
 }
 
@@ -379,9 +513,10 @@ struct LibraryPlaceholderTile: View {
 
 struct LibraryPlaceholderGrid: View {
     let count: Int
+    var layout = LibraryGridLayout(showsRail: false)
 
     var body: some View {
-        LazyVGrid(columns: LibraryGridScreen.columns, alignment: .leading, spacing: 48) {
+        LazyVGrid(columns: layout.columns, alignment: .leading, spacing: 48) {
             ForEach(0..<count, id: \.self) { _ in LibraryPlaceholderTile() }
         }
         .padding(.leading, PerchSpacing.horizontalMargin)
@@ -425,14 +560,14 @@ struct LibraryMessage: View {
         .frame(width: 900)
         .frame(width: LibraryMessage.width, height: 520)
         .padding(.leading, PerchSpacing.horizontalMargin)
+        .frame(width: LibraryGridLayout.screenWidth, alignment: .leading)
         .focusSection()
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("library.message")
     }
 
-    /// The grid's width, so the message centres over where the posters were.
-    static let width = CGFloat(LibraryGridScreen.columnCount) * PerchSize.posterGrid.width
-        + CGFloat(LibraryGridScreen.columnCount - 1) * LibraryGridScreen.columnGap
+    /// The screen between the margins, so the message centres on the full width.
+    static let width = LibraryGridLayout.screenWidth - 2 * PerchSpacing.horizontalMargin
 }
 
 /// Select on a library title (until title pages, WP-11): a film plays, resuming when started; a series plays its
