@@ -5,7 +5,7 @@ import PerchPlex
 import SwiftUI
 import UIKit
 
-/// "Run setup again" from Home (until Settings exists, WP-18): the Authoriser decides first, so a kid is
+/// "Run setup again" from the Settings tab (WP-13; the full Settings screen is WP-18): the Authoriser decides first, so a kid is
 /// refused without a keypad; a parent enters the Admin PIN. Moved from the WP-04 placeholder home with its
 /// identifiers and copy unchanged.
 @MainActor @Observable
@@ -114,18 +114,23 @@ private struct SetupRerunFlowModifier: ViewModifier {
     let name: String?
 
     func body(content: Content) -> some View {
-        ZStack {
-            content
-                .opacity(flow.isActive ? 0 : 1)
-                .disabled(flow.isActive)
-            if flow.refused {
-                refusedScreen.transition(.opacity)
-            } else if flow.askingForPIN {
-                pinScreen.transition(.opacity)
+        // WP-13: a full-screen presentation over the whole shell (sidebar included), so focus moves into the
+        // keypad and Back closes it, instead of an in-tree swap that would leave the sidebar reachable.
+        content.perchFullScreen(isPresented: active) {
+            ZStack {
+                if flow.refused {
+                    refusedScreen.transition(.opacity)
+                } else if flow.askingForPIN {
+                    pinScreen.transition(.opacity)
+                }
             }
+            .animation(.easeInOut(duration: PerchMotion.crossfadeDuration), value: flow.refused)
         }
-        .animation(.easeInOut(duration: PerchMotion.crossfadeDuration), value: flow.isActive)
-        .onExitCommand(perform: flow.isActive ? { flow.back() } : nil)
+    }
+
+    /// Back (or the presentation ending) runs the flow's own Back; a PIN being checked stays open.
+    private var active: Binding<Bool> {
+        Binding(get: { flow.isActive }, set: { if !$0 { flow.back() } })
     }
 
     private var pinScreen: some View {

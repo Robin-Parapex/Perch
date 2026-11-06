@@ -36,7 +36,7 @@ struct AppRoot: View {
     }
 
     /// DEBUG `-PerchDesignGallery`: home from the first frame, whatever the stored setup or sign-in, so the
-    /// gallery pushed by Home is never routed away or re-mounted (WP-04 behaviour).
+    /// gallery pushed onto the Home tab is never routed away or re-mounted (WP-04 behaviour).
     private static var opensGallery: Bool {
         #if DEBUG
         // `-PerchPlayerSpike` (WP-07 spike) is pinned the same way.
@@ -157,12 +157,12 @@ struct AppRoot: View {
             if PlayerSpikeView.isRequested {
                 PlayerSpikeView(core: core)
             } else {
-                HomeScreen(core: core, onRunSetupAgain: { isRerun = true })
+                MainShell(core: core, onRunSetupAgain: { isRerun = true })
                     .accessibilityElement(children: .contain)
                     .accessibilityIdentifier("root.home")
             }
             #else
-            HomeScreen(core: core, onRunSetupAgain: { isRerun = true })
+            MainShell(core: core, onRunSetupAgain: { isRerun = true })
                 .accessibilityElement(children: .contain)
                 .accessibilityIdentifier("root.home")
             #endif

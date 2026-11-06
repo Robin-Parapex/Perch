@@ -51,33 +51,21 @@ struct HomeProfile: Equatable {
 }
 
 /// What can hold focus on Home.
+/// The profile menu that sat top-right until WP-13 is gone: the sidebar's avatar and Settings carry its actions.
 enum HomeFocus: Hashable {
     case hero
-    case profileMenu
     case card(row: String, item: String)
 
     var rowID: String? {
         if case .card(let row, _) = self { row } else { nil }
     }
-}
 
-/// Last focused card per row and the last focus on Home, in memory, per profile (spec 5; the
-/// FocusCoordinator idea from Swiftfin, reimplemented).
-@MainActor
-final class HomeFocusMemory {
-    static let shared = HomeFocusMemory()
-
-    private var itemByRow: [String: [String: String]] = [:]
-    private var last: [String: HomeFocus] = [:]
-
-    func record(_ focus: HomeFocus, profileID: String) {
-        last[profileID] = focus
-        if case .card(let row, let item) = focus { itemByRow[profileID, default: [:]][row] = item }
+    var itemID: String? {
+        if case .card(_, let item) = self { item } else { nil }
     }
 
-    func rememberedItem(row: String, profileID: String) -> String? { itemByRow[profileID]?[row] }
-
-    func lastFocus(profileID: String) -> HomeFocus? { last[profileID] }
+    /// Home's screen id in `FocusMemory`.
+    static let screen = "home"
 }
 
 #if DEBUG

@@ -9,12 +9,13 @@ final class HomeUITests: XCTestCase {
 
     /// Wizard, profile, Home.
     @MainActor
-    private func reachHome(_ extra: [String] = []) throws -> XCUIApplication {
+    private func reachHome(_ extra: [String] = [], enterContent: Bool = true) throws -> XCUIApplication {
         let app = launchApp(.noPINs, extraArguments: ["-PerchUITests"] + extra)
         try completeWizard(app, .noPINs)
         if element(app, "root.picker").exists { pickProfile(1001, app) }
         waitFor(element(app, "home.root"), timeout: 20)
         RunLoop.current.run(until: Date().addingTimeInterval(2))  // let the first render settle
+        if enterContent { enterContentIfSidebarFocused(app) }
         return app
     }
 
@@ -37,7 +38,7 @@ final class HomeUITests: XCTestCase {
 
     @MainActor
     func testLaunchFocusIsHeroAction() throws {
-        let app = try reachHome()
+        let app = try reachHome(enterContent: false)
         XCTAssertTrue(hasFocus(app, "home.hero.action"), "focus starts on the hero action")
         XCTAssertEqual(app.activityIndicators.count, 0, "no spinner on Home")
         shot("home-launch")
@@ -119,16 +120,15 @@ final class HomeUITests: XCTestCase {
         shot("home-empty")
     }
 
+    /// WP-13: the profile menu moved to the sidebar. Left from the hero reaches the sidebar, Right comes back to it.
     @MainActor
-    func testProfileMenuOpensSheet() throws {
+    func testLeftFromHeroReachesSidebarAndRightReturns() throws {
         let app = try reachHome()
         XCTAssertTrue(hasFocus(app, "home.hero.action"))
+        XCTAssertFalse(element(app, "home.profileMenu").exists, "no profile menu on Home")
+        XCUIRemote.shared.press(.left)
+        XCTAssertTrue(waitUntil(5) { self.sidebarHasFocus(app) }, "Left from the hero lands in the sidebar")
         XCUIRemote.shared.press(.right)
-        XCTAssertTrue(hasFocus(app, "home.profileMenu"), "Right from the hero lands on the profile menu")
-        XCUIRemote.shared.press(.select)
-        waitFor(element(app, "home.switchProfile"))
-        back()
-        XCTAssertTrue(waitForGone(element(app, "home.switchProfile")), "Back closes the sheet")
-        XCTAssertTrue(hasFocus(app, "home.profileMenu"), "focus returns to the profile menu")
+        XCTAssertTrue(hasFocus(app, "home.hero.action"), "Right returns to the hero")
     }
 }
