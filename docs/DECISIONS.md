@@ -555,6 +555,19 @@ Append-only log of decisions and why. Newest at the bottom. Format: date, decisi
 - Focus lift on grid posters stays the system highlight (about 1.11, above DESIGN's 1.05 to 1.08), shared with Home's cards; revisit in the stage design pass.
 - Full detail: `docs/notes/wp-10-plan.md`.
 
+## 2026-11-06 Series and title pages (WP-11)
+- Select on a grid or collection poster opens its title or series page; Play/Pause on a poster plays at once. On Home, Select on a series or season card opens the series page; film, Continue watching and Up next cards play on Select (two-click resume). Play/Pause on a Home series card plays. This supersedes the WP-09 "Select on Home cards in 0.2" line about series Select playing, and its "Long-press does nothing until WP-11": long-press on a Home film card offers "Details", on an episode card "Go to series".
+- One Play next rule (`SeriesNext`) everywhere a series plays (page, Home hero and Play/Pause, grids' Play/Pause, season cards within their season): an episode in progress resumes when it is the latest viewing; otherwise the first unwatched episode after the most recently watched, wrapping to the first unwatched; nothing watched plays S1 E1; everything watched offers Play again from S1 E1. Specials count only when a series has nothing else. Computed from one `allLeaves` call. An episode with no season number counts as season 1.
+- The hero's primary button is Play next and takes first focus (SPEC 4). No duplicate Play next chip: when the season shown is not the next episode's, a "Next: S1 E4" jump chip at the end of the season row selects that season and focuses the episode. Season chips scroll sideways.
+- Hero is the page's own fixed-size view, not `HeroCard`: 648 pt for a film, 832 pt for a series. Format marks (4K, Dolby Vision, HDR10) sit inline in the facts line as small glyphs. Three-line focusable synopsis; Select opens the full text.
+- Secondary actions are glass icon circles (`PerchIconButton`, PerchDesign) with the name beneath on focus and as the accessibility label. Film: Play from the start (when resuming), Mark watched. Series: Mark series watched / unwatched.
+- Certificates show without their country prefix ("gb/12A" reads "12A") through `CertificateDisplay.text` (PerchCore).
+- A title above the profile's ceiling shows a blank hero and only Go back. A cancelled page load is not a failure. Home refreshes its rows when Back returns from a page.
+- Cast circles are focusable but inert until person pages.
+- Theme music is off by default for everyone in 0.3 (SPEC: on by default from 1.2, WP-27). DEBUG `-PerchThemeMusic` switches it on; kids never hear it. When on: volume 0.25, 1 s fade in, 1 s fade out on leaving the page, stops at once when playback starts, never restarts on that page.
+- Follow-ups: a Similar titles rail; series format marks (needs a per-episode version read); trim logo transparent margins; gallery entries for `PerchIconButton`, `FormatGlyph` and `FactsLine`.
+- Full detail: `docs/notes/wp-11-plan.md`.
+
 ## Open decisions (resolve in the named work package)
 - Recovery when the stored Perch PIN cannot be read (Admin is locked out by design): confirm the owner through Plex, audited, then allow a new Perch PIN (WP-05).
 - Assistant name (placeholder Pip) (WP-19).
